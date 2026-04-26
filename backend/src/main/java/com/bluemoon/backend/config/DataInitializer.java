@@ -29,8 +29,8 @@ public class DataInitializer {
             System.out.println("✅ Apartments seeded (6 floors × 4 rooms = 24 units)");
 
             // 2. Seed default admin account if it doesn't exist
-            String adminPhone = "0888104061";
-            String adminCCCD = "035206007545";
+            String adminPhone = "00000000";
+            String adminCCCD = "00000000";
 
             if (userRepository.findByUsername(adminPhone).isEmpty()) {
                 User admin = new User();
