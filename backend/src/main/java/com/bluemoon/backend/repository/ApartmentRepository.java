@@ -1,10 +1,10 @@
 package com.bluemoon.backend.repository;
 
-import com.bluemoon.backend.entity.Apartment;
+import com.bluemoon.backend.entity.ApartmentEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
-public interface ApartmentRepository extends JpaRepository<Apartment, Long> {
+public interface ApartmentRepository extends JpaRepository<ApartmentEntity, Long> {
 
-    Optional<Apartment> findByApartmentNumber(String apartmentNumber);
+    Optional<ApartmentEntity> findByApartmentNumber(String apartmentNumber);
 }

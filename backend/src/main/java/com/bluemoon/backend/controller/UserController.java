@@ -1,7 +1,7 @@
 package com.bluemoon.backend.controller;
 
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -9,8 +9,15 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import com.bluemoon.backend.entity.User;
+import com.bluemoon.backend.controller.request.UpdateProfileRequest;
+import com.bluemoon.backend.controller.response.ErrorResponse;
+import com.bluemoon.backend.controller.response.MessageResponse;
+import com.bluemoon.backend.controller.response.ResponseMapper;
+import com.bluemoon.backend.controller.response.UserResponse;
 import com.bluemoon.backend.service.UserService;
+import com.bluemoon.backend.service.dto.UserDTO;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,19 +28,22 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        List<UserResponse> users = userService.getAllUsers().stream()
+                .map(ResponseMapper::toUserResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 
     // Get the currently logged-in user's profile
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userService.getUserByUsername(currentUsername);
-        if (user == null) {
+        UserDTO dto = userService.getUserByUsername(currentUsername);
+        if (dto == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(ResponseMapper.toUserResponse(dto));
     }
 
     /**
@@ -41,37 +51,38 @@ public class UserController {
      * phoneNumber, identityCardNumber, and apartment are READ-ONLY (set at registration).
      */
     @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(@RequestBody Map<String, String> profileData) {
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        User updatedUser = userService.updateProfile(currentUsername, profileData);
+        UserDTO updatedUser = userService.updateProfile(currentUsername, request);
         if (updatedUser == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(updatedUser);
+        return ResponseEntity.ok(ResponseMapper.toUserResponse(updatedUser));
     }
 
     // Send a verification email to the logged-in user
     @PostMapping("/send-verification")
     public ResponseEntity<?> sendVerification() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        Map<String, String> result = userService.sendVerificationEmail(currentUsername);
-        if (result == null) {
-            return ResponseEntity.notFound().build();
+        try {
+            String result = userService.sendVerificationEmail(currentUsername);
+            if (result == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(new MessageResponse(result));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
-        if (result.containsKey("error")) {
-            return ResponseEntity.badRequest().body(result);
-        }
-        return ResponseEntity.ok(result);
     }
 
     // Verify email with token
     @GetMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        Map<String, String> result = userService.verifyEmail(token);
+        String result = userService.verifyEmail(token);
         if (result == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Invalid or expired token"));
+            return ResponseEntity.badRequest().body(new ErrorResponse("Invalid or expired token"));
         }
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(new MessageResponse(result));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -81,6 +92,6 @@ public class UserController {
         if (!deleted) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
+        return ResponseEntity.ok(new MessageResponse("User deleted successfully"));
     }
 }

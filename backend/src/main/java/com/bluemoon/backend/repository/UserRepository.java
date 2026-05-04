@@ -1,14 +1,14 @@
 package com.bluemoon.backend.repository;
 
-import com.bluemoon.backend.entity.User;
+import com.bluemoon.backend.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
-    Optional<User> findByUsername(String username);
+    Optional<UserEntity> findByUsername(String username);
 
-    Optional<User> findByVerificationToken(String verificationToken);
+    Optional<UserEntity> findByVerificationToken(String verificationToken);
 
-    Optional<User> findByIdentityCardNumber(String identityCardNumber);
+    Optional<UserEntity> findByIdentityCardNumber(String identityCardNumber);
 }

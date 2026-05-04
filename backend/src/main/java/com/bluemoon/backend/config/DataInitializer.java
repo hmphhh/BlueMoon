@@ -1,7 +1,7 @@
 package com.bluemoon.backend.config;
 
-import com.bluemoon.backend.entity.Apartment;
-import com.bluemoon.backend.entity.User;
+import com.bluemoon.backend.entity.ApartmentEntity;
+import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.repository.ApartmentRepository;
 import com.bluemoon.backend.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
@@ -22,7 +22,7 @@ public class DataInitializer {
                 for (int room = 1; room <= 4; room++) {
                     String number = floor + "0" + room;
                     if (apartmentRepository.findByApartmentNumber(number).isEmpty()) {
-                        apartmentRepository.save(new Apartment(number));
+                        apartmentRepository.save(new ApartmentEntity(number));
                     }
                 }
             }
@@ -33,7 +33,7 @@ public class DataInitializer {
             String adminCCCD = "00000000";
 
             if (userRepository.findByUsername(adminPhone).isEmpty()) {
-                User admin = new User();
+                UserEntity admin = new UserEntity();
                 admin.setUsername(adminPhone);
                 admin.setPassword(passwordEncoder.encode(adminCCCD));
                 admin.setPhoneNumber(adminPhone);

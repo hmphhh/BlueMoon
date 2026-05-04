@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "apartments")
 @Data
 @NoArgsConstructor
-public class Apartment {
+public class ApartmentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +22,7 @@ public class Apartment {
     @Column(unique = true, nullable = false)
     private String apartmentNumber; // e.g. "101", "602"
 
-    public Apartment(String apartmentNumber) {
+    public ApartmentEntity(String apartmentNumber) {
         this.apartmentNumber = apartmentNumber;
     }
 }

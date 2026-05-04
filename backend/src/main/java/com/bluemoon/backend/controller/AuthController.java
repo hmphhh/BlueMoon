@@ -1,13 +1,20 @@
 package com.bluemoon.backend.controller;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.bluemoon.backend.controller.request.LoginRequest;
+import com.bluemoon.backend.controller.request.RegisterRequest;
+import com.bluemoon.backend.controller.response.ErrorResponse;
+import com.bluemoon.backend.controller.response.LoginResponse;
+import com.bluemoon.backend.controller.response.ResponseMapper;
+import com.bluemoon.backend.controller.response.UserResponse;
 import com.bluemoon.backend.service.AuthService;
+import com.bluemoon.backend.service.dto.UserDTO;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -23,23 +30,22 @@ public class AuthController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
-        Map<String, Object> result = authService.register(body);
-        if (result.containsKey("error")) {
-            return ResponseEntity.badRequest().body(Map.of("error", result.get("error")));
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
+        try {
+            UserDTO userDTO = authService.register(request);
+            UserResponse response = ResponseMapper.toUserResponse(userDTO);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         }
-        return ResponseEntity.ok(result.get("user"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
-        String username = loginData.get("username");
-        String password = loginData.get("password");
-
-        Map<String, Object> response = authService.login(username, password);
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request.getUsername(), request.getPassword());
         if (response == null) {
             return ResponseEntity.status(401).body(
-                Map.of("error", "Invalid username or password")
+                new ErrorResponse("Invalid username or password")
             );
         }
         return ResponseEntity.ok(response);
