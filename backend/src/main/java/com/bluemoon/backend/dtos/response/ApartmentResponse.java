@@ -1,4 +1,4 @@
-package com.bluemoon.backend.controller.response;
+package com.bluemoon.backend.dtos.response;
 
 import lombok.Data;
 

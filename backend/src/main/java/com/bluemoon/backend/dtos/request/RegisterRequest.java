@@ -1,4 +1,4 @@
-package com.bluemoon.backend.controller.request;
+package com.bluemoon.backend.dtos.request;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

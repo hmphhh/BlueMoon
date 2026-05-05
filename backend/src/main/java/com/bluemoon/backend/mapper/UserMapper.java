@@ -1,34 +1,21 @@
 package com.bluemoon.backend.mapper;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
+import com.bluemoon.backend.dtos.response.UserResponse;
 import com.bluemoon.backend.entity.UserEntity;
-import com.bluemoon.backend.service.dto.UserDTO;
 
 /**
- * Maps between UserEntity and UserDTO.
+ * MapStruct mapper for User-related transformations.
  */
-public class UserMapper {
+@Mapper(componentModel = "spring")
+public interface UserMapper {
 
-    private UserMapper() {
-        // Utility class
-    }
-
-    public static UserDTO toDTO(UserEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-        UserDTO dto = new UserDTO();
-        dto.setId(entity.getId());
-        dto.setUsername(entity.getUsername());
-        dto.setFullName(entity.getFullName());
-        dto.setRole(entity.getRole());
-        dto.setEmail(entity.getEmail());
-        dto.setPhoneNumber(entity.getPhoneNumber());
-        dto.setIdentityCardNumber(entity.getIdentityCardNumber());
-        dto.setAvatarUrl(entity.getAvatarUrl());
-        dto.setVerified(entity.isVerified());
-        dto.setApartmentNumber(
-                entity.getApartment() != null ? entity.getApartment().getApartmentNumber() : null
-        );
-        return dto;
-    }
+    /**
+     * Map UserEntity to UserResponse.
+     * Handles nested apartment relationship and extracts apartment number.
+     */
+    @Mapping(target = "apartmentNumber", source = "apartment.apartmentNumber")
+    UserResponse toResponse(UserEntity entity);
 }

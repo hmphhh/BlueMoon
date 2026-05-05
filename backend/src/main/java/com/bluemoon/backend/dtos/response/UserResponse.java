@@ -1,13 +1,14 @@
-package com.bluemoon.backend.service.dto;
+package com.bluemoon.backend.dtos.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
- * Business-layer representation of a User.
- * Used for passing user data between service and controller layers.
+ * Public API response format for user data.
+ * Controls exactly what is sent over the wire.
  */
 @Data
-public class UserDTO {
+public class UserResponse {
 
     private Long id;
     private String username;
@@ -17,6 +18,9 @@ public class UserDTO {
     private String phoneNumber;
     private String identityCardNumber;
     private String avatarUrl;
+
+    @JsonProperty("isVerified")
     private boolean isVerified;
+
     private String apartmentNumber;
 }

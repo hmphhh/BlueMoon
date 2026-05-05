@@ -7,15 +7,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import com.bluemoon.backend.controller.request.UpdateProfileRequest;
-import com.bluemoon.backend.controller.response.ErrorResponse;
-import com.bluemoon.backend.controller.response.MessageResponse;
-import com.bluemoon.backend.controller.response.ResponseMapper;
-import com.bluemoon.backend.controller.response.UserResponse;
+import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
+import com.bluemoon.backend.dtos.response.UserResponse;
+import com.bluemoon.backend.mapper.UserMapper;
 import com.bluemoon.backend.service.UserService;
-import com.bluemoon.backend.service.dto.UserDTO;
 
 import jakarta.validation.Valid;
 
@@ -26,24 +31,24 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private UserMapper userMapper;
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         List<UserResponse> users = userService.getAllUsers().stream()
-                .map(ResponseMapper::toUserResponse)
+                .map(userMapper::toResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(users);
     }
 
     // Get the currently logged-in user's profile
     @GetMapping("/me")
-    public ResponseEntity<?> getMyProfile() {
+    public ResponseEntity<UserResponse> getMyProfile() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        UserDTO dto = userService.getUserByUsername(currentUsername);
-        if (dto == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(ResponseMapper.toUserResponse(dto));
+        var user = userService.getUserByUsername(currentUsername);
+        return ResponseEntity.ok(userMapper.toResponse(user));
     }
 
     /**
@@ -51,47 +56,43 @@ public class UserController {
      * phoneNumber, identityCardNumber, and apartment are READ-ONLY (set at registration).
      */
     @PutMapping("/profile")
-    public ResponseEntity<?> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        UserDTO updatedUser = userService.updateProfile(currentUsername, request);
-        if (updatedUser == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(ResponseMapper.toUserResponse(updatedUser));
+        var updatedUser = userService.updateProfile(currentUsername, request);
+        return ResponseEntity.ok(userMapper.toResponse(updatedUser));
     }
 
     // Send a verification email to the logged-in user
     @PostMapping("/send-verification")
     public ResponseEntity<?> sendVerification() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        try {
-            String result = userService.sendVerificationEmail(currentUsername);
-            if (result == null) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.ok(new MessageResponse(result));
-        } catch (IllegalStateException e) {
-            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
-        }
+        userService.sendVerificationEmail(currentUsername);
+        return ResponseEntity.ok().body(
+                new Object() {
+                    public String message = "Verification email sent successfully";
+                }
+        );
     }
 
     // Verify email with token
     @GetMapping("/verify-email")
     public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        String result = userService.verifyEmail(token);
-        if (result == null) {
-            return ResponseEntity.badRequest().body(new ErrorResponse("Invalid or expired token"));
-        }
-        return ResponseEntity.ok(new MessageResponse(result));
+        userService.verifyEmail(token);
+        return ResponseEntity.ok().body(
+                new Object() {
+                    public String message = "Email verified successfully";
+                }
+        );
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
-        boolean deleted = userService.deleteUser(id);
-        if (!deleted) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(new MessageResponse("User deleted successfully"));
+        userService.deleteUser(id);
+        return ResponseEntity.ok().body(
+                new Object() {
+                    public String message = "User deleted successfully";
+                }
+        );
     }
 }
