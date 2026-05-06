@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useToast } from '../components/Toast';
 import { SkeletonProfile } from '../components/LoadingSkeleton';
+import OtpVerification from '../components/OtpVerification';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -14,6 +15,7 @@ export default function ProfilePage({ user, setUser }) {
     const [isVerified, setIsVerified] = useState(false);
     const [loading, setLoading] = useState(true);
     const [verifying, setVerifying] = useState(false);
+    const [showOtpModal, setShowOtpModal] = useState(false);
 
     useEffect(() => { fetchProfile(); }, []);
 
@@ -56,17 +58,26 @@ export default function ProfilePage({ user, setUser }) {
         }
         setVerifying(true);
         try {
+            // Save profile first to ensure email is up to date
             await axios.put(`${API_BASE}/api/users/profile`, {
                 fullName: profile.fullName, email: profile.email, avatarUrl: profile.avatarUrl,
             });
             setIsVerified(false);
-            const res = await axios.post(`${API_BASE}/api/users/send-verification`);
-            toast(res.data.message || 'Verification email sent! Check your inbox.', 'success');
+            // Send OTP
+            await axios.post(`${API_BASE}/api/users/send-verification`);
+            toast('Verification code sent! Check your inbox.', 'success');
+            setShowOtpModal(true);
         } catch (err) {
-            toast(err.response?.data?.error || 'Failed to send verification email', 'error');
+            toast(err.response?.data?.error || 'Failed to send verification code', 'error');
         } finally {
             setVerifying(false);
         }
+    };
+
+    const handleOtpVerified = () => {
+        setShowOtpModal(false);
+        setIsVerified(true);
+        toast('Email verified successfully!', 'success');
     };
 
     if (loading) {
@@ -156,6 +167,14 @@ export default function ProfilePage({ user, setUser }) {
                     <button type="submit" className="btn btn--primary">Save Changes</button>
                 </form>
             </div>
+
+            {/* OTP Verification Modal */}
+            {showOtpModal && (
+                <OtpVerification
+                    onVerified={handleOtpVerified}
+                    onCancel={() => setShowOtpModal(false)}
+                />
+            )}
         </>
     );
 }

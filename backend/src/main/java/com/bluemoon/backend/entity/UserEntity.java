@@ -1,5 +1,7 @@
 package com.bluemoon.backend.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -42,7 +44,9 @@ public class UserEntity {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean isVerified = false;
 
-    private String verificationToken;
+    private String verificationOtp;
+
+    private LocalDateTime otpExpiryTime;
 
     // Apartment relationship — nullable (admins don't have apartments)
     @ManyToOne

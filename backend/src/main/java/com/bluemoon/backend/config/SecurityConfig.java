@@ -52,11 +52,12 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/users/verify-email").permitAll()
                 .requestMatchers("/api/auth/register").hasRole("ADMIN")
                 .requestMatchers("/api/users/me").authenticated()
                 .requestMatchers("/api/users/profile").authenticated()
                 .requestMatchers("/api/users/send-verification").authenticated()
+                .requestMatchers("/api/users/verify-otp").authenticated()
+                .requestMatchers("/api/users/resend-otp").authenticated()
                 .requestMatchers("/api/apartments/**").hasRole("ADMIN")
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

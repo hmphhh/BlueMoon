@@ -1,7 +1,8 @@
 package com.bluemoon.backend.service;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,10 @@ import com.bluemoon.backend.entity.UserEntity;
 
 @Service
 public class UserService {
+
+    private static final int OTP_LENGTH = 6;
+    private static final int OTP_EXPIRY_MINUTES = 5;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
     private UserRepository userRepository;
@@ -65,18 +70,19 @@ public class UserService {
         boolean emailChanged = request.getEmail() != null && !request.getEmail().equals(oldEmail);
         if (emailChanged) {
             user.setVerified(false);
-            user.setVerificationToken(null);
+            user.setVerificationOtp(null);
+            user.setOtpExpiryTime(null);
         }
 
         return userRepository.save(user);
     }
 
     /**
-     * Send a verification email.
+     * Generate a 6-digit OTP and send it to the user's email.
      * Throws ResourceNotFoundException if user not found.
      * Throws InvalidOperationException if email not set or already verified.
      */
-    public void sendVerificationEmail(String username) {
+    public void sendVerificationOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
@@ -87,22 +93,47 @@ public class UserService {
             throw new InvalidOperationException("Email already verified");
         }
 
-        String token = UUID.randomUUID().toString();
-        user.setVerificationToken(token);
+        String otp = generateOtp();
+        user.setVerificationOtp(otp);
+        user.setOtpExpiryTime(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES));
         userRepository.save(user);
-        emailService.sendVerificationEmail(user.getEmail(), token);
+
+        emailService.sendOtpEmail(user.getEmail(), otp);
     }
 
     /**
-     * Verify email with token.
-     * Throws ResourceNotFoundException if token is invalid or expired.
+     * Verify email with OTP code.
+     * Checks that the OTP matches and has not expired.
+     * Throws InvalidOperationException if OTP is invalid or expired.
      */
-    public void verifyEmail(String token) {
-        UserEntity user = userRepository.findByVerificationToken(token)
-                .orElseThrow(() -> new ResourceNotFoundException("Invalid or expired verification token"));
+    public void verifyOtp(String username, String otp) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
+        if (user.isVerified()) {
+            throw new InvalidOperationException("Email already verified");
+        }
+
+        if (user.getVerificationOtp() == null) {
+            throw new InvalidOperationException("No OTP has been requested. Please request a new code.");
+        }
+
+        if (user.getOtpExpiryTime() != null && LocalDateTime.now().isAfter(user.getOtpExpiryTime())) {
+            // Clear expired OTP
+            user.setVerificationOtp(null);
+            user.setOtpExpiryTime(null);
+            userRepository.save(user);
+            throw new InvalidOperationException("OTP has expired. Please request a new code.");
+        }
+
+        if (!otp.equals(user.getVerificationOtp())) {
+            throw new InvalidOperationException("Invalid OTP. Please check your code and try again.");
+        }
+
+        // OTP is valid — mark as verified
         user.setVerified(true);
-        user.setVerificationToken(null);
+        user.setVerificationOtp(null);
+        user.setOtpExpiryTime(null);
         userRepository.save(user);
     }
 
@@ -114,5 +145,14 @@ public class UserService {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
+    }
+
+    /**
+     * Generate a secure random 6-digit OTP code.
+     */
+    private String generateOtp() {
+        int bound = (int) Math.pow(10, OTP_LENGTH);
+        int number = RANDOM.nextInt(bound);
+        return String.format("%0" + OTP_LENGTH + "d", number);
     }
 }

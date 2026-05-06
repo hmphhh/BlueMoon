@@ -1,6 +1,7 @@
 package com.bluemoon.backend.controller;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +15,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
+import com.bluemoon.backend.dtos.request.VerifyOtpRequest;
 import com.bluemoon.backend.dtos.response.UserResponse;
 import com.bluemoon.backend.mapper.UserMapper;
 import com.bluemoon.backend.service.UserService;
@@ -62,37 +63,40 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toResponse(updatedUser));
     }
 
-    // Send a verification email to the logged-in user
+    /**
+     * Send a 6-digit OTP to the logged-in user's email.
+     */
     @PostMapping("/send-verification")
     public ResponseEntity<?> sendVerification() {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        userService.sendVerificationEmail(currentUsername);
-        return ResponseEntity.ok().body(
-                new Object() {
-                    public String message = "Verification email sent successfully";
-                }
-        );
+        userService.sendVerificationOtp(currentUsername);
+        return ResponseEntity.ok(Map.of("message", "Verification code sent successfully"));
     }
 
-    // Verify email with token
-    @GetMapping("/verify-email")
-    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
-        userService.verifyEmail(token);
-        return ResponseEntity.ok().body(
-                new Object() {
-                    public String message = "Email verified successfully";
-                }
-        );
+    /**
+     * Verify email with a 6-digit OTP code.
+     */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.verifyOtp(currentUsername, request.getOtp());
+        return ResponseEntity.ok(Map.of("message", "Email verified successfully"));
+    }
+
+    /**
+     * Resend a new 6-digit OTP code.
+     */
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.sendVerificationOtp(currentUsername);
+        return ResponseEntity.ok(Map.of("message", "A new verification code has been sent"));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
-        return ResponseEntity.ok().body(
-                new Object() {
-                    public String message = "User deleted successfully";
-                }
-        );
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
     }
 }
