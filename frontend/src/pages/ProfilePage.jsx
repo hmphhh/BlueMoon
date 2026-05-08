@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useToast } from '../components/Toast';
 import { SkeletonProfile } from '../components/LoadingSkeleton';
 import OtpVerification from '../components/OtpVerification';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -16,6 +17,7 @@ export default function ProfilePage({ user, setUser }) {
     const [loading, setLoading] = useState(true);
     const [verifying, setVerifying] = useState(false);
     const [showOtpModal, setShowOtpModal] = useState(false);
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
     useEffect(() => { fetchProfile(); }, []);
 
@@ -78,6 +80,11 @@ export default function ProfilePage({ user, setUser }) {
         setShowOtpModal(false);
         setIsVerified(true);
         toast('Email verified successfully!', 'success');
+    };
+
+    const handlePasswordChangeSuccess = () => {
+        setShowChangePasswordModal(false);
+        toast('Password changed successfully!', 'success');
     };
 
     if (loading) {
@@ -165,8 +172,20 @@ export default function ProfilePage({ user, setUser }) {
                             placeholder="Paste an image URL" />
                     </div>
                     <button type="submit" className="btn btn--primary">Save Changes</button>
+                    <button type="button" className="btn btn--secondary" onClick={() => setShowChangePasswordModal(true)} style={{ marginLeft: '8px' }}>
+                        Change Password
+                    </button>
                 </form>
             </div>
+
+            {/* Change Password Modal */}
+            {showChangePasswordModal && (
+                <ChangePasswordModal
+                    onSuccess={handlePasswordChangeSuccess}
+                    onCancel={() => setShowChangePasswordModal(false)}
+                    toast={toast}
+                />
+            )}
 
             {/* OTP Verification Modal */}
             {showOtpModal && (

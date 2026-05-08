@@ -5,9 +5,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
+import com.bluemoon.backend.exceptions.InvalidCredentialsException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.UserRepository;
@@ -25,6 +28,9 @@ public class UserService {
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Get all users (admin only).
@@ -145,6 +151,38 @@ public class UserService {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
+    }
+
+    /**
+     * Change password for the authenticated user.
+     * Verifies the current password before allowing the change.
+     * Returns the updated user entity.
+     * Throws ResourceNotFoundException if user not found.
+     * Throws InvalidCredentialsException if current password is incorrect.
+     * Throws InvalidOperationException if new passwords don't match.
+     */
+    public UserEntity changePassword(String username, ChangePasswordRequest request) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidCredentialsException("Current password is incorrect");
+        }
+
+        // Check if new passwords match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new InvalidOperationException("New password and confirm password do not match");
+        }
+
+        // Check if new password is same as current password
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new InvalidOperationException("New password must be different from current password");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        return userRepository.save(user);
     }
 
     /**

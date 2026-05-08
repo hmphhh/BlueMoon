@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
 import com.bluemoon.backend.dtos.request.VerifyOtpRequest;
 import com.bluemoon.backend.dtos.response.UserResponse;
@@ -91,6 +92,19 @@ public class UserController {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.sendVerificationOtp(currentUsername);
         return ResponseEntity.ok(Map.of("message", "A new verification code has been sent"));
+    }
+
+    /**
+     * Change password for the currently logged-in user.
+     */
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        var updatedUser = userService.changePassword(currentUsername, request);
+        return ResponseEntity.ok(Map.of(
+            "message", "Password changed successfully",
+            "user", userMapper.toResponse(updatedUser)
+        ));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
