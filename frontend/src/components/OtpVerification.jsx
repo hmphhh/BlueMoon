@@ -5,13 +5,27 @@ import { useToast } from './Toast';
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 const RESEND_COOLDOWN = 15; // seconds
 
-export default function OtpVerification({ onVerified, onCancel }) {
+/**
+ * Reusable OTP Verification Modal
+ * @param {string} type - 'email-verification' or 'forgot-password'
+ * @param {string} email - User email (required for forgot-password)
+ * @param {function} onVerified - Callback when OTP is verified (receives token for forgot-password)
+ * @param {function} onCancel - Callback when modal is cancelled
+ */
+export default function OtpVerification({ type = 'email-verification', email, onVerified, onCancel }) {
     const toast = useToast();
     const [otp, setOtp] = useState(Array(6).fill(''));
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [resendCooldown, setResendCooldown] = useState(0);
     const inputRefs = useRef([]);
+
+    const isForgotPassword = type === 'forgot-password';
+    const titleText = isForgotPassword ? 'Verify Your Email' : 'Check Your Email';
+    const subtitleText = isForgotPassword
+        ? `We've sent a 6-digit code to ${email || 'your email'}. Please enter it below.`
+        : 'We\'ve sent a 6-digit verification code to your email address. Please enter it below.';
+    const backText = isForgotPassword ? '← Go Back' : '← Back to Profile';
 
     // Auto-focus first input on mount
     useEffect(() => {
@@ -110,12 +124,25 @@ export default function OtpVerification({ onVerified, onCancel }) {
         setLoading(true);
         setError('');
         try {
-            await axios.post(`${API_BASE}/api/users/verify-otp`, { otp: code });
-            toast('Email verified successfully!', 'success');
-            onVerified?.();
+            if (isForgotPassword) {
+                // Forgot password verification
+                const res = await axios.post(`${API_BASE}/api/auth/forgot-password/verify`, {
+                    email,
+                    otp: code
+                });
+                toast.success('OTP verified successfully');
+                onVerified?.(res.data.resetToken);
+            } else {
+                // Email verification
+                await axios.post(`${API_BASE}/api/users/verify-otp`, { otp: code });
+                toast.success('Email verified successfully!');
+                onVerified?.();
+            }
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || 'Verification failed';
             setError(msg);
+            setOtp(Array(6).fill(''));
+            focusInput(0);
         } finally {
             setLoading(false);
         }
@@ -129,8 +156,15 @@ export default function OtpVerification({ onVerified, onCancel }) {
         setOtp(Array(6).fill(''));
 
         try {
-            await axios.post(`${API_BASE}/api/users/resend-otp`);
-            toast('A new verification code has been sent', 'success');
+            if (isForgotPassword) {
+                // Resend OTP for forgot password
+                await axios.post(`${API_BASE}/api/auth/forgot-password/request`, { email });
+                toast.success('New OTP sent to your email');
+            } else {
+                // Resend OTP for email verification
+                await axios.post(`${API_BASE}/api/users/resend-otp`);
+                toast.success('A new verification code has been sent');
+            }
             focusInput(0);
         } catch (err) {
             const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to resend code';
@@ -152,11 +186,8 @@ export default function OtpVerification({ onVerified, onCancel }) {
                     </svg>
                 </div>
 
-                <h2 className="otp-modal__title">Check Your Email</h2>
-                <p className="otp-modal__subtitle">
-                    We've sent a 6-digit verification code to your email address.
-                    Please enter it below.
-                </p>
+                <h2 className="otp-modal__title">{titleText}</h2>
+                <p className="otp-modal__subtitle">{subtitleText}</p>
 
                 {/* OTP Input Strip */}
                 <div className="otp-strip" onPaste={handlePaste}>
@@ -226,9 +257,93 @@ export default function OtpVerification({ onVerified, onCancel }) {
 
                 {/* Cancel link */}
                 <button className="otp-modal__cancel" onClick={onCancel} id="otp-cancel-btn">
-                    ← Back to Profile
+                    {backText}
                 </button>
             </div>
         </div>
     );
 }
+//                         <polyline points="3 7 12 13 21 7" />
+//                     </svg>
+//                 </div>
+
+//                 <h2 className="otp-modal__title">Check Your Email</h2>
+//                 <p className="otp-modal__subtitle">
+//                     We've sent a 6-digit verification code to your email address.
+//                     Please enter it below.
+//                 </p>
+
+//                 {/* OTP Input Strip */}
+//                 <div className="otp-strip" onPaste={handlePaste}>
+//                     {otp.map((digit, index) => (
+//                         <input
+//                             key={index}
+//                             ref={el => inputRefs.current[index] = el}
+//                             type="text"
+//                             inputMode="numeric"
+//                             maxLength={1}
+//                             className={`otp-strip__input ${digit ? 'otp-strip__input--filled' : ''} ${error ? 'otp-strip__input--error' : ''}`}
+//                             value={digit}
+//                             onChange={e => handleChange(index, e.target.value)}
+//                             onKeyDown={e => handleKeyDown(index, e)}
+//                             onFocus={() => handleFocus(index)}
+//                             autoComplete="one-time-code"
+//                             id={`otp-input-${index}`}
+//                         />
+//                     ))}
+//                 </div>
+
+//                 {/* Error message */}
+//                 {error && (
+//                     <div className="otp-error">
+//                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+//                             <circle cx="12" cy="12" r="10" />
+//                             <path d="m15 9-6 6M9 9l6 6" />
+//                         </svg>
+//                         {error}
+//                     </div>
+//                 )}
+
+//                 {/* Verify button */}
+//                 <button
+//                     className="btn btn--primary otp-modal__verify-btn"
+//                     onClick={handleSubmit}
+//                     disabled={!isComplete || loading}
+//                     id="otp-verify-btn"
+//                 >
+//                     {loading ? (
+//                         <span className="otp-spinner" />
+//                     ) : (
+//                         <>
+//                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+//                                 <path d="M20 6L9 17l-5-5" />
+//                             </svg>
+//                             Verify Code
+//                         </>
+//                     )}
+//                 </button>
+
+//                 {/* Resend section */}
+//                 <div className="otp-resend">
+//                     <span className="otp-resend__text">Didn't receive the code?</span>
+//                     <button
+//                         className="otp-resend__btn"
+//                         onClick={handleResend}
+//                         disabled={resendCooldown > 0}
+//                         id="otp-resend-btn"
+//                     >
+//                         {resendCooldown > 0
+//                             ? `Resend in ${resendCooldown}s`
+//                             : 'Resend Code'
+//                         }
+//                     </button>
+//                 </div>
+
+//                 {/* Cancel link */}
+//                 <button className="otp-modal__cancel" onClick={onCancel} id="otp-cancel-btn">
+//                     ← Back to Profile
+//                 </button>
+//             </div>
+//         </div>
+//     );
+// }

@@ -77,6 +77,15 @@ export default function Login({ setUser }) {
                         required
                         autoComplete="current-password"
                     />
+                    <div className="login-form__footer">
+                        <button
+                            type="button"
+                            className="btn btn--link"
+                            onClick={() => navigate('/forgot-password')}
+                        >
+                            Forgot password?
+                        </button>
+                    </div>
                     <button className="btn btn--primary" type="submit" disabled={loading}>
                         {loading ? 'Signing in…' : 'Sign In'}
                     </button>

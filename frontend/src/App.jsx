@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastProvider } from './components/Toast';
 import Login from './components/Login';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardLayout from './components/DashboardLayout';
 import AdminPage from './pages/AdminPage';
 import UserPage from './pages/UserPage';
@@ -58,6 +60,9 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login setUser={handleSetUser} />} />
+          <Route path="/login" element={<Login setUser={handleSetUser} />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route
             path="/admin-panel"
             element={

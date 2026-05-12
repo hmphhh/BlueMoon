@@ -1,7 +1,5 @@
 package com.bluemoon.backend.service;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,24 +8,25 @@ import org.springframework.stereotype.Service;
 
 import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
+import com.bluemoon.backend.entity.OtpTokenType;
+import com.bluemoon.backend.entity.OtpVerificationToken;
+import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.exceptions.InvalidCredentialsException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.UserRepository;
-import com.bluemoon.backend.entity.UserEntity;
 
 @Service
 public class UserService {
-
-    private static final int OTP_LENGTH = 6;
-    private static final int OTP_EXPIRY_MINUTES = 5;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private OtpService otpService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -76,8 +75,7 @@ public class UserService {
         boolean emailChanged = request.getEmail() != null && !request.getEmail().equals(oldEmail);
         if (emailChanged) {
             user.setVerified(false);
-            user.setVerificationOtp(null);
-            user.setOtpExpiryTime(null);
+            otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION); // Clear any existing OTP for email verification
         }
 
         return userRepository.save(user);
@@ -99,18 +97,17 @@ public class UserService {
             throw new InvalidOperationException("Email already verified");
         }
 
-        String otp = generateOtp();
-        user.setVerificationOtp(otp);
-        user.setOtpExpiryTime(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES));
-        userRepository.save(user);
-
-        emailService.sendOtpEmail(user.getEmail(), otp);
+        // Create and save OTP token
+        OtpVerificationToken otpToken = otpService.createAndSaveOtp(user, OtpTokenType.EMAIL_VERIFICATION);
+        
+        // Send OTP email for email verification
+        emailService.sendOtpEmail(user.getEmail(), otpToken.getOtp());
     }
 
     /**
      * Verify email with OTP code.
      * Checks that the OTP matches and has not expired.
-     * Throws InvalidOperationException if OTP is invalid or expired.
+     * Throws InvalidCredentialsException if OTP is invalid or expired.
      */
     public void verifyOtp(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
@@ -120,26 +117,16 @@ public class UserService {
             throw new InvalidOperationException("Email already verified");
         }
 
-        if (user.getVerificationOtp() == null) {
-            throw new InvalidOperationException("No OTP has been requested. Please request a new code.");
+        // Verify OTP using OtpService (deletes if invalid/expired)
+        if (!otpService.verifyOtp(user, OtpTokenType.EMAIL_VERIFICATION, otp)) {
+            throw new InvalidCredentialsException("Invalid or expired OTP");
         }
 
-        if (user.getOtpExpiryTime() != null && LocalDateTime.now().isAfter(user.getOtpExpiryTime())) {
-            // Clear expired OTP
-            user.setVerificationOtp(null);
-            user.setOtpExpiryTime(null);
-            userRepository.save(user);
-            throw new InvalidOperationException("OTP has expired. Please request a new code.");
-        }
+        // Delete the OTP after successful verification
+        otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION);
 
-        if (!otp.equals(user.getVerificationOtp())) {
-            throw new InvalidOperationException("Invalid OTP. Please check your code and try again.");
-        }
-
-        // OTP is valid — mark as verified
+        // Mark user as verified
         user.setVerified(true);
-        user.setVerificationOtp(null);
-        user.setOtpExpiryTime(null);
         userRepository.save(user);
     }
 
@@ -183,14 +170,5 @@ public class UserService {
         // Update password
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         return userRepository.save(user);
-    }
-
-    /**
-     * Generate a secure random 6-digit OTP code.
-     */
-    private String generateOtp() {
-        int bound = (int) Math.pow(10, OTP_LENGTH);
-        int number = RANDOM.nextInt(bound);
-        return String.format("%0" + OTP_LENGTH + "d", number);
     }
 }
