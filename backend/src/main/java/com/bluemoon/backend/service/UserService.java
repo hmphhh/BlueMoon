@@ -5,16 +5,18 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
-import com.bluemoon.backend.entity.OtpTokenType;
+import com.bluemoon.backend.enums.OtpTokenType;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.exceptions.InvalidCredentialsException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.UserRepository;
+
 
 @Service
 public class UserService {
@@ -51,8 +53,10 @@ public class UserService {
      * Update profile — only allows: fullName, email, avatarUrl.
      * Returns the updated user entity.
      * Throws ResourceNotFoundException if user not found.
+     * Throws InvalidOperationException if email is already taken by another user.
      * Sets isVerified=false if email is changed.
      */
+    @Transactional
     public UserEntity updateProfile(String username, UpdateProfileRequest request) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
@@ -64,6 +68,12 @@ public class UserService {
             user.setFullName(request.getFullName());
         }
         if (request.getEmail() != null) {
+            // Check if new email is already taken by another user
+            if (!request.getEmail().equals(oldEmail)) {
+                if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                    throw new InvalidOperationException("Email is already in use");
+                }
+            }
             user.setEmail(request.getEmail());
         }
         if (request.getAvatarUrl() != null) {
@@ -86,6 +96,7 @@ public class UserService {
      * Throws ResourceNotFoundException if user not found.
      * Throws InvalidOperationException if email not set or already verified.
      */
+    @Transactional
     public void sendVerificationOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
@@ -107,8 +118,9 @@ public class UserService {
     /**
      * Verify email with OTP code.
      * Checks that the OTP matches and has not expired.
-     * Throws InvalidCredentialsException if OTP is invalid or expired.
+     * Throws InvalidOperationException if OTP is invalid or expired.
      */
+    @Transactional
     public void verifyOtp(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
@@ -119,7 +131,7 @@ public class UserService {
 
         // Verify OTP using OtpService (deletes if invalid/expired)
         if (!otpService.verifyOtp(user, OtpTokenType.EMAIL_VERIFICATION, otp)) {
-            throw new InvalidCredentialsException("Invalid or expired OTP");
+            throw new InvalidOperationException("Invalid or expired OTP");
         }
 
         // Delete the OTP after successful verification
@@ -133,7 +145,9 @@ public class UserService {
     /**
      * Delete a user by ID.
      * Throws ResourceNotFoundException if user not found.
+     * Cascade delete will remove related OTP and password reset tokens.
      */
+    @Transactional
     public void deleteUser(Long id) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -148,13 +162,14 @@ public class UserService {
      * Throws InvalidCredentialsException if current password is incorrect.
      * Throws InvalidOperationException if new passwords don't match.
      */
+    @Transactional
     public UserEntity changePassword(String username, ChangePasswordRequest request) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
         // Verify current password
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Current password is incorrect");
+            throw new InvalidOperationException("Current password is incorrect");
         }
 
         // Check if new passwords match

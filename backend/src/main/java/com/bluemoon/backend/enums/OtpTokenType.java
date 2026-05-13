@@ -1,4 +1,4 @@
-package com.bluemoon.backend.entity;
+package com.bluemoon.backend.enums;
 
 /**
  * Enum for OTP token types.

@@ -130,15 +130,16 @@ export default function OtpVerification({ type = 'email-verification', email, on
                     email,
                     otp: code
                 });
-                toast.success('OTP verified successfully');
+                toast('OTP verified successfully', 'success');
                 onVerified?.(res.data.resetToken);
             } else {
                 // Email verification
                 await axios.post(`${API_BASE}/api/users/verify-otp`, { otp: code });
-                toast.success('Email verified successfully!');
+                toast('Email verified successfully!', 'success');
                 onVerified?.();
             }
         } catch (err) {
+            console.error(err);
             const msg = err.response?.data?.error || err.response?.data?.message || 'Verification failed';
             setError(msg);
             setOtp(Array(6).fill(''));
@@ -159,14 +160,15 @@ export default function OtpVerification({ type = 'email-verification', email, on
             if (isForgotPassword) {
                 // Resend OTP for forgot password
                 await axios.post(`${API_BASE}/api/auth/forgot-password/request`, { email });
-                toast.success('New OTP sent to your email');
+                toast('New OTP sent to your email', 'success');
             } else {
                 // Resend OTP for email verification
                 await axios.post(`${API_BASE}/api/users/resend-otp`);
-                toast.success('A new verification code has been sent');
+                toast('A new verification code has been sent', 'success');
             }
             focusInput(0);
         } catch (err) {
+            console.error(err); 
             const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to resend code';
             setError(msg);
             setResendCooldown(0);
@@ -263,87 +265,3 @@ export default function OtpVerification({ type = 'email-verification', email, on
         </div>
     );
 }
-//                         <polyline points="3 7 12 13 21 7" />
-//                     </svg>
-//                 </div>
-
-//                 <h2 className="otp-modal__title">Check Your Email</h2>
-//                 <p className="otp-modal__subtitle">
-//                     We've sent a 6-digit verification code to your email address.
-//                     Please enter it below.
-//                 </p>
-
-//                 {/* OTP Input Strip */}
-//                 <div className="otp-strip" onPaste={handlePaste}>
-//                     {otp.map((digit, index) => (
-//                         <input
-//                             key={index}
-//                             ref={el => inputRefs.current[index] = el}
-//                             type="text"
-//                             inputMode="numeric"
-//                             maxLength={1}
-//                             className={`otp-strip__input ${digit ? 'otp-strip__input--filled' : ''} ${error ? 'otp-strip__input--error' : ''}`}
-//                             value={digit}
-//                             onChange={e => handleChange(index, e.target.value)}
-//                             onKeyDown={e => handleKeyDown(index, e)}
-//                             onFocus={() => handleFocus(index)}
-//                             autoComplete="one-time-code"
-//                             id={`otp-input-${index}`}
-//                         />
-//                     ))}
-//                 </div>
-
-//                 {/* Error message */}
-//                 {error && (
-//                     <div className="otp-error">
-//                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-//                             <circle cx="12" cy="12" r="10" />
-//                             <path d="m15 9-6 6M9 9l6 6" />
-//                         </svg>
-//                         {error}
-//                     </div>
-//                 )}
-
-//                 {/* Verify button */}
-//                 <button
-//                     className="btn btn--primary otp-modal__verify-btn"
-//                     onClick={handleSubmit}
-//                     disabled={!isComplete || loading}
-//                     id="otp-verify-btn"
-//                 >
-//                     {loading ? (
-//                         <span className="otp-spinner" />
-//                     ) : (
-//                         <>
-//                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-//                                 <path d="M20 6L9 17l-5-5" />
-//                             </svg>
-//                             Verify Code
-//                         </>
-//                     )}
-//                 </button>
-
-//                 {/* Resend section */}
-//                 <div className="otp-resend">
-//                     <span className="otp-resend__text">Didn't receive the code?</span>
-//                     <button
-//                         className="otp-resend__btn"
-//                         onClick={handleResend}
-//                         disabled={resendCooldown > 0}
-//                         id="otp-resend-btn"
-//                     >
-//                         {resendCooldown > 0
-//                             ? `Resend in ${resendCooldown}s`
-//                             : 'Resend Code'
-//                         }
-//                     </button>
-//                 </div>
-
-//                 {/* Cancel link */}
-//                 <button className="otp-modal__cancel" onClick={onCancel} id="otp-cancel-btn">
-//                     ← Back to Profile
-//                 </button>
-//             </div>
-//         </div>
-//     );
-// }

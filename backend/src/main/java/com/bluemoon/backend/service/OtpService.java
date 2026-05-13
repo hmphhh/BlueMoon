@@ -5,12 +5,13 @@ import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import com.bluemoon.backend.entity.OtpTokenType;
+import com.bluemoon.backend.enums.OtpTokenType;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.repository.OtpVerificationTokenRepository;
-
+import com.bluemoon.backend.exceptions.InvalidOperationException;
 @Service
 public class OtpService {
 
@@ -34,6 +35,7 @@ public class OtpService {
      * Replaces any existing OTP for this user and type.
      * Sends OTP email if it's for forgot password.
      */
+    @Transactional
     public OtpVerificationToken createAndSaveOtp(UserEntity user, OtpTokenType tokenType) {
         String otp = generateOtp();
         LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
@@ -53,6 +55,7 @@ public class OtpService {
      * Returns true if OTP is valid and not expired, false otherwise.
      * Deletes expired/invalid OTP immediately (lazy delete).
      */
+    @Transactional
     public boolean verifyOtp(UserEntity user, OtpTokenType tokenType, String providedOtp) {
         var optionalOtp = otpVerificationTokenRepository.findByUserAndTokenType(user, tokenType);
 
@@ -67,11 +70,9 @@ public class OtpService {
             otpVerificationTokenRepository.delete(otpToken);
             return false;
         }
-
+        
         // Check if OTP matches
         if (!otpToken.getOtp().equals(providedOtp)) {
-            // Delete invalid OTP immediately (lazy delete)
-            otpVerificationTokenRepository.delete(otpToken);
             return false;
         }
 
@@ -82,6 +83,7 @@ public class OtpService {
      * Retrieve and delete OTP for the given user and token type.
      * Returns the OTP record if it exists, null otherwise.
      */
+    @Transactional
     public OtpVerificationToken getAndDeleteOtp(UserEntity user, OtpTokenType tokenType) {
         var optionalOtp = otpVerificationTokenRepository.findByUserAndTokenType(user, tokenType);
 

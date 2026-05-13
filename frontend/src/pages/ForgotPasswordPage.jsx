@@ -26,9 +26,10 @@ export default function ForgotPasswordPage() {
 
         try {
             await axios.post(`${API_BASE}/api/auth/forgot-password/request`, { email });
-            toast.success('OTP sent to your email');
+            toast('OTP sent to your email', 'success');
             setStep('otp'); // Move to OTP verification
         } catch (err) {
+            console.error(err);
             const msg = err.response?.data?.error || 'Failed to send OTP. Please try again.';
             setError(msg);
         } finally {
@@ -38,7 +39,7 @@ export default function ForgotPasswordPage() {
 
     // Step 2: Handle OTP verification and navigate to reset password
     const handleOtpVerified = (resetToken) => {
-        toast.success('Email verified. Proceed to reset password.');
+        toast('Email verified. Proceed to reset password.', 'success');
         // Navigate to reset password page with reset token
         navigate('/reset-password', { state: { resetToken } });
     };

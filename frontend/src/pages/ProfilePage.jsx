@@ -49,6 +49,7 @@ export default function ProfilePage({ user, setUser }) {
             toast('Profile updated successfully!', 'success');
             setUser(prev => ({ ...prev, fullName: profile.fullName }));
         } catch (err) {
+            console.error(err);
             toast('Failed to update profile', 'error');
         }
     };
@@ -70,6 +71,7 @@ export default function ProfilePage({ user, setUser }) {
             toast('Verification code sent! Check your inbox.', 'success');
             setShowOtpModal(true);
         } catch (err) {
+            console.error(err);
             toast(err.response?.data?.error || 'Failed to send verification code', 'error');
         } finally {
             setVerifying(false);
@@ -79,12 +81,12 @@ export default function ProfilePage({ user, setUser }) {
     const handleOtpVerified = () => {
         setShowOtpModal(false);
         setIsVerified(true);
-        toast('Email verified successfully!', 'success');
+        //toast('Email verified successfully!', 'success');
     };
 
     const handlePasswordChangeSuccess = () => {
         setShowChangePasswordModal(false);
-        toast('Password changed successfully!', 'success');
+        //toast('Password changed successfully!', 'success');
     };
 
     if (loading) {

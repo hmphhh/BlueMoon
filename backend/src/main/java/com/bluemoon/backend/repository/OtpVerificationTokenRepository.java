@@ -1,7 +1,7 @@
 package com.bluemoon.backend.repository;
 
 import com.bluemoon.backend.entity.OtpVerificationToken;
-import com.bluemoon.backend.entity.OtpTokenType;
+import com.bluemoon.backend.enums.OtpTokenType;
 import com.bluemoon.backend.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;

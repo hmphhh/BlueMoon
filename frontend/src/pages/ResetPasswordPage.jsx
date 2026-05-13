@@ -50,9 +50,10 @@ export default function ResetPasswordPage() {
                 resetToken,
                 newPassword
             });
-            toast.success('Password reset successfully');
+            toast('Password reset successfully', 'success');
             navigate('/login');
         } catch (err) {
+            console.error(err);
             const msg = err.response?.data?.error || 'Failed to reset password';
             setError(msg);
         } finally {

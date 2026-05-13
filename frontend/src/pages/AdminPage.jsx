@@ -46,6 +46,7 @@ export default function AdminPage({ user }) {
             setNewUser({ phoneNumber: '', identityCardNumber: '', apartmentNumber: '', role: 'USER' });
             fetchUsers();
         } catch (err) {
+            console.error(err);
             const errorMsg = err.response?.data?.error || 'Failed to create user';
             toast(errorMsg, 'error');
         }
@@ -58,6 +59,7 @@ export default function AdminPage({ user }) {
             toast('User deleted successfully', 'success');
             fetchUsers();
         } catch (err) {
+            console.error(err);
             toast('Failed to delete user', 'error');
         } finally {
             setDeleteTarget(null);

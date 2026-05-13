@@ -3,6 +3,7 @@ package com.bluemoon.backend.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.bluemoon.backend.dtos.request.RegisterRequest;
 import com.bluemoon.backend.dtos.response.LoginResponse;
@@ -16,7 +17,7 @@ import com.bluemoon.backend.repository.OtpVerificationTokenRepository;
 import com.bluemoon.backend.repository.PasswordResetTokenRepository;
 import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.UserEntity;
-import com.bluemoon.backend.entity.OtpTokenType;
+import com.bluemoon.backend.enums.OtpTokenType;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.PasswordResetToken;
 import com.bluemoon.backend.security.JwtUtil;
@@ -131,7 +132,7 @@ public class AuthService {
         // Generate and save OTP
         OtpVerificationToken otpToken = otpService.createAndSaveOtp(user, OtpTokenType.FORGOT_PASSWORD);
         // Send email
-        emailService.sendOtpEmail(email, "Your OTP for password reset is: " + otpToken.getOtp());
+        emailService.sendOtpEmail(email, otpToken.getOtp());
     }
 
     /**
@@ -140,13 +141,14 @@ public class AuthService {
      * Throws InvalidCredentialsException if OTP is invalid or expired.
      * Returns the UUID reset token.
      */
+    @Transactional
     public String verifyForgotPasswordOtp(String email, String otp) {
         UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Email not found in system"));
 
         // Verify OTP (deletes if expired/invalid)
         if (!otpService.verifyOtp(user, OtpTokenType.FORGOT_PASSWORD, otp)) {
-            throw new InvalidCredentialsException("Invalid or expired OTP");
+            throw new InvalidOperationException("Invalid or expired OTP");
         }
 
         // Delete the OTP after successful verification
@@ -165,6 +167,7 @@ public class AuthService {
      * Throws ResourceNotFoundException if token not found.
      * Throws InvalidCredentialsException if token is expired.
      */
+    @Transactional
     public void resetPassword(String resetToken, String newPassword) {
         PasswordResetToken token = passwordResetTokenRepository.findByToken(resetToken)
                 .orElseThrow(() -> new ResourceNotFoundException("Invalid or expired reset token"));
