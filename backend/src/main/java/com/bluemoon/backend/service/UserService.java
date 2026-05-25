@@ -1,30 +1,37 @@
 package com.bluemoon.backend.service;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
+import com.bluemoon.backend.enums.OtpTokenType;
+import com.bluemoon.backend.entity.OtpVerificationToken;
+import com.bluemoon.backend.entity.UserEntity;
+import com.bluemoon.backend.exceptions.InvalidCredentialsException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.UserRepository;
-import com.bluemoon.backend.entity.UserEntity;
+
 
 @Service
 public class UserService {
-
-    private static final int OTP_LENGTH = 6;
-    private static final int OTP_EXPIRY_MINUTES = 5;
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private EmailService emailService;
+
+    @Autowired
+    private OtpService otpService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Get all users (admin only).
@@ -46,8 +53,10 @@ public class UserService {
      * Update profile — only allows: fullName, email, avatarUrl.
      * Returns the updated user entity.
      * Throws ResourceNotFoundException if user not found.
+     * Throws InvalidOperationException if email is already taken by another user.
      * Sets isVerified=false if email is changed.
      */
+    @Transactional
     public UserEntity updateProfile(String username, UpdateProfileRequest request) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
@@ -59,6 +68,12 @@ public class UserService {
             user.setFullName(request.getFullName());
         }
         if (request.getEmail() != null) {
+            // Check if new email is already taken by another user
+            if (!request.getEmail().equals(oldEmail)) {
+                if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                    throw new InvalidOperationException("Email is already in use");
+                }
+            }
             user.setEmail(request.getEmail());
         }
         if (request.getAvatarUrl() != null) {
@@ -70,8 +85,7 @@ public class UserService {
         boolean emailChanged = request.getEmail() != null && !request.getEmail().equals(oldEmail);
         if (emailChanged) {
             user.setVerified(false);
-            user.setVerificationOtp(null);
-            user.setOtpExpiryTime(null);
+            otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION); // Clear any existing OTP for email verification
         }
 
         return userRepository.save(user);
@@ -82,6 +96,7 @@ public class UserService {
      * Throws ResourceNotFoundException if user not found.
      * Throws InvalidOperationException if email not set or already verified.
      */
+    @Transactional
     public void sendVerificationOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
@@ -93,12 +108,11 @@ public class UserService {
             throw new InvalidOperationException("Email already verified");
         }
 
-        String otp = generateOtp();
-        user.setVerificationOtp(otp);
-        user.setOtpExpiryTime(LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES));
-        userRepository.save(user);
-
-        emailService.sendOtpEmail(user.getEmail(), otp);
+        // Create and save OTP token
+        OtpVerificationToken otpToken = otpService.createAndSaveOtp(user, OtpTokenType.EMAIL_VERIFICATION);
+        
+        // Send OTP email for email verification
+        emailService.sendOtpEmail(user.getEmail(), otpToken.getOtp());
     }
 
     /**
@@ -106,6 +120,7 @@ public class UserService {
      * Checks that the OTP matches and has not expired.
      * Throws InvalidOperationException if OTP is invalid or expired.
      */
+    @Transactional
     public void verifyOtp(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
@@ -114,33 +129,25 @@ public class UserService {
             throw new InvalidOperationException("Email already verified");
         }
 
-        if (user.getVerificationOtp() == null) {
-            throw new InvalidOperationException("No OTP has been requested. Please request a new code.");
+        // Verify OTP using OtpService (deletes if invalid/expired)
+        if (!otpService.verifyOtp(user, OtpTokenType.EMAIL_VERIFICATION, otp)) {
+            throw new InvalidOperationException("Invalid or expired OTP");
         }
 
-        if (user.getOtpExpiryTime() != null && LocalDateTime.now().isAfter(user.getOtpExpiryTime())) {
-            // Clear expired OTP
-            user.setVerificationOtp(null);
-            user.setOtpExpiryTime(null);
-            userRepository.save(user);
-            throw new InvalidOperationException("OTP has expired. Please request a new code.");
-        }
+        // Delete the OTP after successful verification
+        otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION);
 
-        if (!otp.equals(user.getVerificationOtp())) {
-            throw new InvalidOperationException("Invalid OTP. Please check your code and try again.");
-        }
-
-        // OTP is valid — mark as verified
+        // Mark user as verified
         user.setVerified(true);
-        user.setVerificationOtp(null);
-        user.setOtpExpiryTime(null);
         userRepository.save(user);
     }
 
     /**
      * Delete a user by ID.
      * Throws ResourceNotFoundException if user not found.
+     * Cascade delete will remove related OTP and password reset tokens.
      */
+    @Transactional
     public void deleteUser(Long id) {
         UserEntity user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -148,11 +155,35 @@ public class UserService {
     }
 
     /**
-     * Generate a secure random 6-digit OTP code.
+     * Change password for the authenticated user.
+     * Verifies the current password before allowing the change.
+     * Returns the updated user entity.
+     * Throws ResourceNotFoundException if user not found.
+     * Throws InvalidCredentialsException if current password is incorrect.
+     * Throws InvalidOperationException if new passwords don't match.
      */
-    private String generateOtp() {
-        int bound = (int) Math.pow(10, OTP_LENGTH);
-        int number = RANDOM.nextInt(bound);
-        return String.format("%0" + OTP_LENGTH + "d", number);
+    @Transactional
+    public UserEntity changePassword(String username, ChangePasswordRequest request) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidOperationException("Current password is incorrect");
+        }
+
+        // Check if new passwords match
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new InvalidOperationException("New password and confirm password do not match");
+        }
+
+        // Check if new password is same as current password
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new InvalidOperationException("New password must be different from current password");
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        return userRepository.save(user);
     }
 }

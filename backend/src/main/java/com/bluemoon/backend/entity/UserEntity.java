@@ -32,6 +32,7 @@ public class UserEntity {
     @Column(nullable = false, columnDefinition = "varchar(255) default 'USER'")
     private String role = "USER";
 
+    @Column(unique = true)
     private String email;
 
     private String phoneNumber; // set at registration, read-only for user
@@ -43,10 +44,6 @@ public class UserEntity {
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean isVerified = false;
-
-    private String verificationOtp;
-
-    private LocalDateTime otpExpiryTime;
 
     // Apartment relationship — nullable (admins don't have apartments)
     @ManyToOne
