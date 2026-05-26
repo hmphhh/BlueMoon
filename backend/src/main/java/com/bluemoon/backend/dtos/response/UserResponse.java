@@ -1,26 +1,34 @@
 package com.bluemoon.backend.dtos.response;
 
+import java.time.LocalDateTime;
+
+import com.bluemoon.backend.enums.UserRole;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * Public API response format for user data.
  * Controls exactly what is sent over the wire.
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserResponse {
 
     private Long id;
     private String username;
-    private String fullName;
-    private String role;
     private String email;
-    private String phoneNumber;
-    private String identityCardNumber;
-    private String avatarUrl;
+    private UserRole role;
 
     @JsonProperty("isVerified")
-    private boolean isVerified;
+    private boolean verified;
 
-    private String apartmentNumber;
+    @JsonProperty("createdAt")
+    private LocalDateTime createdAt;
+
+    @JsonProperty("isLinked")
+    private boolean linked;
 }

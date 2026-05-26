@@ -2,51 +2,52 @@ package com.bluemoon.backend.entity;
 
 import java.time.LocalDateTime;
 
+import com.bluemoon.backend.enums.UserRole;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "users")
 @Data
+@NoArgsConstructor
 public class UserEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String username; // = phone number for residents
+    @Column(nullable = false, unique = true, length = 100)
+    private String username;
 
     @Column(nullable = false)
-    private String password; // = BCrypt(CCCD) for residents
+    private String password;
 
-    private String fullName;
-
-    @Column(nullable = false, columnDefinition = "varchar(255) default 'USER'")
-    private String role = "USER";
-
-    @Column(unique = true)
+    @Column(unique = true, length = 255)
     private String email;
 
-    private String phoneNumber; // set at registration, read-only for user
+    @Column(nullable = false)
+    private boolean verified = false;
 
-    @Column(unique = true)
-    private String identityCardNumber; // CCCD, set at registration, read-only for user
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private UserRole role = UserRole.USER;
 
-    private String avatarUrl;
+    @Column(nullable = false, insertable = false, updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(nullable = false, columnDefinition = "boolean default false")
-    private boolean isVerified = false;
-
-    // Apartment relationship — nullable (admins don't have apartments)
-    @ManyToOne
-    @JoinColumn(name = "apartment_id")
-    private ApartmentEntity apartment;
+    @OneToOne
+    @JoinColumn(name = "resident_id", foreignKey = @ForeignKey(name = "FK_user_resident"))
+    private ResidentEntity resident;
 }

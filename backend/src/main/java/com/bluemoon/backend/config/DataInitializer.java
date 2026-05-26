@@ -4,6 +4,9 @@ import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.repository.ApartmentRepository;
 import com.bluemoon.backend.repository.UserRepository;
+import com.bluemoon.backend.enums.UserRole;
+import com.bluemoon.backend.enums.ApartmentType;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +25,11 @@ public class DataInitializer {
                 for (int room = 1; room <= 4; room++) {
                     String number = floor + "0" + room;
                     if (apartmentRepository.findByApartmentNumber(number).isEmpty()) {
-                        apartmentRepository.save(new ApartmentEntity(number));
+			ApartmentEntity savedEntity = new ApartmentEntity(number);		
+			savedEntity.setArea(50.0d);
+			savedEntity.setFloor(floor);
+			savedEntity.setType(ApartmentType.STUDIO);
+                        apartmentRepository.save(savedEntity);
                     }
                 }
             }
@@ -36,10 +43,7 @@ public class DataInitializer {
                 UserEntity admin = new UserEntity();
                 admin.setUsername(adminPhone);
                 admin.setPassword(passwordEncoder.encode(adminCCCD));
-                admin.setPhoneNumber(adminPhone);
-                admin.setIdentityCardNumber(adminCCCD);
-                admin.setRole("ADMIN");
-                admin.setFullName("Administrator");
+                admin.setRole(UserRole.ADMIN); 
                 // No apartment for admin
                 userRepository.save(admin);
                 System.out.println("✅ Default admin account created (phone: " + adminPhone + ")");

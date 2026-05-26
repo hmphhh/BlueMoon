@@ -7,15 +7,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bluemoon.backend.dtos.request.UserRequest;
 import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
 import com.bluemoon.backend.enums.OtpTokenType;
+import com.bluemoon.backend.enums.UserRole;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
+import com.bluemoon.backend.entity.ResidentEntity;
 import com.bluemoon.backend.exceptions.InvalidCredentialsException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.UserRepository;
+import com.bluemoon.backend.repository.ResidentRepository;
+
 
 
 @Service
@@ -25,10 +30,16 @@ public class UserService {
     private UserRepository userRepository;
 
     @Autowired
+    private ResidentRepository residentRepository;
+
+    @Autowired
     private EmailService emailService;
 
     @Autowired
     private OtpService otpService;
+
+    @Autowired
+    private ResidentService residentService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -38,6 +49,90 @@ public class UserService {
      */
     public List<UserEntity> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    @Transactional
+    public UserEntity createUser(UserRequest request) {
+        if (request.getResidentId() != null && request.getResident() != null) {
+            throw new InvalidOperationException("Cannot create or link to a resident at the same time");
+        }
+        if (request.getRole() == UserRole.ADMIN && (request.getResidentId() != null || request.getResident() != null)) {
+            throw new InvalidOperationException("Admin users cannot be linked to residents");
+        }
+
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new InvalidOperationException("Username is already taken");
+        }
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new InvalidOperationException("Email is already in use");
+        }
+
+        UserEntity user = new UserEntity();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setVerified(false);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(request.getRole());
+
+        if (request.getResidentId() != null) {
+            if (userRepository.findByResidentId(request.getResidentId()).isPresent()) {
+                throw new InvalidOperationException("A user is already linked to this resident");
+            }
+            ResidentEntity resident = residentRepository.findById(request.getResidentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Resident not found with id: " + request.getResidentId()));
+            user.setResident(resident);
+        } else if (request.getResident() != null) {
+            ResidentEntity resident = residentService.createResident(request.getResident());
+            user.setResident(resident);
+        }
+
+        return userRepository.save(user);
+    }
+
+    /**
+     * Link a user to an existing resident (1-1 relationship).
+     * Prevents duplicate links:
+     * - A user cannot be linked to multiple residents
+     * - A resident cannot be linked to multiple users
+     * Throws ResourceNotFoundException if either user or resident not found.
+     * Throws InvalidOperationException if resident is already linked.
+     */
+    @Transactional
+    public UserEntity linkToResident(Long userId, Long residentId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new InvalidOperationException("Admin users cannot be linked to residents");
+        }
+
+        ResidentEntity resident = residentRepository.findById(residentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Resident not found with id: " + residentId));
+
+        if (userRepository.findByResidentId(residentId).isPresent()) {
+            throw new InvalidOperationException("Resident is already linked to another user");
+        }
+
+        user.setResident(resident);
+        return userRepository.save(user);
+    }
+
+    /**
+     * Unlink a user from their resident.
+     * Throws ResourceNotFoundException if user not found.
+     * Throws InvalidOperationException if user is not linked to any resident.
+     */
+    @Transactional
+    public UserEntity unlinkFromResident(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        if (user.getResident() == null) {
+            throw new InvalidOperationException("User is not linked to any resident");
+        }
+
+        user.setResident(null);
+        return userRepository.save(user);
     }
 
     /**
@@ -50,7 +145,16 @@ public class UserService {
     }
 
     /**
-     * Update profile — only allows: fullName, email, avatarUrl.
+     * Get a user by their ID.
+     * Throws ResourceNotFoundException if user not found.
+     */
+    public UserEntity getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+    }
+
+    /**
+     * Update profile — only allows: email and resident fields.
      * Returns the updated user entity.
      * Throws ResourceNotFoundException if user not found.
      * Throws InvalidOperationException if email is already taken by another user.
@@ -63,10 +167,6 @@ public class UserService {
 
         String oldEmail = user.getEmail();
 
-        // Only allow safe fields to be updated
-        if (request.getFullName() != null) {
-            user.setFullName(request.getFullName());
-        }
         if (request.getEmail() != null) {
             // Check if new email is already taken by another user
             if (!request.getEmail().equals(oldEmail)) {
@@ -76,11 +176,24 @@ public class UserService {
             }
             user.setEmail(request.getEmail());
         }
-        if (request.getAvatarUrl() != null) {
-            user.setAvatarUrl(request.getAvatarUrl());
+        
+        // Update resident information if provided
+        if (request.getResident() != null && user.getResident() != null) {
+            ResidentEntity resident = user.getResident();
+            if (request.getResident().getFullName() != null) {
+                resident.setFullName(request.getResident().getFullName());
+            }
+            if (request.getResident().getDateOfBirth() != null) {
+                resident.setDateOfBirth(request.getResident().getDateOfBirth());
+            }
+            if (request.getResident().getPhone() != null) {
+                resident.setPhone(request.getResident().getPhone());
+            }
+            if (request.getResident().getGender() != null) {
+                resident.setGender(request.getResident().getGender());
+            }
+            residentRepository.save(resident);
         }
-
-        // phoneNumber, identityCardNumber, apartment — IGNORED (read-only)
 
         boolean emailChanged = request.getEmail() != null && !request.getEmail().equals(oldEmail);
         if (emailChanged) {
