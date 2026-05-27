@@ -14,7 +14,7 @@ public class ProfileResponse {
     private Long id;
     private String email;
 
-    @JsonProperty("isVerified")
+    @JsonProperty("verified")
     private boolean verified;
 
     private ResidentProfileDto resident;

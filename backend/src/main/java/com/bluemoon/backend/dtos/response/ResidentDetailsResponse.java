@@ -19,8 +19,8 @@ public class ResidentDetailsResponse {
     private String phone;
     private String status;
 
-    @JsonProperty("isLinked")
-    private boolean isLinked;
+    @JsonProperty("linked")
+    private boolean linked;
 
     private ApartmentSimplifiedDto apartment;
     private AccountSimplifiedDto account;
@@ -41,7 +41,7 @@ public class ResidentDetailsResponse {
         private String username;
         private String email;
 
-        @JsonProperty("isVerified")
-        private boolean isVerified;
+        @JsonProperty("verified")
+        private boolean verified;
     }
 }

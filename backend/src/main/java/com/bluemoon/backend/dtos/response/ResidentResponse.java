@@ -26,8 +26,8 @@ public class ResidentResponse {
     private ResidentStatus status;
     private Long apartmentId;
 
-    @JsonProperty("isLinked")
-    private boolean isLinked;
+    @JsonProperty("linked")
+    private boolean linked;
 
     private String apartmentNumber;
 }

@@ -17,8 +17,8 @@ public class UserDetailsResponse {
     private Long id;
     private String email;
 
-    @JsonProperty("isVerified")
-    private boolean isVerified;
+    @JsonProperty("verified")
+    private boolean verified;
 
     private UserRole role;
 

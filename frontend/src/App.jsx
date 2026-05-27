@@ -8,6 +8,8 @@ import DashboardLayout from './components/DashboardLayout';
 import AdminPage from './pages/AdminPage';
 import UserPage from './pages/UserPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminAccountManagementPage from './pages/AdminAccountManagementPage';
+import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -84,6 +86,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage user={user} setUser={handleSetUser} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/accounts"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminAccountManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/account/:userId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminAccountDetailPage />
               </ProtectedRoute>
             }
           />

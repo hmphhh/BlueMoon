@@ -23,12 +23,12 @@ public class UserResponse {
     private String email;
     private UserRole role;
 
-    @JsonProperty("isVerified")
+    @JsonProperty("verified")
     private boolean verified;
 
     @JsonProperty("createdAt")
     private LocalDateTime createdAt;
 
-    @JsonProperty("isLinked")
+    @JsonProperty("linked")
     private boolean linked;
 }
