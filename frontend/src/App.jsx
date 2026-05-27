@@ -10,6 +10,9 @@ import UserPage from './pages/UserPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminAccountManagementPage from './pages/AdminAccountManagementPage';
 import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
+import AdminApartmentManagementPage from './pages/AdminApartmentManagementPage';
+import AdminApartmentDetailPage from './pages/AdminApartmentDetailPage';
+import AdminResidentDetailPage from './pages/AdminResidentDetailPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -102,6 +105,30 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="ADMIN">
                 <AdminAccountDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/apartments"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminApartmentManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/apartment/:apartmentId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminApartmentDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/resident/:residentId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminResidentDetailPage />
               </ProtectedRoute>
             }
           />

@@ -21,6 +21,7 @@ export default function AdminAccountManagementPage() {
     const [residents, setResidents] = useState([]);
     const [showResidentList, setShowResidentList] = useState(false);
     const [createNewResident, setCreateNewResident] = useState(false);
+    const [residentOption, setResidentOption] = useState('none'); // 'none', 'link', 'create'
     const [newResidentData, setNewResidentData] = useState({
         fullName: '',
         phone: '',
@@ -59,12 +60,22 @@ export default function AdminAccountManagementPage() {
         setShowCreateModal(true);
     };
 
+    const fetchApartments = async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/api/apartments`);
+            setApartments(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch apartments:', err);
+        }
+    };
+
     const handleSelectRole = (role) => {
         setFormData(prev => ({ ...prev, role }));
         if (role === 'ADMIN') {
             setFormData(prev => ({ ...prev, residentId: null }));
             setShowResidentList(false);
             setCreateNewResident(false);
+            setResidentOption('none');
         }
     };
 
@@ -116,6 +127,7 @@ export default function AdminAccountManagementPage() {
                 residentId: null
             });
             setCreateNewResident(false);
+            setResidentOption('none');
             setNewResidentData({
                 fullName: '',
                 phone: '',
@@ -208,6 +220,14 @@ export default function AdminAccountManagementPage() {
                             <button className="modal-close" onClick={() => setShowCreateModal(false)}>×</button>
                         </div>
                         <div className="modal-body">
+                            {/* Account Information Section */}
+                            <div className="section-title" style={{ marginTop: 0 }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="12" cy="12" r="1"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                                </svg>
+                                Account Information
+                            </div>
+
                             <div className="form-group">
                                 <label className="form-label">Username</label>
                                 <input className="form-input" placeholder="Username"
@@ -252,48 +272,72 @@ export default function AdminAccountManagementPage() {
 
                             {formData.role === 'USER' && (
                                 <>
+                                    {/* Resident Linking Section */}
+                                    <div className="section-title" style={{ marginTop: '24px' }}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                        Resident Linking
+                                    </div>
+
                                     <div className="form-group">
-                                        <label className="form-label">Resident Profile</label>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <button
-                                                className={`btn ${!createNewResident ? 'btn--primary' : 'btn--secondary'}`}
-                                                onClick={() => setCreateNewResident(false)}
-                                            >
-                                                Link Existing
-                                            </button>
-                                            <button
-                                                className={`btn ${createNewResident ? 'btn--primary' : 'btn--secondary'}`}
-                                                onClick={() => setCreateNewResident(true)}
-                                            >
-                                                Create New
-                                            </button>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                                                <input type="radio" name="residentOption" checked={residentOption === 'none'}
+                                                    onChange={() => { setResidentOption('none'); setFormData(prev => ({ ...prev, residentId: null })); setCreateNewResident(false); }}
+                                                    style={{ accentColor: 'var(--accent)' }}
+                                                />
+                                                No resident
+                                            </label>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                                                <input type="radio" name="residentOption" checked={residentOption === 'link'}
+                                                    onChange={() => { setResidentOption('link'); setCreateNewResident(false); }}
+                                                    style={{ accentColor: 'var(--accent)' }}
+                                                />
+                                                Link existing resident
+                                            </label>
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                                                <input type="radio" name="residentOption" checked={residentOption === 'create'}
+                                                    onChange={() => { setResidentOption('create'); setCreateNewResident(true); setFormData(prev => ({ ...prev, residentId: null })); fetchApartments(); }}
+                                                    style={{ accentColor: 'var(--accent)' }}
+                                                />
+                                                Create new resident
+                                            </label>
                                         </div>
                                     </div>
 
-                                    {!createNewResident ? (
+                                    {residentOption === 'link' && (
                                         <div className="form-group">
                                             <label className="form-label">Select Resident</label>
                                             <div style={{
-                                                border: '1px solid #ddd', borderRadius: '6px', maxHeight: '200px',
+                                                border: '1px solid var(--border)', borderRadius: '8px', maxHeight: '200px',
                                                 overflowY: 'auto'
                                             }}>
-                                                {residents.filter(r => !r.linked).map(resident => (
-                                                    <button
-                                                        key={resident.id}
-                                                        className={`btn btn--ghost ${formData.residentId === resident.id ? 'selected' : ''}`}
-                                                        onClick={() => handleSelectResident(resident.id)}
-                                                        style={{
-                                                            width: '100%', textAlign: 'left', padding: '10px',
-                                                            borderBottom: '1px solid #eee', justifyContent: 'flex-start',
-                                                            backgroundColor: formData.residentId === resident.id ? '#f0f0f0' : 'transparent'
-                                                        }}
-                                                    >
-                                                        {resident.fullName} ({resident.idNumber})
-                                                    </button>
-                                                ))}
+                                                {residents.filter(r => !r.linked).length > 0 ? (
+                                                    residents.filter(r => !r.linked).map(resident => (
+                                                        <button
+                                                            key={resident.id}
+                                                            className={`btn btn--ghost`}
+                                                            onClick={() => handleSelectResident(resident.id)}
+                                                            style={{
+                                                                width: '100%', textAlign: 'left', padding: '10px',
+                                                                borderBottom: '1px solid var(--border)', justifyContent: 'flex-start',
+                                                                borderRadius: 0,
+                                                                backgroundColor: formData.residentId === resident.id ? 'var(--accent-bg)' : 'transparent',
+                                                                color: formData.residentId === resident.id ? 'var(--accent-hover)' : 'var(--text-secondary)'
+                                                            }}
+                                                        >
+                                                            {resident.fullName} ({resident.idNumber})
+                                                        </button>
+                                                    ))
+                                                ) : (
+                                                    <p style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '13px' }}>No unlinked residents available.</p>
+                                                )}
                                             </div>
                                         </div>
-                                    ) : (
+                                    )}
+
+                                    {residentOption === 'create' && (
                                         <>
                                             <div className="form-group">
                                                 <label className="form-label">Full Name</label>
@@ -308,14 +352,6 @@ export default function AdminAccountManagementPage() {
                                                 <input className="form-input" placeholder="Phone"
                                                     value={newResidentData.phone}
                                                     onChange={e => setNewResidentData(prev => ({ ...prev, phone: e.target.value }))}
-                                                />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label">ID Number</label>
-                                                <input className="form-input" placeholder="ID Number"
-                                                    value={newResidentData.idNumber}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, idNumber: e.target.value }))}
                                                 />
                                             </div>
 
@@ -335,6 +371,41 @@ export default function AdminAccountManagementPage() {
                                                     <option value="MALE">Male</option>
                                                     <option value="FEMALE">Female</option>
                                                     <option value="OTHER">Other</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label className="form-label">ID Number</label>
+                                                <input className="form-input" placeholder="ID Number"
+                                                    value={newResidentData.idNumber}
+                                                    onChange={e => setNewResidentData(prev => ({ ...prev, idNumber: e.target.value }))}
+                                                />
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label className="form-label">Relationship</label>
+                                                <select className="form-input" value={newResidentData.relationship}
+                                                    onChange={e => setNewResidentData(prev => ({ ...prev, relationship: e.target.value }))}>
+                                                    <option value="OWNER">Owner</option>
+                                                    <option value="SPOUSE">Spouse</option>
+                                                    <option value="CHILD">Child</option>
+                                                    <option value="PARENT">Parent</option>
+                                                    <option value="SIBLING">Sibling</option>
+                                                    <option value="RELATIVE">Relative</option>
+                                                    <option value="OTHER">Other</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label className="form-label">Apartment</label>
+                                                <select className="form-input" value={newResidentData.apartmentId || ''}
+                                                    onChange={e => setNewResidentData(prev => ({ ...prev, apartmentId: e.target.value ? Number(e.target.value) : null }))}>
+                                                    <option value="">Select Apartment</option>
+                                                    {apartments.map(apt => (
+                                                        <option key={apt.id} value={apt.id}>
+                                                            Room {apt.number || apt.apartmentNumber} (Floor {apt.floor})
+                                                        </option>
+                                                    ))}
                                                 </select>
                                             </div>
                                         </>
