@@ -2,10 +2,8 @@ package com.bluemoon.backend.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-import com.bluemoon.backend.dtos.request.UserRequest;
 import com.bluemoon.backend.dtos.response.ProfileResponse;
 import com.bluemoon.backend.dtos.response.UserDetailsResponse;
 import com.bluemoon.backend.dtos.response.UserResponse;
@@ -34,15 +32,4 @@ public interface UserMapper {
      */
     @Mapping(target = "resident", ignore = true)
     UserDetailsResponse toDetailsResponse(UserEntity entity);
-
-    /**
-     * Map UserRequest to UserEntity.
-     * Note: resident and residentId must be set separately in the service.
-     */
-    UserEntity toEntity(UserRequest request);
-
-    /**
-     * Update UserEntity from UserRequest, ignoring null values.
-     */
-    void updateEntity(UserRequest request, @MappingTarget UserEntity entity);
 }

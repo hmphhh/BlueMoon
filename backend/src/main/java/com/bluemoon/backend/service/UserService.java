@@ -11,13 +11,17 @@ import com.bluemoon.backend.dtos.request.UserRequest;
 import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
 import com.bluemoon.backend.enums.OtpTokenType;
+import com.bluemoon.backend.enums.ResidentRelationship;
+import com.bluemoon.backend.enums.ResidentStatus;
 import com.bluemoon.backend.enums.UserRole;
+import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.entity.ResidentEntity;
 import com.bluemoon.backend.exceptions.InvalidCredentialsException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
+import com.bluemoon.backend.repository.ApartmentRepository;
 import com.bluemoon.backend.repository.UserRepository;
 import com.bluemoon.backend.repository.ResidentRepository;
 
@@ -33,13 +37,13 @@ public class UserService {
     private ResidentRepository residentRepository;
 
     @Autowired
+    private ApartmentRepository apartmentRepository;
+
+    @Autowired
     private EmailService emailService;
 
     @Autowired
     private OtpService otpService;
-
-    @Autowired
-    private ResidentService residentService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -51,40 +55,63 @@ public class UserService {
         return userRepository.findAll();
     }
 
+    /**
+     * Create a new user with integrated account + resident data.
+     * Password is auto-set to BCrypt(identityCardNumber/CCCD).
+     * For USER role, a ResidentEntity is created and linked 1:1.
+     * For ADMIN role, no resident is created.
+     */
     @Transactional
     public UserEntity createUser(UserRequest request) {
-        if (request.getResidentId() != null && request.getResident() != null) {
-            throw new InvalidOperationException("Cannot create or link to a resident at the same time");
+        // Validate uniqueness
+        if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
+            throw new InvalidOperationException("Phone number already registered");
         }
-        if (request.getRole() == UserRole.ADMIN && (request.getResidentId() != null || request.getResident() != null)) {
-            throw new InvalidOperationException("Admin users cannot be linked to residents");
+        if (userRepository.findByIdentityCardNumber(request.getIdentityCardNumber()).isPresent()) {
+            throw new InvalidOperationException("Identity card number (CCCD) already registered");
         }
-
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new InvalidOperationException("Username is already taken");
-        }
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new InvalidOperationException("Email is already in use");
+        // Also check username uniqueness (username = phoneNumber)
+        if (userRepository.findByUsername(request.getPhoneNumber()).isPresent()) {
+            throw new InvalidOperationException("Phone number already registered as username");
         }
 
+        // Create user entity
         UserEntity user = new UserEntity();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
+        user.setUsername(request.getPhoneNumber());             // login username = phone number
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setIdentityCardNumber(request.getIdentityCardNumber());
+        user.setPassword(passwordEncoder.encode(request.getIdentityCardNumber())); // password = BCrypt(CCCD)
+        user.setRole(request.getRole() != null ? request.getRole() : UserRole.USER);
         user.setVerified(false);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
 
-        if (request.getResidentId() != null) {
-            if (userRepository.findByResidentId(request.getResidentId()).isPresent()) {
-                throw new InvalidOperationException("A user is already linked to this resident");
+        // For USER role, create and link a resident
+        if (user.getRole() == UserRole.USER) {
+            if (request.getApartmentId() == null) {
+                throw new InvalidOperationException("Apartment is required for resident accounts");
             }
-            ResidentEntity resident = residentRepository.findById(request.getResidentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Resident not found with id: " + request.getResidentId()));
-            user.setResident(resident);
-        } else if (request.getResident() != null) {
-            ResidentEntity resident = residentService.createResident(request.getResident());
+
+            ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
+
+            // Check idNumber uniqueness in residents table
+            if (residentRepository.findByIdNumber(request.getIdentityCardNumber()).isPresent()) {
+                throw new InvalidOperationException("A resident with this ID number already exists");
+            }
+
+            ResidentEntity resident = new ResidentEntity();
+            resident.setFullName(request.getFullName());
+            resident.setPhone(request.getPhoneNumber());                // same phone as user
+            resident.setIdNumber(request.getIdentityCardNumber());      // same CCCD as user
+            resident.setDateOfBirth(request.getDateOfBirth());
+            resident.setGender(request.getGender());
+            resident.setRelationship(request.getRelationship() != null ? request.getRelationship() : ResidentRelationship.OWNER);
+            resident.setStatus(ResidentStatus.ACTIVE);
+            resident.setApartment(apartment);
+
+            resident = residentRepository.save(resident);
             user.setResident(resident);
         }
+        // ADMIN role: no resident created
 
         return userRepository.save(user);
     }

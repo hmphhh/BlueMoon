@@ -12,6 +12,9 @@ import lombok.NoArgsConstructor;
 public class ProfileResponse {
 
     private Long id;
+    private String username;
+    private String phoneNumber;
+    private String identityCardNumber;
     private String email;
 
     @JsonProperty("verified")

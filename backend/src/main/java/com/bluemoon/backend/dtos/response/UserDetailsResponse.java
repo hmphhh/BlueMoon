@@ -15,6 +15,9 @@ import lombok.NoArgsConstructor;
 public class UserDetailsResponse {
 
     private Long id;
+    private String username;
+    private String phoneNumber;
+    private String identityCardNumber;
     private String email;
 
     @JsonProperty("verified")

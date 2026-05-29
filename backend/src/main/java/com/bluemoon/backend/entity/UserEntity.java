@@ -34,6 +34,12 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
+    @Column(unique = true, length = 15)
+    private String phoneNumber;
+
+    @Column(unique = true, length = 20)
+    private String identityCardNumber; // CCCD
+
     @Column(unique = true, length = 255)
     private String email;
 

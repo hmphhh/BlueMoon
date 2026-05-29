@@ -42,6 +42,8 @@ public class DataInitializer {
             if (userRepository.findByUsername(adminPhone).isEmpty()) {
                 UserEntity admin = new UserEntity();
                 admin.setUsername(adminPhone);
+                admin.setPhoneNumber(adminPhone);
+                admin.setIdentityCardNumber(adminCCCD);
                 admin.setPassword(passwordEncoder.encode(adminCCCD));
                 admin.setRole(UserRole.ADMIN); 
                 // No apartment for admin

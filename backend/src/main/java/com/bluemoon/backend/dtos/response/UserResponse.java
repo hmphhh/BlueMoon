@@ -20,6 +20,8 @@ public class UserResponse {
 
     private Long id;
     private String username;
+    private String phoneNumber;
+    private String identityCardNumber;
     private String email;
     private UserRole role;
 
