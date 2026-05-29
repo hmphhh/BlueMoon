@@ -11,28 +11,17 @@ export default function AdminAccountManagementPage() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [apartments, setApartments] = useState([]);
     const [formData, setFormData] = useState({
-        username: '',
-        email: '',
-        password: '',
+        phoneNumber: '',
+        identityCardNumber: '',
         role: 'USER',
-        residentId: null
-    });
-    const [residents, setResidents] = useState([]);
-    const [showResidentList, setShowResidentList] = useState(false);
-    const [createNewResident, setCreateNewResident] = useState(false);
-    const [residentOption, setResidentOption] = useState('none'); // 'none', 'link', 'create'
-    const [newResidentData, setNewResidentData] = useState({
         fullName: '',
-        phone: '',
         dateOfBirth: '',
         gender: '',
-        idNumber: '',
         relationship: 'OWNER',
-        status: 'ACTIVE',
         apartmentId: null
     });
-    const [apartments, setApartments] = useState([]);
 
     useEffect(() => {
         fetchUsers();
@@ -50,16 +39,6 @@ export default function AdminAccountManagementPage() {
         }
     };
 
-    const handleCreateClick = async () => {
-        try {
-            const res = await axios.get(`${API_BASE}/api/residents`);
-            setResidents(res.data || []);
-        } catch (err) {
-            console.error(err);
-        }
-        setShowCreateModal(true);
-    };
-
     const fetchApartments = async () => {
         try {
             const res = await axios.get(`${API_BASE}/api/apartments`);
@@ -69,79 +48,61 @@ export default function AdminAccountManagementPage() {
         }
     };
 
-    const handleSelectRole = (role) => {
-        setFormData(prev => ({ ...prev, role }));
-        if (role === 'ADMIN') {
-            setFormData(prev => ({ ...prev, residentId: null }));
-            setShowResidentList(false);
-            setCreateNewResident(false);
-            setResidentOption('none');
-        }
+    const handleCreateClick = async () => {
+        await fetchApartments();
+        setFormData({
+            phoneNumber: '',
+            identityCardNumber: '',
+            role: 'USER',
+            fullName: '',
+            dateOfBirth: '',
+            gender: '',
+            relationship: 'OWNER',
+            apartmentId: null
+        });
+        setShowCreateModal(true);
     };
 
-    const handleSelectResident = (residentId) => {
-        setFormData(prev => ({ ...prev, residentId }));
-        setShowResidentList(false);
+    const handleSelectRole = (role) => {
+        setFormData(prev => ({ ...prev, role }));
     };
 
     const handleCreateAccount = async () => {
-        if (!formData.username || !formData.email || !formData.password) {
-            toast('Please fill in all required fields', 'error');
+        if (!formData.phoneNumber || !formData.identityCardNumber) {
+            toast('Please fill in Phone Number and ID Number (CCCD)', 'error');
             return;
+        }
+
+        if (formData.role === 'USER') {
+            if (!formData.fullName || !formData.dateOfBirth || !formData.gender || !formData.apartmentId) {
+                toast('Please fill in all resident information fields', 'error');
+                return;
+            }
         }
 
         try {
             const payload = {
-                username: formData.username,
-                email: formData.email,
-                password: formData.password,
-                role: formData.role,
-                residentId: formData.residentId || null
+                phoneNumber: formData.phoneNumber,
+                identityCardNumber: formData.identityCardNumber,
+                role: formData.role
             };
 
-            if (createNewResident && formData.role === 'USER') {
-                if (!newResidentData.apartmentId) {
-                    toast('Please select an apartment', 'error');
-                    return;
-                }
-                payload.resident = {
-                    fullName: newResidentData.fullName,
-                    phone: newResidentData.phone,
-                    dateOfBirth: newResidentData.dateOfBirth,
-                    gender: newResidentData.gender,
-                    idNumber: newResidentData.idNumber,
-                    relationship: newResidentData.relationship,
-                    status: newResidentData.status,
-                    apartmentId: newResidentData.apartmentId
-                };
+            // Include resident fields only for USER role
+            if (formData.role === 'USER') {
+                payload.fullName = formData.fullName;
+                payload.dateOfBirth = formData.dateOfBirth;
+                payload.gender = formData.gender;
+                payload.relationship = formData.relationship;
+                payload.apartmentId = formData.apartmentId;
             }
 
             await axios.post(`${API_BASE}/api/users`, payload);
             toast('Account created successfully!', 'success');
             setShowCreateModal(false);
-            setFormData({
-                username: '',
-                email: '',
-                password: '',
-                role: 'USER',
-                residentId: null
-            });
-            setCreateNewResident(false);
-            setResidentOption('none');
-            setNewResidentData({
-                fullName: '',
-                phone: '',
-                dateOfBirth: '',
-                gender: '',
-                idNumber: '',
-                relationship: 'OWNER',
-                status: 'ACTIVE',
-                apartmentId: null
-            });
             fetchUsers();
         } catch (err) {
             console.error(err);
-            toast(err.response?.data?.message || 'Failed to create account', 'error');
+            toast(err.response?.data?.message || err.response?.data?.error || 'Failed to create account', 'error');
         }
     };
 
@@ -168,7 +129,8 @@ export default function AdminAccountManagementPage() {
                     <table className="table">
                         <thead>
                             <tr>
-                                <th>Username</th>
+                                <th>Phone</th>
+                                <th>CCCD</th>
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Status</th>
@@ -180,8 +142,9 @@ export default function AdminAccountManagementPage() {
                         <tbody>
                             {users.map(user => (
                                 <tr key={user.id}>
-                                    <td><strong>{user.username}</strong></td>
-                                    <td>{user.email}</td>
+                                    <td><strong>{user.phoneNumber || user.username}</strong></td>
+                                    <td>{user.identityCardNumber || '—'}</td>
+                                    <td>{user.email || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
                                     <td><span className="badge">{user.role}</span></td>
                                     <td>
                                         <span className={`badge ${user.verified ? 'badge--success' : 'badge--warning'}`}>
@@ -193,7 +156,7 @@ export default function AdminAccountManagementPage() {
                                             {user.linked ? 'Linked' : 'Not Linked'}
                                         </span>
                                     </td>
-                                    <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                                    <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</td>
                                     <td>
                                         <button
                                             className="btn btn--primary btn--sm"
@@ -229,30 +192,6 @@ export default function AdminAccountManagementPage() {
                             </div>
 
                             <div className="form-group">
-                                <label className="form-label">Username</label>
-                                <input className="form-input" placeholder="Username"
-                                    value={formData.username}
-                                    onChange={e => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Email</label>
-                                <input className="form-input" type="email" placeholder="Email"
-                                    value={formData.email}
-                                    onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">Password</label>
-                                <input className="form-input" type="password" placeholder="Password"
-                                    value={formData.password}
-                                    onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                                />
-                            </div>
-
-                            <div className="form-group">
                                 <label className="form-label">Role</label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <button
@@ -270,146 +209,89 @@ export default function AdminAccountManagementPage() {
                                 </div>
                             </div>
 
+                            <div className="form-group">
+                                <label className="form-label">Phone Number</label>
+                                <input className="form-input" placeholder="e.g. 0912345678"
+                                    value={formData.phoneNumber}
+                                    onChange={e => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">ID Number (CCCD)</label>
+                                <input className="form-input" placeholder="e.g. 001204012345"
+                                    value={formData.identityCardNumber}
+                                    onChange={e => setFormData(prev => ({ ...prev, identityCardNumber: e.target.value }))}
+                                />
+                            </div>
+
+                            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '-4px', marginBottom: '16px' }}>
+                                ⓘ Password will be automatically set to the CCCD value above.
+                            </p>
+
+                            {/* Resident Information Section — only for USER role */}
                             {formData.role === 'USER' && (
                                 <>
-                                    {/* Resident Linking Section */}
                                     <div className="section-title" style={{ marginTop: '24px' }}>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                                         </svg>
-                                        Resident Linking
+                                        Resident Information
                                     </div>
 
                                     <div className="form-group">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
-                                                <input type="radio" name="residentOption" checked={residentOption === 'none'}
-                                                    onChange={() => { setResidentOption('none'); setFormData(prev => ({ ...prev, residentId: null })); setCreateNewResident(false); }}
-                                                    style={{ accentColor: 'var(--accent)' }}
-                                                />
-                                                No resident
-                                            </label>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
-                                                <input type="radio" name="residentOption" checked={residentOption === 'link'}
-                                                    onChange={() => { setResidentOption('link'); setCreateNewResident(false); }}
-                                                    style={{ accentColor: 'var(--accent)' }}
-                                                />
-                                                Link existing resident
-                                            </label>
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '14px' }}>
-                                                <input type="radio" name="residentOption" checked={residentOption === 'create'}
-                                                    onChange={() => { setResidentOption('create'); setCreateNewResident(true); setFormData(prev => ({ ...prev, residentId: null })); fetchApartments(); }}
-                                                    style={{ accentColor: 'var(--accent)' }}
-                                                />
-                                                Create new resident
-                                            </label>
-                                        </div>
+                                        <label className="form-label">Full Name</label>
+                                        <input className="form-input" placeholder="Full Name"
+                                            value={formData.fullName}
+                                            onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                                        />
                                     </div>
 
-                                    {residentOption === 'link' && (
-                                        <div className="form-group">
-                                            <label className="form-label">Select Resident</label>
-                                            <div style={{
-                                                border: '1px solid var(--border)', borderRadius: '8px', maxHeight: '200px',
-                                                overflowY: 'auto'
-                                            }}>
-                                                {residents.filter(r => !r.linked).length > 0 ? (
-                                                    residents.filter(r => !r.linked).map(resident => (
-                                                        <button
-                                                            key={resident.id}
-                                                            className={`btn btn--ghost`}
-                                                            onClick={() => handleSelectResident(resident.id)}
-                                                            style={{
-                                                                width: '100%', textAlign: 'left', padding: '10px',
-                                                                borderBottom: '1px solid var(--border)', justifyContent: 'flex-start',
-                                                                borderRadius: 0,
-                                                                backgroundColor: formData.residentId === resident.id ? 'var(--accent-bg)' : 'transparent',
-                                                                color: formData.residentId === resident.id ? 'var(--accent-hover)' : 'var(--text-secondary)'
-                                                            }}
-                                                        >
-                                                            {resident.fullName} ({resident.idNumber})
-                                                        </button>
-                                                    ))
-                                                ) : (
-                                                    <p style={{ padding: '12px', color: 'var(--text-muted)', fontSize: '13px' }}>No unlinked residents available.</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div className="form-group">
+                                        <label className="form-label">Date of Birth</label>
+                                        <input className="form-input" type="date"
+                                            value={formData.dateOfBirth}
+                                            onChange={e => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                                        />
+                                    </div>
 
-                                    {residentOption === 'create' && (
-                                        <>
-                                            <div className="form-group">
-                                                <label className="form-label">Full Name</label>
-                                                <input className="form-input" placeholder="Full Name"
-                                                    value={newResidentData.fullName}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, fullName: e.target.value }))}
-                                                />
-                                            </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Gender</label>
+                                        <select className="form-input" value={formData.gender}
+                                            onChange={e => setFormData(prev => ({ ...prev, gender: e.target.value }))}>
+                                            <option value="">Select</option>
+                                            <option value="MALE">Male</option>
+                                            <option value="FEMALE">Female</option>
+                                            <option value="OTHER">Other</option>
+                                        </select>
+                                    </div>
 
-                                            <div className="form-group">
-                                                <label className="form-label">Phone</label>
-                                                <input className="form-input" placeholder="Phone"
-                                                    value={newResidentData.phone}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, phone: e.target.value }))}
-                                                />
-                                            </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Relationship</label>
+                                        <select className="form-input" value={formData.relationship}
+                                            onChange={e => setFormData(prev => ({ ...prev, relationship: e.target.value }))}>
+                                            <option value="OWNER">Owner</option>
+                                            <option value="SPOUSE">Spouse</option>
+                                            <option value="CHILD">Child</option>
+                                            <option value="PARENT">Parent</option>
+                                            <option value="SIBLING">Sibling</option>
+                                            <option value="RELATIVE">Relative</option>
+                                            <option value="OTHER">Other</option>
+                                        </select>
+                                    </div>
 
-                                            <div className="form-group">
-                                                <label className="form-label">Date of Birth</label>
-                                                <input className="form-input" type="date"
-                                                    value={newResidentData.dateOfBirth}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                                                />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label">Gender</label>
-                                                <select className="form-input" value={newResidentData.gender}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, gender: e.target.value }))}>
-                                                    <option value="">Select</option>
-                                                    <option value="MALE">Male</option>
-                                                    <option value="FEMALE">Female</option>
-                                                    <option value="OTHER">Other</option>
-                                                </select>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label">ID Number</label>
-                                                <input className="form-input" placeholder="ID Number"
-                                                    value={newResidentData.idNumber}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, idNumber: e.target.value }))}
-                                                />
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label">Relationship</label>
-                                                <select className="form-input" value={newResidentData.relationship}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, relationship: e.target.value }))}>
-                                                    <option value="OWNER">Owner</option>
-                                                    <option value="SPOUSE">Spouse</option>
-                                                    <option value="CHILD">Child</option>
-                                                    <option value="PARENT">Parent</option>
-                                                    <option value="SIBLING">Sibling</option>
-                                                    <option value="RELATIVE">Relative</option>
-                                                    <option value="OTHER">Other</option>
-                                                </select>
-                                            </div>
-
-                                            <div className="form-group">
-                                                <label className="form-label">Apartment</label>
-                                                <select className="form-input" value={newResidentData.apartmentId || ''}
-                                                    onChange={e => setNewResidentData(prev => ({ ...prev, apartmentId: e.target.value ? Number(e.target.value) : null }))}>
-                                                    <option value="">Select Apartment</option>
-                                                    {apartments.map(apt => (
-                                                        <option key={apt.id} value={apt.id}>
-                                                            Room {apt.number || apt.apartmentNumber} (Floor {apt.floor})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </>
-                                    )}
+                                    <div className="form-group">
+                                        <label className="form-label">Apartment</label>
+                                        <select className="form-input" value={formData.apartmentId || ''}
+                                            onChange={e => setFormData(prev => ({ ...prev, apartmentId: e.target.value ? Number(e.target.value) : null }))}>
+                                            <option value="">Select Apartment</option>
+                                            {apartments.map(apt => (
+                                                <option key={apt.id} value={apt.id}>
+                                                    Room {apt.number || apt.apartmentNumber} (Floor {apt.floor})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </>
                             )}
                         </div>

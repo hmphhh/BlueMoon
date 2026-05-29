@@ -86,16 +86,16 @@ export default function AdminAccountDetailPage() {
         <>
             <div className="page-header">
                 <h1 className="page-header__title">Account Details</h1>
-                <p className="page-header__subtitle">{accountData.id}</p>
+                <p className="page-header__subtitle">{accountData.phoneNumber || accountData.username}</p>
             </div>
 
             <div className="card profile-card">
                 <div className="profile-avatar">
-                    <span>{(accountData.email || 'A')[0].toUpperCase()}</span>
+                    <span>{(accountData.phoneNumber || accountData.username || 'A')[0].toUpperCase()}</span>
                 </div>
 
                 <div className="profile-meta">
-                    <strong>{accountData.id}</strong> ·{' '}
+                    <strong>{accountData.phoneNumber || accountData.username}</strong> ·{' '}
                     <span className={`badge ${accountData.verified ? 'badge--success' : 'badge--danger'}`}>
                         {accountData.verified ? '✓ Verified' : '✗ Not Verified'}
                     </span>
@@ -115,8 +115,22 @@ export default function AdminAccountDetailPage() {
                 </div>
 
                 <div className="form-group">
+                    <label className="form-label form-label--with-badge">
+                        Phone Number <span className="badge badge--lock">locked</span>
+                    </label>
+                    <input className="form-input form-input--readonly" value={accountData.phoneNumber || accountData.username || ''} readOnly disabled />
+                </div>
+
+                <div className="form-group">
+                    <label className="form-label form-label--with-badge">
+                        ID Number (CCCD) <span className="badge badge--lock">locked</span>
+                    </label>
+                    <input className="form-input form-input--readonly" value={accountData.identityCardNumber || ''} readOnly disabled />
+                </div>
+
+                <div className="form-group">
                     <label className="form-label">Email</label>
-                    <input className="form-input form-input--readonly" value={accountData.email} readOnly disabled />
+                    <input className="form-input form-input--readonly" value={accountData.email || '—'} readOnly disabled />
                 </div>
 
                 <div className="form-group">
