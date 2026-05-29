@@ -40,6 +40,9 @@ public class UserService {
     private ApartmentRepository apartmentRepository;
 
     @Autowired
+    private ApartmentService apartmentService;
+
+    @Autowired
     private EmailService emailService;
 
     @Autowired
@@ -113,7 +116,14 @@ public class UserService {
         }
         // ADMIN role: no resident created
 
-        return userRepository.save(user);
+        user = userRepository.save(user);
+
+        // Auto-update apartment status after creating a resident (may change VACANT → OCCUPIED)
+        if (user.getRole() == UserRole.USER && user.getResident() != null && user.getResident().getApartment() != null) {
+            apartmentService.updateApartmentStatusByResidentCount(user.getResident().getApartment().getId());
+        }
+
+        return user;
     }
 
     /**
@@ -158,8 +168,23 @@ public class UserService {
             throw new InvalidOperationException("User is not linked to any resident");
         }
 
+        // Capture resident and apartment info before unlinking
+        ResidentEntity resident = user.getResident();
+        Long apartmentId = resident.getApartment() != null ? resident.getApartment().getId() : null;
+
+        // Unlink user from resident
         user.setResident(null);
-        return userRepository.save(user);
+        user = userRepository.save(user);
+
+        // Delete the resident (decreases apartment member count by 1)
+        residentRepository.delete(resident);
+
+        // Auto-update apartment status (may change OCCUPIED → VACANT if count hits 0)
+        if (apartmentId != null) {
+            apartmentService.updateApartmentStatusByResidentCount(apartmentId);
+        }
+
+        return user;
     }
 
     /**

@@ -109,5 +109,24 @@ public class ApartmentService {
         Long count = apartmentRepository.countResidentsByApartmentId(apartmentId);
         return count != null ? count.intValue() : 0;
     }
+
+    /**
+     * Auto-update apartment status based on current resident count.
+     * If residentCount == 0 → VACANT, if residentCount > 0 → OCCUPIED.
+     * This is the single source of truth for apartment status transitions.
+     */
+    @Transactional
+    public void updateApartmentStatusByResidentCount(Long apartmentId) {
+        ApartmentEntity apartment = apartmentRepository.findById(apartmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + apartmentId));
+
+        int count = getResidentCount(apartmentId);
+        if (count == 0) {
+            apartment.setStatus(ApartmentStatus.VACANT);
+        } else {
+            apartment.setStatus(ApartmentStatus.OCCUPIED);
+        }
+        apartmentRepository.save(apartment);
+    }
 }
 

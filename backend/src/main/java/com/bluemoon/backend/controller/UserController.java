@@ -24,6 +24,7 @@ import com.bluemoon.backend.mapper.UserMapper;
 import com.bluemoon.backend.mapper.ResidentMapper;
 import com.bluemoon.backend.service.UserService;
 import com.bluemoon.backend.entity.UserEntity;
+import com.bluemoon.backend.entity.ResidentEntity;
 
 import jakarta.validation.Valid;
 
@@ -39,6 +40,37 @@ public class UserController {
 
     @Autowired
     private ResidentMapper residentMapper;
+
+    /**
+     * Helper: build UserDetailsResponse with null-safe resident DTO.
+     */
+    private UserDetailsResponse buildDetailsResponse(UserEntity user) {
+        UserDetailsResponse response = userMapper.toDetailsResponse(user);
+
+        if (user.getResident() != null) {
+            ResidentEntity r = user.getResident();
+            UserDetailsResponse.ResidentDetailDto residentDto = new UserDetailsResponse.ResidentDetailDto();
+            residentDto.setId(r.getId());
+            residentDto.setFullName(r.getFullName());
+            residentDto.setIdNumber(r.getIdNumber());
+            residentDto.setDateOfBirth(r.getDateOfBirth() != null ? r.getDateOfBirth().toString() : null);
+            residentDto.setGender(r.getGender() != null ? r.getGender().toString() : null);
+            residentDto.setPhone(r.getPhone());
+            residentDto.setRelationship(r.getRelationship() != null ? r.getRelationship().toString() : null);
+            residentDto.setStatus(r.getStatus() != null ? r.getStatus().toString() : null);
+
+            if (r.getApartment() != null) {
+                UserDetailsResponse.ApartmentSimplifiedDto apartmentDto = new UserDetailsResponse.ApartmentSimplifiedDto();
+                apartmentDto.setId(r.getApartment().getId());
+                apartmentDto.setApartmentNumber(r.getApartment().getApartmentNumber());
+                residentDto.setApartment(apartmentDto);
+            }
+
+            response.setResident(residentDto);
+        }
+
+        return response;
+    }
 
     /**
      * Get all users (simplified view with isLinked field).
@@ -63,30 +95,7 @@ public class UserController {
     @GetMapping("/{userId}")
     public ResponseEntity<UserDetailsResponse> getUserDetails(@PathVariable Long userId) {
         var user = userService.getUserById(userId);
-        UserDetailsResponse response = userMapper.toDetailsResponse(user);
-        
-        if (user.getResident() != null) {
-            UserDetailsResponse.ResidentDetailDto residentDto = new UserDetailsResponse.ResidentDetailDto();
-            residentDto.setId(user.getResident().getId());
-            residentDto.setFullName(user.getResident().getFullName());
-            residentDto.setIdNumber(user.getResident().getIdNumber());
-            residentDto.setDateOfBirth(user.getResident().getDateOfBirth().toString());
-            residentDto.setGender(user.getResident().getGender().toString());
-            residentDto.setPhone(user.getResident().getPhone());
-            residentDto.setRelationship(user.getResident().getRelationship().toString());
-            residentDto.setStatus(user.getResident().getStatus().toString());
-            
-            if (user.getResident().getApartment() != null) {
-                UserDetailsResponse.ApartmentSimplifiedDto apartmentDto = new UserDetailsResponse.ApartmentSimplifiedDto();
-                apartmentDto.setId(user.getResident().getApartment().getId());
-                apartmentDto.setApartmentNumber(user.getResident().getApartment().getApartmentNumber());
-                residentDto.setApartment(apartmentDto);
-            }
-            
-            response.setResident(residentDto);
-        }
-        
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildDetailsResponse(user));
     }
 
     /**
@@ -96,30 +105,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserDetailsResponse> createUser(@Valid @RequestBody UserRequest request) {
         var createdUser = userService.createUser(request);
-        UserDetailsResponse response = userMapper.toDetailsResponse(createdUser);
-        
-        if (createdUser.getResident() != null) {
-            UserDetailsResponse.ResidentDetailDto residentDto = new UserDetailsResponse.ResidentDetailDto();
-            residentDto.setId(createdUser.getResident().getId());
-            residentDto.setFullName(createdUser.getResident().getFullName());
-            residentDto.setIdNumber(createdUser.getResident().getIdNumber());
-            residentDto.setDateOfBirth(createdUser.getResident().getDateOfBirth().toString());
-            residentDto.setGender(createdUser.getResident().getGender().toString());
-            residentDto.setPhone(createdUser.getResident().getPhone());
-            residentDto.setRelationship(createdUser.getResident().getRelationship().toString());
-            residentDto.setStatus(createdUser.getResident().getStatus().toString());
-            
-            if (createdUser.getResident().getApartment() != null) {
-                UserDetailsResponse.ApartmentSimplifiedDto apartmentDto = new UserDetailsResponse.ApartmentSimplifiedDto();
-                apartmentDto.setId(createdUser.getResident().getApartment().getId());
-                apartmentDto.setApartmentNumber(createdUser.getResident().getApartment().getApartmentNumber());
-                residentDto.setApartment(apartmentDto);
-            }
-            
-            response.setResident(residentDto);
-        }
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(buildDetailsResponse(createdUser));
     }
 
     /**
@@ -130,38 +116,15 @@ public class UserController {
     @PutMapping("/{userId}")
     public ResponseEntity<UserDetailsResponse> updateUser(@PathVariable Long userId, @RequestBody Map<String, Object> request) {
         Long residentId = request.get("residentId") != null ? ((Number) request.get("residentId")).longValue() : null;
-        
+
         UserEntity updatedUser;
         if (residentId == null) {
             updatedUser = userService.unlinkFromResident(userId);
         } else {
             updatedUser = userService.linkToResident(userId, residentId);
         }
-        
-        UserDetailsResponse response = userMapper.toDetailsResponse(updatedUser);
-        
-        if (updatedUser.getResident() != null) {
-            UserDetailsResponse.ResidentDetailDto residentDto = new UserDetailsResponse.ResidentDetailDto();
-            residentDto.setId(updatedUser.getResident().getId());
-            residentDto.setFullName(updatedUser.getResident().getFullName());
-            residentDto.setIdNumber(updatedUser.getResident().getIdNumber());
-            residentDto.setDateOfBirth(updatedUser.getResident().getDateOfBirth().toString());
-            residentDto.setGender(updatedUser.getResident().getGender().toString());
-            residentDto.setPhone(updatedUser.getResident().getPhone());
-            residentDto.setRelationship(updatedUser.getResident().getRelationship().toString());
-            residentDto.setStatus(updatedUser.getResident().getStatus().toString());
-            
-            if (updatedUser.getResident().getApartment() != null) {
-                UserDetailsResponse.ApartmentSimplifiedDto apartmentDto = new UserDetailsResponse.ApartmentSimplifiedDto();
-                apartmentDto.setId(updatedUser.getResident().getApartment().getId());
-                apartmentDto.setApartmentNumber(updatedUser.getResident().getApartment().getApartmentNumber());
-                residentDto.setApartment(apartmentDto);
-            }
-            
-            response.setResident(residentDto);
-        }
-        
-        return ResponseEntity.ok(response);
+
+        return ResponseEntity.ok(buildDetailsResponse(updatedUser));
     }
 
     /**

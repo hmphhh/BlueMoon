@@ -3,6 +3,7 @@ package com.bluemoon.backend.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,10 @@ public class ResidentService {
 
     @Autowired
     private ApartmentRepository apartmentRepository;
+
+    @Autowired
+    @Lazy
+    private ApartmentService apartmentService;
 
     @Autowired
     private ResidentMapper residentMapper;
@@ -79,8 +84,12 @@ public class ResidentService {
         // Create and save the resident
         ResidentEntity resident = residentMapper.toEntity(request);
         resident.setApartment(apartment);
+        resident = residentRepository.save(resident);
 
-        return residentRepository.save(resident);
+        // Auto-update apartment status (may change VACANT → OCCUPIED)
+        apartmentService.updateApartmentStatusByResidentCount(apartment.getId());
+
+        return resident;
     }
 
     /**
@@ -101,8 +110,15 @@ public class ResidentService {
             throw new InvalidOperationException("ID number already in use");
         }
 
+        // Track old apartment for status update if apartment is changing
+        Long oldApartmentId = resident.getApartment() != null ? resident.getApartment().getId() : null;
+        boolean apartmentChanged = false;
+
         // Update apartment if provided
         if (request.getApartmentId() != null) {
+            if (oldApartmentId == null || !request.getApartmentId().equals(oldApartmentId)) {
+                apartmentChanged = true;
+            }
             ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
             resident.setApartment(apartment);
@@ -110,8 +126,17 @@ public class ResidentService {
 
         // Update resident fields (null values are ignored)
         residentMapper.updateEntity(request, resident);
+        resident = residentRepository.save(resident);
 
-        return residentRepository.save(resident);
+        // Auto-update apartment status for both old and new apartments
+        if (apartmentChanged) {
+            if (oldApartmentId != null) {
+                apartmentService.updateApartmentStatusByResidentCount(oldApartmentId);
+            }
+            apartmentService.updateApartmentStatusByResidentCount(request.getApartmentId());
+        }
+
+        return resident;
     }
 
     /**
@@ -138,7 +163,16 @@ public class ResidentService {
     public void deleteResident(Long id) {
         ResidentEntity resident = residentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resident not found with id: " + id));
+
+        // Capture apartment ID before deletion for status update
+        Long apartmentId = resident.getApartment() != null ? resident.getApartment().getId() : null;
+
         residentRepository.delete(resident);
+
+        // Auto-update apartment status (may change OCCUPIED → VACANT)
+        if (apartmentId != null) {
+            apartmentService.updateApartmentStatusByResidentCount(apartmentId);
+        }
     }
 
     /**
