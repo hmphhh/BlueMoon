@@ -10,14 +10,21 @@ export default function AdminApartmentDetailPage() {
     const { apartmentId } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
+
     const [apartmentData, setApartmentData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState({ number: '', floor: '', area: '', type: '' });
 
     const formatType = (type) => {
-        const map = { STUDIO: 'Studio', ONE_BEDROOM: '1 Bedroom', TWO_BEDROOM: '2 Bedroom', THREE_BEDROOM: '3 Bedroom', PENTHOUSE: 'Penthouse' };
-        return map[type] || type;
+        const map = {
+            STUDIO: 'Studio',
+            ONE_BEDROOM: '1 Bedroom',
+            TWO_BEDROOM: '2 Bedroom',
+            THREE_BEDROOM: '3 Bedroom',
+            PENTHOUSE: 'Penthouse'
+        };
+        return map[type] || type || 'N/A';
     };
 
     useEffect(() => {
@@ -37,11 +44,12 @@ export default function AdminApartmentDetailPage() {
     };
 
     const handleOpenEditModal = () => {
+        if (!apartmentData) return;
         setEditForm({
             number: apartmentData.apartmentNumber || '',
             floor: apartmentData.floor || '',
             area: apartmentData.area || '',
-            type: apartmentData.type || ''
+            type: apartmentData.type || 'STUDIO'
         });
         setShowEditModal(true);
     };
@@ -59,7 +67,7 @@ export default function AdminApartmentDetailPage() {
             fetchApartmentDetails();
         } catch (err) {
             console.error(err);
-            toast(err.response?.data?.message || 'Failed to update apartment', 'error');
+            toast(err.response?.data?.error || 'Failed to update apartment', 'error');
         }
     };
 
@@ -68,13 +76,13 @@ export default function AdminApartmentDetailPage() {
             case 'ACTIVE': return 'badge--success';
             case 'TEMPORARILY_ABSENT': return 'badge--warning';
             case 'MOVED_OUT': return 'badge--danger';
-            default: return '';
+            case 'OCCUPIED': return 'badge--success';
+            case 'VACANT': return 'badge--warning';
+            default: return 'badge--info';
         }
     };
 
-    if (loading) {
-        return <SkeletonProfile />;
-    }
+    if (loading) return <SkeletonProfile />;
 
     if (!apartmentData) {
         return (
@@ -87,6 +95,9 @@ export default function AdminApartmentDetailPage() {
         );
     }
 
+    // Xử lý an toàn khi lấy ký tự đầu tiên làm Avatar
+    const avatarChar = apartmentData.apartmentNumber?.charAt(0)?.toUpperCase() || 'A';
+
     return (
         <>
             <div className="page-header">
@@ -96,12 +107,12 @@ export default function AdminApartmentDetailPage() {
 
             <div className="card profile-card">
                 <div className="profile-avatar">
-                    <span>{(apartmentData.apartmentNumber || 'A')[0].toUpperCase()}</span>
+                    <span>{avatarChar}</span>
                 </div>
 
                 <div className="profile-meta">
                     <strong>{apartmentData.apartmentNumber}</strong> ·{' '}
-                    <span className={`badge ${apartmentData.status === 'OCCUPIED' ? 'badge--success' : apartmentData.status === 'VACANT' ? 'badge--warning' : 'badge--info'}`}>
+                    <span className={`badge ${getStatusBadge(apartmentData.status)}`}>
                         {apartmentData.status}
                     </span>
                     {apartmentData.type && (
@@ -111,10 +122,10 @@ export default function AdminApartmentDetailPage() {
                     )}
                 </div>
 
-                {/* Apartment Information */}
+                {/* Apartment Information Section */}
                 <div className="section-title" style={{ marginTop: '28px' }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
                     </svg>
                     Apartment Information
                 </div>
@@ -123,21 +134,21 @@ export default function AdminApartmentDetailPage() {
                     <label className="form-label form-label--with-badge">
                         Apartment Number <span className="badge badge--lock">locked</span>
                     </label>
-                    <input className="form-input form-input--readonly" value={apartmentData.apartmentNumber} readOnly disabled />
+                    <input className="form-input form-input--readonly" value={apartmentData.apartmentNumber || ''} readOnly disabled />
                 </div>
 
                 <div className="form-group">
                     <label className="form-label form-label--with-badge">
                         Floor <span className="badge badge--lock">locked</span>
                     </label>
-                    <input className="form-input form-input--readonly" value={apartmentData.floor} readOnly disabled />
+                    <input className="form-input form-input--readonly" value={apartmentData.floor || ''} readOnly disabled />
                 </div>
 
                 <div className="form-group">
                     <label className="form-label form-label--with-badge">
                         Area <span className="badge badge--lock">locked</span>
                     </label>
-                    <input className="form-input form-input--readonly" value={`${apartmentData.area} m²`} readOnly disabled />
+                    <input className="form-input form-input--readonly" value={`${apartmentData.area || 0} m²`} readOnly disabled />
                 </div>
 
                 <div className="form-group">
@@ -151,7 +162,7 @@ export default function AdminApartmentDetailPage() {
                     <label className="form-label form-label--with-badge">
                         Status <span className="badge badge--lock">locked</span>
                     </label>
-                    <input className="form-input form-input--readonly" value={apartmentData.status} readOnly disabled />
+                    <input className="form-input form-input--readonly" value={apartmentData.status || ''} readOnly disabled />
                 </div>
 
                 <div style={{ marginTop: '20px' }}>
@@ -160,15 +171,15 @@ export default function AdminApartmentDetailPage() {
                     </button>
                 </div>
 
-                {/* Residents */}
+                {/* Residents Section */}
                 <div className="section-title" style={{ marginTop: '28px' }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                     </svg>
                     Residents
                 </div>
 
-                {apartmentData.residents && apartmentData.residents.length > 0 ? (
+                {apartmentData.residents?.length > 0 ? (
                     <div style={{ overflowX: 'auto' }}>
                         <table className="table">
                             <thead>
@@ -231,25 +242,19 @@ export default function AdminApartmentDetailPage() {
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Apartment Number</label>
-                                <input
-                                    className="form-input"
-                                    type="text"
-                                    value={editForm.number}
-                                    onChange={e => setEditForm({ ...editForm, number: e.target.value })}
-                                />
+                                <label className="form-label form-label--with-badge">
+                                    Apartment Number <span className="badge badge--lock">locked</span>
+                                </label>
+                                <input className="form-input form-input--readonly" value={editForm.number} readOnly disabled />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Floor</label>
-                                <input
-                                    className="form-input"
-                                    type="number"
-                                    value={editForm.floor}
-                                    onChange={e => setEditForm({ ...editForm, floor: e.target.value })}
-                                />
+                                <label className="form-label form-label--with-badge">
+                                    Floor <span className="badge badge--lock">locked</span>
+                                </label>
+                                <input className="form-input form-input--readonly" value={editForm.floor} readOnly disabled />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Area</label>
+                                <label className="form-label">Area (m²)</label>
                                 <input
                                     className="form-input"
                                     type="number"

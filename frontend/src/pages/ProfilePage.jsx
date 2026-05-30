@@ -81,7 +81,7 @@ export default function ProfilePage({ user, setUser }) {
             toast('Email updated successfully!', 'success');
         } catch (err) {
             console.error(err);
-            toast(err.response?.data?.message || 'Failed to update email', 'error');
+            toast(err.response?.data?.error || 'Failed to update email', 'error');
         }
     };
 

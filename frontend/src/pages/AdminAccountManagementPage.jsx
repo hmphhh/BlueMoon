@@ -39,10 +39,17 @@ export default function AdminAccountManagementPage() {
         }
     };
 
+    // Valid room numbers for the current 4×3 building layout
+    const VALID_ROOMS = ['101','102','103','201','202','203','301','302','303','401','402','403'];
+
     const fetchApartments = async () => {
         try {
             const res = await axios.get(`${API_BASE}/api/apartments`);
-            setApartments(res.data || []);
+            // Filter out stale apartments from old configurations
+            const validApts = (res.data || []).filter(apt =>
+                VALID_ROOMS.includes(apt.number || apt.apartmentNumber)
+            );
+            setApartments(validApts);
         } catch (err) {
             console.error('Failed to fetch apartments:', err);
         }
@@ -102,7 +109,7 @@ export default function AdminAccountManagementPage() {
             fetchUsers();
         } catch (err) {
             console.error(err);
-            toast(err.response?.data?.message || err.response?.data?.error || 'Failed to create account', 'error');
+            toast(err.response?.data?.error || 'Failed to create account', 'error');
         }
     };
 
@@ -285,7 +292,9 @@ export default function AdminAccountManagementPage() {
                                         <select className="form-input" value={formData.apartmentId || ''}
                                             onChange={e => setFormData(prev => ({ ...prev, apartmentId: e.target.value ? Number(e.target.value) : null }))}>
                                             <option value="">Select Apartment</option>
-                                            {apartments.map(apt => (
+                                            {[...apartments]
+                                                .sort((a, b) => (a.floor - b.floor) || (a.number || a.apartmentNumber || '').localeCompare(b.number || b.apartmentNumber || ''))
+                                                .map(apt => (
                                                 <option key={apt.id} value={apt.id}>
                                                     Room {apt.number || apt.apartmentNumber} (Floor {apt.floor})
                                                 </option>

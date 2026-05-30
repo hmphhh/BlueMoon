@@ -12,8 +12,15 @@ export default function AdminAccountDetailPage() {
     const toast = useToast();
     const [accountData, setAccountData] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showResidentLinkModal, setShowResidentLinkModal] = useState(false);
-    const [residents, setResidents] = useState([]);
+    const [showCreateResidentModal, setShowCreateResidentModal] = useState(false);
+    const [apartments, setApartments] = useState([]);
+    const [newResident, setNewResident] = useState({
+        fullName: '',
+        dateOfBirth: '',
+        gender: '',
+        relationship: 'OWNER',
+        apartmentId: null,
+    });
 
     useEffect(() => {
         fetchAccountDetails();
@@ -31,31 +38,8 @@ export default function AdminAccountDetailPage() {
         }
     };
 
-    const handleShowResidentLink = async () => {
-        try {
-            const res = await axios.get(`${API_BASE}/api/residents`);
-            setResidents(res.data || []);
-            setShowResidentLinkModal(true);
-        } catch (err) {
-            console.error(err);
-            toast('Failed to load residents', 'error');
-        }
-    };
-
-    const handleLinkResident = async (residentId) => {
-        try {
-            const res = await axios.put(`${API_BASE}/api/users/${userId}`, { residentId });
-            setAccountData(res.data);
-            setShowResidentLinkModal(false);
-            toast('Resident linked successfully!', 'success');
-        } catch (err) {
-            console.error(err);
-            toast(err.response?.data?.message || 'Failed to link resident', 'error');
-        }
-    };
-
     const handleUnlinkResident = async () => {
-        if (window.confirm('Are you sure you want to unlink this resident?')) {
+        if (window.confirm('Are you sure you want to unlink this resident? The resident profile will be deleted.')) {
             try {
                 const res = await axios.put(`${API_BASE}/api/users/${userId}`, { residentId: null });
                 setAccountData(res.data);
@@ -64,6 +48,60 @@ export default function AdminAccountDetailPage() {
                 console.error(err);
                 toast('Failed to unlink resident', 'error');
             }
+        }
+    };
+
+    const handleShowCreateResident = async () => {
+        try {
+            const VALID_ROOMS = ['101','102','103','201','202','203','301','302','303','401','402','403'];
+            const res = await axios.get(`${API_BASE}/api/apartments`);
+            const validApts = (res.data || []).filter(apt =>
+                VALID_ROOMS.includes(apt.number || apt.apartmentNumber)
+            );
+            setApartments(validApts);
+            setNewResident({
+                fullName: '',
+                dateOfBirth: '',
+                gender: '',
+                relationship: 'OWNER',
+                apartmentId: null,
+            });
+            setShowCreateResidentModal(true);
+        } catch (err) {
+            console.error(err);
+            toast('Failed to load apartments', 'error');
+        }
+    };
+
+    const handleCreateAndLinkResident = async () => {
+        if (!newResident.fullName || !newResident.dateOfBirth || !newResident.gender || !newResident.apartmentId) {
+            toast('Please fill in all required fields', 'error');
+            return;
+        }
+
+        try {
+            // Step 1: Create the resident (phone & idNumber are auto-filled from the user account)
+            const residentRes = await axios.post(`${API_BASE}/api/residents`, {
+                fullName: newResident.fullName,
+                phone: accountData.phoneNumber || accountData.username,
+                idNumber: accountData.identityCardNumber,
+                dateOfBirth: newResident.dateOfBirth,
+                gender: newResident.gender,
+                relationship: newResident.relationship,
+                apartmentId: newResident.apartmentId,
+            });
+
+            // Step 2: Link the new resident to the user
+            const userRes = await axios.put(`${API_BASE}/api/users/${userId}`, {
+                residentId: residentRes.data.id,
+            });
+
+            setAccountData(userRes.data);
+            setShowCreateResidentModal(false);
+            toast('Resident created and linked successfully!', 'success');
+        } catch (err) {
+            console.error(err);
+            toast(err.response?.data?.error || 'Failed to create and link resident', 'error');
         }
     };
 
@@ -222,14 +260,14 @@ export default function AdminAccountDetailPage() {
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M12 5v14M5 12h14"/>
                             </svg>
-                            Link Resident Profile
+                            Resident Profile
                         </div>
                         <p style={{ color: '#666', marginBottom: '16px' }}>
                             No resident profile linked to this account.
                         </p>
                         {accountData.role === 'USER' && (
-                            <button className="btn btn--primary" onClick={handleShowResidentLink}>
-                                Link Resident
+                            <button className="btn btn--primary" onClick={handleShowCreateResident}>
+                                + Create New Resident
                             </button>
                         )}
                     </>
@@ -242,39 +280,81 @@ export default function AdminAccountDetailPage() {
                 </div>
             </div>
 
-            {/* Resident Linking Modal */}
-            {showResidentLinkModal && (
-                <div className="modal-overlay" onClick={() => setShowResidentLinkModal(false)}>
+            {/* Create & Link New Resident Modal */}
+            {showCreateResidentModal && (
+                <div className="modal-overlay" onClick={() => setShowCreateResidentModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>Link Resident Profile</h2>
-                            <button className="modal-close" onClick={() => setShowResidentLinkModal(false)}>×</button>
+                            <h2>Create & Link New Resident</h2>
+                            <button className="modal-close" onClick={() => setShowCreateResidentModal(false)}>×</button>
                         </div>
                         <div className="modal-body">
-                            {residents.filter(r => !r.linked).length > 0 ? (
-                                <div className="residents-list">
-                                    {residents.filter(r => !r.linked).map(resident => (
-                                        <div key={resident.id} className="resident-item" style={{
-                                            padding: '12px', borderBottom: '1px solid #eee',
-                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                                        }}>
-                                            <div>
-                                                <strong>{resident.fullName}</strong><br />
-                                                <small style={{ color: '#666' }}>ID: {resident.idNumber}</small>
-                                            </div>
-                                            <button className="btn btn--primary btn--sm" onClick={() => handleLinkResident(resident.id)}>
-                                                Link
-                                            </button>
-                                        </div>
+                            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                                ⓘ Phone and CCCD will be automatically inherited from the user account.
+                            </p>
+
+                            <div className="form-group">
+                                <label className="form-label">Full Name</label>
+                                <input className="form-input" placeholder="Full Name"
+                                    value={newResident.fullName}
+                                    onChange={e => setNewResident(prev => ({ ...prev, fullName: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Date of Birth</label>
+                                <input className="form-input" type="date"
+                                    value={newResident.dateOfBirth}
+                                    onChange={e => setNewResident(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Gender</label>
+                                <select className="form-input" value={newResident.gender}
+                                    onChange={e => setNewResident(prev => ({ ...prev, gender: e.target.value }))}>
+                                    <option value="">Select</option>
+                                    <option value="MALE">Male</option>
+                                    <option value="FEMALE">Female</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Relationship</label>
+                                <select className="form-input" value={newResident.relationship}
+                                    onChange={e => setNewResident(prev => ({ ...prev, relationship: e.target.value }))}>
+                                    <option value="OWNER">Owner</option>
+                                    <option value="SPOUSE">Spouse</option>
+                                    <option value="CHILD">Child</option>
+                                    <option value="PARENT">Parent</option>
+                                    <option value="SIBLING">Sibling</option>
+                                    <option value="RELATIVE">Relative</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Apartment</label>
+                                <select className="form-input" value={newResident.apartmentId || ''}
+                                    onChange={e => setNewResident(prev => ({ ...prev, apartmentId: e.target.value ? Number(e.target.value) : null }))}>
+                                    <option value="">Select Apartment</option>
+                                    {[...apartments]
+                                        .sort((a, b) => (a.floor - b.floor) || (a.number || a.apartmentNumber || '').localeCompare(b.number || b.apartmentNumber || ''))
+                                        .map(apt => (
+                                        <option key={apt.id} value={apt.id}>
+                                            Room {apt.number || apt.apartmentNumber} (Floor {apt.floor})
+                                        </option>
                                     ))}
-                                </div>
-                            ) : (
-                                <p>No available residents to link.</p>
-                            )}
+                                </select>
+                            </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn btn--secondary" onClick={() => setShowResidentLinkModal(false)}>
+                            <button className="btn btn--secondary" onClick={() => setShowCreateResidentModal(false)}>
                                 Cancel
+                            </button>
+                            <button className="btn btn--primary" onClick={handleCreateAndLinkResident}>
+                                Create & Link
                             </button>
                         </div>
                     </div>
