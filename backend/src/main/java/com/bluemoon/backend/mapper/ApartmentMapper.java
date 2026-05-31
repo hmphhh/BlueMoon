@@ -6,8 +6,6 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import com.bluemoon.backend.dtos.request.ApartmentRequest;
-import com.bluemoon.backend.dtos.response.ApartmentDetailsResponse;
-import com.bluemoon.backend.dtos.response.ApartmentResponse;
 import com.bluemoon.backend.entity.ApartmentEntity;
 
 /**
@@ -16,20 +14,6 @@ import com.bluemoon.backend.entity.ApartmentEntity;
  */
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface ApartmentMapper {
-
-    /**
-     * Map ApartmentEntity to ApartmentResponse.
-     */
-    @Mapping(source = "apartmentNumber", target = "number")
-    @Mapping(target = "residentCount", ignore = true)
-    ApartmentResponse toResponse(ApartmentEntity entity);
-
-    /**
-     * Map ApartmentEntity to ApartmentDetailsResponse (for /api/apartments/{apartmentId} endpoint).
-     */
-    @Mapping(source = "apartmentNumber", target = "apartmentNumber")
-    @Mapping(target = "residents", ignore = true)
-    ApartmentDetailsResponse toDetailsResponse(ApartmentEntity entity);
 
     /**
      * Map ApartmentRequest to ApartmentEntity.

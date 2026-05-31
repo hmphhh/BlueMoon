@@ -11,6 +11,7 @@ import com.bluemoon.backend.dtos.request.ResidentRequest;
 import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.ResidentEntity;
 import com.bluemoon.backend.entity.UserEntity;
+import com.bluemoon.backend.enums.ResidentStatus;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.mapper.ResidentMapper;
@@ -87,7 +88,7 @@ public class ResidentService {
         resident = residentRepository.save(resident);
 
         // Auto-update apartment status (may change VACANT → OCCUPIED)
-        apartmentService.updateApartmentStatusByResidentCount(apartment.getId());
+        apartmentService.updateApartmentStatusByUserCount(apartment.getId());
 
         return resident;
     }
@@ -110,8 +111,9 @@ public class ResidentService {
             throw new InvalidOperationException("ID number already in use");
         }
 
-        // Track old apartment for status update if apartment is changing
+        // Track old apartment and status for update logic
         Long oldApartmentId = resident.getApartment() != null ? resident.getApartment().getId() : null;
+        ResidentStatus oldStatus = resident.getStatus();
         boolean apartmentChanged = false;
 
         // Update apartment if provided
@@ -128,12 +130,20 @@ public class ResidentService {
         residentMapper.updateEntity(request, resident);
         resident = residentRepository.save(resident);
 
+        ResidentStatus newStatus = resident.getStatus();
+
         // Auto-update apartment status for both old and new apartments
         if (apartmentChanged) {
             if (oldApartmentId != null) {
-                apartmentService.updateApartmentStatusByResidentCount(oldApartmentId);
+                apartmentService.updateApartmentStatusByUserCount(oldApartmentId);
             }
-            apartmentService.updateApartmentStatusByResidentCount(request.getApartmentId());
+            apartmentService.updateApartmentStatusByUserCount(request.getApartmentId());
+        } else if (oldStatus != newStatus && resident.getApartment() != null) {
+            // Status changed on the same apartment — recalculate if MOVED_OUT is involved
+            boolean involvesMoveOut = oldStatus == ResidentStatus.MOVED_OUT || newStatus == ResidentStatus.MOVED_OUT;
+            if (involvesMoveOut) {
+                apartmentService.updateApartmentStatusByUserCount(resident.getApartment().getId());
+            }
         }
 
         return resident;
@@ -171,7 +181,7 @@ public class ResidentService {
 
         // Auto-update apartment status (may change OCCUPIED → VACANT)
         if (apartmentId != null) {
-            apartmentService.updateApartmentStatusByResidentCount(apartmentId);
+            apartmentService.updateApartmentStatusByUserCount(apartmentId);
         }
     }
 

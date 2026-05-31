@@ -75,7 +75,7 @@ public class ResidentController {
             accountDto.setId(linkedUser.getId());
             accountDto.setUsername(linkedUser.getUsername());
             accountDto.setEmail(linkedUser.getEmail());
-            accountDto.setVerified(linkedUser.isVerified());
+            accountDto.setVerified(linkedUser.getVerified());
             response.setAccount(accountDto);
         }
         

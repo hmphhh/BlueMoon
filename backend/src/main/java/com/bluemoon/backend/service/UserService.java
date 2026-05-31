@@ -1,40 +1,37 @@
 package com.bluemoon.backend.service;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.bluemoon.backend.dtos.request.UserRequest;
 import com.bluemoon.backend.dtos.request.ChangePasswordRequest;
+import com.bluemoon.backend.dtos.request.CreateUserRequest;
+import com.bluemoon.backend.dtos.request.ResetUserPasswordRequest;
 import com.bluemoon.backend.dtos.request.UpdateProfileRequest;
-import com.bluemoon.backend.enums.OtpTokenType;
-import com.bluemoon.backend.enums.ResidentRelationship;
-import com.bluemoon.backend.enums.ResidentStatus;
-import com.bluemoon.backend.enums.UserRole;
+import com.bluemoon.backend.dtos.request.UpdateUserRequest;
 import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
-import com.bluemoon.backend.entity.ResidentEntity;
-import com.bluemoon.backend.exceptions.InvalidCredentialsException;
+import com.bluemoon.backend.enums.OtpTokenType;
+import com.bluemoon.backend.enums.ResidentStatus;
+import com.bluemoon.backend.enums.UserRole;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.ApartmentRepository;
 import com.bluemoon.backend.repository.UserRepository;
-import com.bluemoon.backend.repository.ResidentRepository;
-
-
 
 @Service
 public class UserService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private ResidentRepository residentRepository;
 
     @Autowired
     private ApartmentRepository apartmentRepository;
@@ -51,167 +48,197 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    /**
-     * Get all users (admin only).
-     */
-    public List<UserEntity> getAllUsers() {
-        return userRepository.findAll();
+    // ─── Admin: Get All Users (paginated, search, filter) ───
+
+    public Map<String, Object> getAllUsers(int page, int size, String search, String role, String status, Long apartmentId) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        UserRole roleEnum = null;
+        if (role != null && !role.isEmpty()) {
+            try { roleEnum = UserRole.valueOf(role); } catch (Exception ignored) {}
+        }
+
+        ResidentStatus statusEnum = null;
+        if (status != null && !status.isEmpty()) {
+            try { statusEnum = ResidentStatus.valueOf(status); } catch (Exception ignored) {}
+        }
+
+        Page<UserEntity> userPage = userRepository.searchUsers(search, roleEnum, statusEnum, apartmentId, pageable);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", userPage.getContent());
+        response.put("page", userPage.getNumber());
+        response.put("size", userPage.getSize());
+        response.put("totalElements", userPage.getTotalElements());
+        response.put("totalPages", userPage.getTotalPages());
+        return response;
     }
 
-    /**
-     * Create a new user with integrated account + resident data.
-     * Password is auto-set to BCrypt(identityCardNumber/CCCD).
-     * For USER role, a ResidentEntity is created and linked 1:1.
-     * For ADMIN role, no resident is created.
-     */
-    @Transactional
-    public UserEntity createUser(UserRequest request) {
-        // Validate uniqueness
-        if (userRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
-            throw new InvalidOperationException("Phone number already registered");
-        }
-        if (userRepository.findByIdentityCardNumber(request.getIdentityCardNumber()).isPresent()) {
-            throw new InvalidOperationException("Identity card number (CCCD) already registered");
-        }
-        // Also check username uniqueness (username = phoneNumber)
-        if (userRepository.findByUsername(request.getPhoneNumber()).isPresent()) {
-            throw new InvalidOperationException("Phone number already registered as username");
-        }
+    // ─── Admin: Get User By ID ───
 
-        // Create user entity
-        UserEntity user = new UserEntity();
-        user.setUsername(request.getPhoneNumber());             // login username = phone number
-        user.setPhoneNumber(request.getPhoneNumber());
-        user.setIdentityCardNumber(request.getIdentityCardNumber());
-        user.setPassword(passwordEncoder.encode(request.getIdentityCardNumber())); // password = BCrypt(CCCD)
-        user.setRole(request.getRole() != null ? request.getRole() : UserRole.USER);
-        user.setVerified(false);
-
-        // For USER role, create and link a resident
-        if (user.getRole() == UserRole.USER) {
-            if (request.getApartmentId() == null) {
-                throw new InvalidOperationException("Apartment is required for resident accounts");
-            }
-
-            ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
-
-            // Check idNumber uniqueness in residents table
-            if (residentRepository.findByIdNumber(request.getIdentityCardNumber()).isPresent()) {
-                throw new InvalidOperationException("A resident with this ID number already exists");
-            }
-
-            ResidentEntity resident = new ResidentEntity();
-            resident.setFullName(request.getFullName());
-            resident.setPhone(request.getPhoneNumber());                // same phone as user
-            resident.setIdNumber(request.getIdentityCardNumber());      // same CCCD as user
-            resident.setDateOfBirth(request.getDateOfBirth());
-            resident.setGender(request.getGender());
-            resident.setRelationship(request.getRelationship() != null ? request.getRelationship() : ResidentRelationship.OWNER);
-            resident.setStatus(ResidentStatus.ACTIVE);
-            resident.setApartment(apartment);
-
-            resident = residentRepository.save(resident);
-            user.setResident(resident);
-        }
-        // ADMIN role: no resident created
-
-        user = userRepository.save(user);
-
-        // Auto-update apartment status after creating a resident (may change VACANT → OCCUPIED)
-        if (user.getRole() == UserRole.USER && user.getResident() != null && user.getResident().getApartment() != null) {
-            apartmentService.updateApartmentStatusByResidentCount(user.getResident().getApartment().getId());
-        }
-
-        return user;
-    }
-
-    /**
-     * Link a user to an existing resident (1-1 relationship).
-     * Prevents duplicate links:
-     * - A user cannot be linked to multiple residents
-     * - A resident cannot be linked to multiple users
-     * Throws ResourceNotFoundException if either user or resident not found.
-     * Throws InvalidOperationException if resident is already linked.
-     */
-    @Transactional
-    public UserEntity linkToResident(Long userId, Long residentId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-
-        if (user.getRole() == UserRole.ADMIN) {
-            throw new InvalidOperationException("Admin users cannot be linked to residents");
-        }
-
-        ResidentEntity resident = residentRepository.findById(residentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Resident not found with id: " + residentId));
-
-        if (userRepository.findByResidentId(residentId).isPresent()) {
-            throw new InvalidOperationException("Resident is already linked to another user");
-        }
-
-        user.setResident(resident);
-        return userRepository.save(user);
-    }
-
-    /**
-     * Unlink a user from their resident.
-     * Throws ResourceNotFoundException if user not found.
-     * Throws InvalidOperationException if user is not linked to any resident.
-     */
-    @Transactional
-    public UserEntity unlinkFromResident(Long userId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-
-        if (user.getResident() == null) {
-            throw new InvalidOperationException("User is not linked to any resident");
-        }
-
-        // Capture resident and apartment info before unlinking
-        ResidentEntity resident = user.getResident();
-        Long apartmentId = resident.getApartment() != null ? resident.getApartment().getId() : null;
-
-        // Unlink user from resident
-        user.setResident(null);
-        user = userRepository.save(user);
-
-        // Delete the resident (decreases apartment member count by 1)
-        residentRepository.delete(resident);
-
-        // Auto-update apartment status (may change OCCUPIED → VACANT if count hits 0)
-        if (apartmentId != null) {
-            apartmentService.updateApartmentStatusByResidentCount(apartmentId);
-        }
-
-        return user;
-    }
-
-    /**
-     * Get a user by their username.
-     * Throws ResourceNotFoundException if user not found.
-     */
-    public UserEntity getUserByUsername(String username) {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-    }
-
-    /**
-     * Get a user by their ID.
-     * Throws ResourceNotFoundException if user not found.
-     */
     public UserEntity getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 
-    /**
-     * Update profile — only allows: email and resident fields.
-     * Returns the updated user entity.
-     * Throws ResourceNotFoundException if user not found.
-     * Throws InvalidOperationException if email is already taken by another user.
-     * Sets isVerified=false if email is changed.
-     */
+    // ─── Admin: Create User ───
+
+    @Transactional
+    public UserEntity createUser(CreateUserRequest request) {
+        // Phone number is used as the login username
+        String username = request.getPhone();
+
+        // Validate phone/username uniqueness
+        if (userRepository.findByUsername(username).isPresent()) {
+            throw new InvalidOperationException("Phone number already exists as an account");
+        }
+
+        // Validate idNumber uniqueness
+        if (userRepository.findByIdNumber(request.getIdNumber()).isPresent()) {
+            throw new InvalidOperationException("ID number already exists");
+        }
+
+        UserEntity user = new UserEntity();
+        user.setUsername(username); // phone → username (login account)
+        user.setPassword(passwordEncoder.encode(request.getIdNumber())); // CCCD → encrypted password
+        user.setEmail(null); // email is not provided at creation; user sets it later
+        user.setRole(request.getRole());
+        user.setVerified(false);
+
+        // Set personal information fields (always populated)
+        user.setFullName(request.getFullName());
+        user.setPhone(request.getPhone());
+        user.setDateOfBirth(request.getDateOfBirth());
+        user.setGender(request.getGender());
+        user.setIdNumber(request.getIdNumber());
+
+        if (request.getRole() == UserRole.USER) {
+            // Validate apartment for USER role
+            if (request.getApartmentId() == null) {
+                throw new InvalidOperationException("Apartment is required for USER role");
+            }
+
+            ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
+
+            user.setRelationship(request.getRelationship() != null ? request.getRelationship() : "OTHER");
+            user.setStatus(ResidentStatus.ACTIVE);
+            user.setApartment(apartment);
+        }
+        // ADMIN role: no resident-specific fields (relationship, apartment) set
+
+        user = userRepository.save(user);
+
+        // Auto-update apartment status
+        if (user.getApartment() != null) {
+            apartmentService.updateApartmentStatusByUserCount(user.getApartment().getId());
+        }
+
+        return user;
+    }
+
+    // ─── Admin: Update User ───
+
+    @Transactional
+    public UserEntity updateUser(Long userId, UpdateUserRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        String oldEmail = user.getEmail();
+        Long oldApartmentId = user.getApartment() != null ? user.getApartment().getId() : null;
+        ResidentStatus oldStatus = user.getStatus();
+
+        // Update email
+        if (request.getEmail() != null) {
+            if (!request.getEmail().equals(oldEmail)) {
+                if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                    throw new InvalidOperationException("Email already in use");
+                }
+                user.setEmail(request.getEmail());
+                user.setVerified(false); // Reset verification on email change
+            }
+        }
+
+        // Update resident fields
+        if (request.getFullName() != null) user.setFullName(request.getFullName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getDateOfBirth() != null) user.setDateOfBirth(request.getDateOfBirth());
+        if (request.getGender() != null) user.setGender(request.getGender());
+        if (request.getRelationship() != null) user.setRelationship(request.getRelationship());
+        if (request.getStatus() != null) user.setStatus(request.getStatus());
+
+        // Update apartment
+        if (request.getApartmentId() != null) {
+            ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
+            user.setApartment(apartment);
+        }
+
+        user = userRepository.save(user);
+
+        // Determine if apartment or status changed
+        Long newApartmentId = user.getApartment() != null ? user.getApartment().getId() : null;
+        ResidentStatus newStatus = user.getStatus();
+        boolean apartmentChanged = (oldApartmentId != null && !oldApartmentId.equals(newApartmentId))
+                || (newApartmentId != null && !newApartmentId.equals(oldApartmentId));
+        boolean statusChanged = oldStatus != newStatus;
+
+        // If apartment changed, update both old and new apartment statuses
+        if (apartmentChanged) {
+            if (oldApartmentId != null) {
+                apartmentService.updateApartmentStatusByUserCount(oldApartmentId);
+            }
+            if (newApartmentId != null) {
+                apartmentService.updateApartmentStatusByUserCount(newApartmentId);
+            }
+        } else if (statusChanged && newApartmentId != null) {
+            // Apartment didn't change, but status did — recalculate if status involves MOVED_OUT
+            boolean involvesMoveOut = oldStatus == ResidentStatus.MOVED_OUT || newStatus == ResidentStatus.MOVED_OUT;
+            if (involvesMoveOut) {
+                apartmentService.updateApartmentStatusByUserCount(newApartmentId);
+            }
+        }
+
+        return user;
+    }
+
+    // ─── Admin: Delete User ───
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        Long apartmentId = user.getApartment() != null ? user.getApartment().getId() : null;
+
+        userRepository.delete(user);
+
+        // Auto-update apartment status
+        if (apartmentId != null) {
+            apartmentService.updateApartmentStatusByUserCount(apartmentId);
+        }
+    }
+
+    // ─── Admin: Reset Password ───
+
+    @Transactional
+    public void resetPassword(Long userId, ResetUserPasswordRequest request) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(user);
+    }
+
+    // ─── Current User: Get Profile ───
+
+    public UserEntity getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+    }
+
+    // ─── Current User: Update Profile ───
+
     @Transactional
     public UserEntity updateProfile(String username, UpdateProfileRequest request) {
         UserEntity user = userRepository.findByUsername(username)
@@ -219,48 +246,58 @@ public class UserService {
 
         String oldEmail = user.getEmail();
 
+        // Update email
         if (request.getEmail() != null) {
-            // Check if new email is already taken by another user
             if (!request.getEmail().equals(oldEmail)) {
                 if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-                    throw new InvalidOperationException("Email is already in use");
+                    throw new InvalidOperationException("Email already in use");
                 }
+                user.setEmail(request.getEmail());
             }
-            user.setEmail(request.getEmail());
-        }
-        
-        // Update resident information if provided
-        if (request.getResident() != null && user.getResident() != null) {
-            ResidentEntity resident = user.getResident();
-            if (request.getResident().getFullName() != null) {
-                resident.setFullName(request.getResident().getFullName());
-            }
-            if (request.getResident().getDateOfBirth() != null) {
-                resident.setDateOfBirth(request.getResident().getDateOfBirth());
-            }
-            if (request.getResident().getPhone() != null) {
-                resident.setPhone(request.getResident().getPhone());
-            }
-            if (request.getResident().getGender() != null) {
-                resident.setGender(request.getResident().getGender());
-            }
-            residentRepository.save(resident);
         }
 
+        // Update editable resident fields
+        if (request.getFullName() != null) user.setFullName(request.getFullName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getDateOfBirth() != null) user.setDateOfBirth(request.getDateOfBirth());
+        if (request.getGender() != null) user.setGender(request.getGender());
+        if (request.getRelationship() != null) user.setRelationship(request.getRelationship());
+
+        // Reset verified if email changed
         boolean emailChanged = request.getEmail() != null && !request.getEmail().equals(oldEmail);
         if (emailChanged) {
             user.setVerified(false);
-            otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION); // Clear any existing OTP for email verification
+            otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION);
         }
 
         return userRepository.save(user);
     }
 
-    /**
-     * Generate a 6-digit OTP and send it to the user's email.
-     * Throws ResourceNotFoundException if user not found.
-     * Throws InvalidOperationException if email not set or already verified.
-     */
+    // ─── Current User: Change Password ───
+
+    @Transactional
+    public UserEntity changePassword(String username, ChangePasswordRequest request) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new InvalidOperationException("Current password is incorrect");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new InvalidOperationException("New password and confirm password do not match");
+        }
+
+        if (request.getCurrentPassword().equals(request.getNewPassword())) {
+            throw new InvalidOperationException("New password must be different from current password");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        return userRepository.save(user);
+    }
+
+    // ─── Email Verification ───
+
     @Transactional
     public void sendVerificationOtp(String username) {
         UserEntity user = userRepository.findByUsername(username)
@@ -269,86 +306,30 @@ public class UserService {
         if (user.getEmail() == null || user.getEmail().isBlank()) {
             throw new InvalidOperationException("No email set for this user");
         }
-        if (user.isVerified()) {
+        if (user.getVerified()) {
             throw new InvalidOperationException("Email already verified");
         }
 
-        // Create and save OTP token
         OtpVerificationToken otpToken = otpService.createAndSaveOtp(user, OtpTokenType.EMAIL_VERIFICATION);
-        
-        // Send OTP email for email verification
         emailService.sendOtpEmail(user.getEmail(), otpToken.getOtp());
     }
 
-    /**
-     * Verify email with OTP code.
-     * Checks that the OTP matches and has not expired.
-     * Throws InvalidOperationException if OTP is invalid or expired.
-     */
     @Transactional
     public void verifyOtp(String username, String otp) {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        if (user.isVerified()) {
+        if (user.getVerified()) {
             throw new InvalidOperationException("Email already verified");
         }
 
-        // Verify OTP using OtpService (deletes if invalid/expired)
         if (!otpService.verifyOtp(user, OtpTokenType.EMAIL_VERIFICATION, otp)) {
             throw new InvalidOperationException("Invalid or expired OTP");
         }
 
-        // Delete the OTP after successful verification
         otpService.getAndDeleteOtp(user, OtpTokenType.EMAIL_VERIFICATION);
 
-        // Mark user as verified
         user.setVerified(true);
         userRepository.save(user);
-    }
-
-    /**
-     * Delete a user by ID.
-     * Throws ResourceNotFoundException if user not found.
-     * Cascade delete will remove related OTP and password reset tokens.
-     */
-    @Transactional
-    public void deleteUser(Long id) {
-        UserEntity user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-        userRepository.delete(user);
-    }
-
-    /**
-     * Change password for the authenticated user.
-     * Verifies the current password before allowing the change.
-     * Returns the updated user entity.
-     * Throws ResourceNotFoundException if user not found.
-     * Throws InvalidCredentialsException if current password is incorrect.
-     * Throws InvalidOperationException if new passwords don't match.
-     */
-    @Transactional
-    public UserEntity changePassword(String username, ChangePasswordRequest request) {
-        UserEntity user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-
-        // Verify current password
-        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
-            throw new InvalidOperationException("Current password is incorrect");
-        }
-
-        // Check if new passwords match
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new InvalidOperationException("New password and confirm password do not match");
-        }
-
-        // Check if new password is same as current password
-        if (request.getCurrentPassword().equals(request.getNewPassword())) {
-            throw new InvalidOperationException("New password must be different from current password");
-        }
-
-        // Update password
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        return userRepository.save(user);
     }
 }

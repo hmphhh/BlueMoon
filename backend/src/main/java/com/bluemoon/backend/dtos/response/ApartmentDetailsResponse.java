@@ -7,6 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Response DTO for apartment details (GET /api/apartments/{apartmentId}).
+ * Includes list of assigned users.
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,18 +22,19 @@ public class ApartmentDetailsResponse {
     private Double area;
     private ApartmentStatus status;
     private ApartmentType type;
-    private java.util.List<ResidentDto> residents;
+    private Integer userCount;
+    private java.util.List<UserDto> users;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    public static class ResidentDto {
+    public static class UserDto {
         private Long id;
+        private String username;
         private String fullName;
         private String idNumber;
         private String phone;
-        private String relationship;
         private String status;
-        private String gender;
+        private String role;
     }
 }

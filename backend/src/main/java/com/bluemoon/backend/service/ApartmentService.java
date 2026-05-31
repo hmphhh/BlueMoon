@@ -7,13 +7,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bluemoon.backend.dtos.request.ApartmentRequest;
+import com.bluemoon.backend.dtos.response.ApartmentResponse;
 import com.bluemoon.backend.entity.ApartmentEntity;
+import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.enums.ApartmentStatus;
-import com.bluemoon.backend.enums.ApartmentType;
+import com.bluemoon.backend.enums.ResidentStatus;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.mapper.ApartmentMapper;
 import com.bluemoon.backend.repository.ApartmentRepository;
+import com.bluemoon.backend.repository.UserRepository;
 
 @Service
 public class ApartmentService {
@@ -22,10 +25,20 @@ public class ApartmentService {
     private ApartmentRepository apartmentRepository;
 
     @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
     private ApartmentMapper apartmentMapper;
 
     /**
-     * Get all apartments.
+     * Get all apartments with user count (JPQL).
+     */
+    public List<ApartmentResponse> getAllApartmentsWithUserCount() {
+        return apartmentRepository.findAllWithUserCount();
+    }
+
+    /**
+     * Get all apartments (entity list).
      */
     public List<ApartmentEntity> getAllApartments() {
         return apartmentRepository.findAll();
@@ -33,7 +46,6 @@ public class ApartmentService {
 
     /**
      * Get an apartment by ID.
-     * Throws ResourceNotFoundException if not found.
      */
     public ApartmentEntity getApartmentById(Long id) {
         return apartmentRepository.findById(id)
@@ -42,7 +54,6 @@ public class ApartmentService {
 
     /**
      * Get an apartment by apartment number.
-     * Throws ResourceNotFoundException if not found.
      */
     public ApartmentEntity getApartmentByNumber(String number) {
         return apartmentRepository.findByApartmentNumber(number)
@@ -51,11 +62,9 @@ public class ApartmentService {
 
     /**
      * Create a new apartment.
-     * Throws InvalidOperationException if apartment number already exists.
      */
     @Transactional
     public ApartmentEntity createApartment(ApartmentRequest request) {
-        // Check if apartment number already exists
         if (apartmentRepository.findByApartmentNumber(request.getNumber()).isPresent()) {
             throw new InvalidOperationException("Apartment with this number already exists");
         }
@@ -67,60 +76,65 @@ public class ApartmentService {
     }
 
     /**
-     * Update an existing apartment using ApartmentRequest.
-     * Null fields are ignored (not persisted).
-     * Throws ResourceNotFoundException if not found.
-     * Throws InvalidOperationException if apartment number is already taken by another apartment.
+     * Update an existing apartment. Status cannot be changed by admin.
      */
     @Transactional
     public ApartmentEntity updateApartment(Long id, ApartmentRequest request) {
         ApartmentEntity apartment = apartmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + id));
 
-        // Check if apartment number is being changed and if the new one already exists
         if (request.getNumber() != null &&
                 !request.getNumber().equals(apartment.getApartmentNumber()) &&
                 apartmentRepository.findByApartmentNumber(request.getNumber()).isPresent()) {
             throw new InvalidOperationException("Apartment number already in use");
         }
 
-        // Update fields (null values are ignored)
         apartmentMapper.updateEntity(request, apartment);
 
         return apartmentRepository.save(apartment);
     }
 
     /**
-     * Delete an apartment by ID.
-     * Throws ResourceNotFoundException if not found.
+     * Delete an apartment. Only allowed if no users are assigned.
      */
     @Transactional
     public void deleteApartment(Long id) {
         ApartmentEntity apartment = apartmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + id));
+
+        Long userCount = apartmentRepository.countUsersByApartmentId(id);
+        if (userCount != null && userCount > 0) {
+            throw new InvalidOperationException("Apartment still contains users.");
+        }
+
         apartmentRepository.delete(apartment);
     }
 
     /**
-     * Get the count of residents in an apartment.
-     * Uses JPQL to avoid N+1 queries.
+     * Get active user count for an apartment (excludes MOVED_OUT).
      */
-    public Integer getResidentCount(Long apartmentId) {
-        Long count = apartmentRepository.countResidentsByApartmentId(apartmentId);
-        return count != null ? count.intValue() : 0;
+    public Long getActiveUserCount(Long apartmentId) {
+        Long count = apartmentRepository.countActiveUsersByApartmentId(apartmentId, ResidentStatus.MOVED_OUT);
+        return count != null ? count : 0L;
     }
 
     /**
-     * Auto-update apartment status based on current resident count.
-     * If residentCount == 0 → VACANT, if residentCount > 0 → OCCUPIED.
-     * This is the single source of truth for apartment status transitions.
+     * Get users assigned to an apartment.
+     */
+    public List<UserEntity> getUsersByApartmentId(Long apartmentId) {
+        return userRepository.findByApartmentId(apartmentId);
+    }
+
+    /**
+     * Auto-update apartment status based on active user count (excludes MOVED_OUT).
+     * If active count == 0 → VACANT, if active count > 0 → OCCUPIED.
      */
     @Transactional
-    public void updateApartmentStatusByResidentCount(Long apartmentId) {
+    public void updateApartmentStatusByUserCount(Long apartmentId) {
         ApartmentEntity apartment = apartmentRepository.findById(apartmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + apartmentId));
 
-        int count = getResidentCount(apartmentId);
+        Long count = getActiveUserCount(apartmentId);
         if (count == 0) {
             apartment.setStatus(ApartmentStatus.VACANT);
         } else {
@@ -128,5 +142,18 @@ public class ApartmentService {
         }
         apartmentRepository.save(apartment);
     }
-}
 
+    /**
+     * Get apartment for the current user.
+     */
+    public ApartmentEntity getApartmentForUser(String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        if (user.getApartment() == null) {
+            throw new InvalidOperationException("User is not assigned to any apartment.");
+        }
+
+        return user.getApartment();
+    }
+}

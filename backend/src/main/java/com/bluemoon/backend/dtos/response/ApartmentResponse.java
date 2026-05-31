@@ -8,7 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Public API response format for apartment data.
+ * Response DTO for apartment list (GET /api/apartments).
+ * Includes userCount.
  */
 @Data
 @NoArgsConstructor
@@ -16,10 +17,10 @@ import lombok.NoArgsConstructor;
 public class ApartmentResponse {
 
     private Long id;
-    private String number;
+    private String apartmentNumber;
     private Integer floor;
     private Double area;
     private ApartmentStatus status;
     private ApartmentType type;
-    private Integer residentCount;
+    private Long userCount;
 }

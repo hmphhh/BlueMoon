@@ -61,7 +61,9 @@ public class AuthService {
                 token,
                 user.getId(),
                 user.getUsername(),
-                user.getRole()
+                user.getRole(),
+                user.getFullName(),
+                user.getApartment() != null ? user.getApartment().getApartmentNumber() : null
         );
     }
 

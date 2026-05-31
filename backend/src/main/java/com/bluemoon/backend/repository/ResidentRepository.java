@@ -19,11 +19,12 @@ public interface ResidentRepository extends JpaRepository<ResidentEntity, Long> 
     List<ResidentEntity> findByApartmentId(Long apartmentId);
 
     /**
-     * Find the user linked to a resident (1-1 relationship).
-     * Uses JPQL to avoid N+1 queries.
+     * Legacy: User-Resident link no longer exists in the merged model.
+     * Returns empty since UserEntity no longer has a 'resident' field.
      */
-    @Query("SELECT u FROM UserEntity u WHERE u.resident.id = :residentId")
-    Optional<UserEntity> findLinkedUser(@Param("residentId") Long residentId);
+    default Optional<UserEntity> findLinkedUser(@Param("residentId") Long residentId) {
+        return Optional.empty();
+    }
 
     /**
      * Get apartment number for a resident using JPQL.
