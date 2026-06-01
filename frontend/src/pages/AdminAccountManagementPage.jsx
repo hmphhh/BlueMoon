@@ -12,25 +12,46 @@ export default function AdminAccountManagementPage() {
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [apartments, setApartments] = useState([]);
+
+    // Pagination
+    const [page, setPage] = useState(0);
+    const [size] = useState(10);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+
+    // Search and filters
+    const [search, setSearch] = useState('');
+    const [filterRole, setFilterRole] = useState('USER');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [filterApartmentId, setFilterApartmentId] = useState('');
+
+    // Create form
     const [formData, setFormData] = useState({
-        phoneNumber: '',
-        identityCardNumber: '',
         role: 'USER',
-        fullName: '',
-        dateOfBirth: '',
-        gender: '',
-        relationship: 'OWNER',
-        apartmentId: null
+        phone: '', idNumber: '', fullName: '',
+        dateOfBirth: '', gender: '',
+        relationship: 'OTHER', apartmentId: null
     });
 
     useEffect(() => {
         fetchUsers();
-    }, []);
+    }, [page, search, filterRole, filterStatus, filterApartmentId]);
 
     const fetchUsers = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/api/users`);
-            setUsers(res.data || []);
+            const params = new URLSearchParams();
+            params.set('page', page);
+            params.set('size', size);
+            if (search) params.set('search', search);
+            if (filterRole) params.set('role', filterRole);
+            if (filterStatus) params.set('status', filterStatus);
+            if (filterApartmentId) params.set('apartmentId', filterApartmentId);
+
+            const res = await axios.get(`${API_BASE}/api/users?${params.toString()}`);
+            const data = res.data;
+            setUsers(data.content || []);
+            setTotalPages(data.totalPages || 0);
+            setTotalElements(data.totalElements || 0);
         } catch (err) {
             console.error(err);
             toast('Failed to load users', 'error');
@@ -39,17 +60,10 @@ export default function AdminAccountManagementPage() {
         }
     };
 
-    // Valid room numbers for the current 4×3 building layout
-    const VALID_ROOMS = ['101','102','103','201','202','203','301','302','303','401','402','403'];
-
     const fetchApartments = async () => {
         try {
             const res = await axios.get(`${API_BASE}/api/apartments`);
-            // Filter out stale apartments from old configurations
-            const validApts = (res.data || []).filter(apt =>
-                VALID_ROOMS.includes(apt.number || apt.apartmentNumber)
-            );
-            setApartments(validApts);
+            setApartments(res.data || []);
         } catch (err) {
             console.error('Failed to fetch apartments:', err);
         }
@@ -58,14 +72,10 @@ export default function AdminAccountManagementPage() {
     const handleCreateClick = async () => {
         await fetchApartments();
         setFormData({
-            phoneNumber: '',
-            identityCardNumber: '',
             role: 'USER',
-            fullName: '',
-            dateOfBirth: '',
-            gender: '',
-            relationship: 'OWNER',
-            apartmentId: null
+            phone: '', idNumber: '', fullName: '',
+            dateOfBirth: '', gender: '',
+            relationship: 'OTHER', apartmentId: null
         });
         setShowCreateModal(true);
     };
@@ -75,30 +85,29 @@ export default function AdminAccountManagementPage() {
     };
 
     const handleCreateAccount = async () => {
-        if (!formData.phoneNumber || !formData.identityCardNumber) {
-            toast('Please fill in Phone Number and ID Number (CCCD)', 'error');
+        if (!formData.phone || !formData.idNumber || !formData.fullName || !formData.dateOfBirth || !formData.gender) {
+            toast('Please fill in all account information fields', 'error');
             return;
         }
 
         if (formData.role === 'USER') {
-            if (!formData.fullName || !formData.dateOfBirth || !formData.gender || !formData.apartmentId) {
-                toast('Please fill in all resident information fields', 'error');
+            if (!formData.apartmentId) {
+                toast('Please select an apartment', 'error');
                 return;
             }
         }
 
         try {
             const payload = {
-                phoneNumber: formData.phoneNumber,
-                identityCardNumber: formData.identityCardNumber,
+                phone: formData.phone,
+                idNumber: formData.idNumber,
+                fullName: formData.fullName,
+                dateOfBirth: formData.dateOfBirth,
+                gender: formData.gender,
                 role: formData.role
             };
 
-            // Include resident fields only for USER role
             if (formData.role === 'USER') {
-                payload.fullName = formData.fullName;
-                payload.dateOfBirth = formData.dateOfBirth;
-                payload.gender = formData.gender;
                 payload.relationship = formData.relationship;
                 payload.apartmentId = formData.apartmentId;
             }
@@ -113,6 +122,17 @@ export default function AdminAccountManagementPage() {
         }
     };
 
+    const handleSearchChange = (e) => {
+        setSearch(e.target.value);
+        setPage(0);
+    };
+
+    const [activeTab, setActiveTab] = useState('USER');
+
+    // Split users by role for display
+    const adminUsers = users.filter(u => u.role === 'ADMIN');
+    const regularUsers = users.filter(u => u.role === 'USER');
+
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
     }
@@ -126,58 +146,174 @@ export default function AdminAccountManagementPage() {
 
             <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2>Accounts</h2>
+                    <h2>Accounts ({totalElements})</h2>
                     <button className="btn btn--primary" onClick={handleCreateClick}>
                         + Create Account
                     </button>
                 </div>
 
-                {users.length > 0 ? (
-                    <table className="table">
-                        <thead>
-                            <tr>
-                                <th>Phone</th>
-                                <th>CCCD</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Linked</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {users.map(user => (
-                                <tr key={user.id}>
-                                    <td><strong>{user.phoneNumber || user.username}</strong></td>
-                                    <td>{user.identityCardNumber || '—'}</td>
-                                    <td>{user.email || <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
-                                    <td><span className="badge">{user.role}</span></td>
-                                    <td>
-                                        <span className={`badge ${user.verified ? 'badge--success' : 'badge--warning'}`}>
-                                            {user.verified ? 'Verified' : 'Unverified'}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className={`badge ${user.linked ? 'badge--info' : 'badge--secondary'}`}>
-                                            {user.linked ? 'Linked' : 'Not Linked'}
-                                        </span>
-                                    </td>
-                                    <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '—'}</td>
-                                    <td>
-                                        <button
-                                            className="btn btn--primary btn--sm"
-                                            onClick={() => navigate(`/account/${user.id}`)}
-                                        >
-                                            View Details
+                {/* Tabs */}
+                <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid var(--border-color, #333)' }}>
+                    <button
+                        onClick={() => { setActiveTab('USER'); setFilterRole('USER'); setFilterStatus(''); setPage(0); }}
+                        style={{
+                            padding: '10px 24px', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                            border: 'none', background: 'none',
+                            color: activeTab === 'USER' ? 'var(--primary, #7c6ef0)' : 'var(--text-muted, #888)',
+                            borderBottom: activeTab === 'USER' ? '2px solid var(--primary, #7c6ef0)' : '2px solid transparent',
+                            marginBottom: '-2px', transition: 'all 0.2s ease'
+                        }}
+                    >
+                        User Accounts
+                    </button>
+                    <button
+                        onClick={() => { setActiveTab('ADMIN'); setFilterRole('ADMIN'); setFilterStatus(''); setPage(0); }}
+                        style={{
+                            padding: '10px 24px', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+                            border: 'none', background: 'none',
+                            color: activeTab === 'ADMIN' ? 'var(--primary, #7c6ef0)' : 'var(--text-muted, #888)',
+                            borderBottom: activeTab === 'ADMIN' ? '2px solid var(--primary, #7c6ef0)' : '2px solid transparent',
+                            marginBottom: '-2px', transition: 'all 0.2s ease'
+                        }}
+                    >
+                        Admin Accounts
+                    </button>
+                </div>
+
+                {/* Search and Filters */}
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                    <input
+                        className="form-input"
+                        style={{ flex: '1', minWidth: '200px' }}
+                        placeholder="Search by name, phone, ID..."
+                        value={search}
+                        onChange={handleSearchChange}
+                    />
+                    {activeTab === 'USER' && (
+                        <select className="form-input" style={{ width: '180px' }} value={filterStatus}
+                            onChange={e => { setFilterStatus(e.target.value); setPage(0); }}>
+                            <option value="">All Status</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="TEMPORARILY_ABSENT">Temporarily Absent</option>
+                            <option value="MOVED_OUT">Moved Out</option>
+                        </select>
+                    )}
+                </div>
+
+                {/* Admin Accounts Table */}
+                {activeTab === 'ADMIN' && (
+                    <>
+                        {users.length > 0 ? (
+                            <>
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Full Name</th>
+                                            <th>ID Number</th>
+                                            <th>Phone</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map(u => (
+                                            <tr key={u.id}>
+                                                <td><strong>{u.fullName || '—'}</strong></td>
+                                                <td>{u.idNumber || '—'}</td>
+                                                <td>{u.phone || '—'}</td>
+                                                <td>
+                                                    <button
+                                                        className="btn btn--primary btn--sm"
+                                                        onClick={() => navigate(`/account/${u.id}`)}
+                                                    >
+                                                        View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                                            ← Previous
                                         </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <p>No accounts found.</p>
+                                        <span style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
+                                            Page {page + 1} of {totalPages}
+                                        </span>
+                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                                            Next →
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <p>No admin accounts found.</p>
+                        )}
+                    </>
+                )}
+
+                {/* User Accounts Table */}
+                {activeTab === 'USER' && (
+                    <>
+                        {users.length > 0 ? (
+                            <>
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Full Name</th>
+                                            <th>ID Number</th>
+                                            <th>Phone</th>
+                                            <th>Status</th>
+                                            <th>Apartment</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {users.map(u => (
+                                            <tr key={u.id}>
+                                                <td><strong>{u.fullName || '—'}</strong></td>
+                                                <td>{u.idNumber || '—'}</td>
+                                                <td>{u.phone || '—'}</td>
+                                                <td>
+                                                    {u.status ? (
+                                                        <span className={`badge ${u.status === 'ACTIVE' ? 'badge--success' : u.status === 'MOVED_OUT' ? 'badge--danger' : 'badge--warning'}`}>
+                                                            {u.status}
+                                                        </span>
+                                                    ) : '—'}
+                                                </td>
+                                                <td>{u.apartmentNumber || '—'}</td>
+                                                <td>
+                                                    <button
+                                                        className="btn btn--primary btn--sm"
+                                                        onClick={() => navigate(`/account/${u.id}`)}
+                                                    >
+                                                        View
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+                                            ← Previous
+                                        </button>
+                                        <span style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
+                                            Page {page + 1} of {totalPages}
+                                        </span>
+                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+                                            Next →
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <p>No user accounts found.</p>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -219,22 +355,47 @@ export default function AdminAccountManagementPage() {
                             <div className="form-group">
                                 <label className="form-label">Phone Number</label>
                                 <input className="form-input" placeholder="e.g. 0912345678"
-                                    value={formData.phoneNumber}
-                                    onChange={e => setFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                                    value={formData.phone}
+                                    onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                                 />
+                                <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Used as the login account</small>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">ID Number (CCCD)</label>
                                 <input className="form-input" placeholder="e.g. 001204012345"
-                                    value={formData.identityCardNumber}
-                                    onChange={e => setFormData(prev => ({ ...prev, identityCardNumber: e.target.value }))}
+                                    value={formData.idNumber}
+                                    onChange={e => setFormData(prev => ({ ...prev, idNumber: e.target.value }))}
+                                />
+                                <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Used as the default login password</small>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Full Name</label>
+                                <input className="form-input" placeholder="Full Name"
+                                    value={formData.fullName}
+                                    onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
                                 />
                             </div>
 
-                            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '-4px', marginBottom: '16px' }}>
-                                ⓘ Password will be automatically set to the CCCD value above.
-                            </p>
+                            <div className="form-group">
+                                <label className="form-label">Date of Birth</label>
+                                <input className="form-input" type="date"
+                                    value={formData.dateOfBirth}
+                                    onChange={e => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Gender</label>
+                                <select className="form-input" value={formData.gender}
+                                    onChange={e => setFormData(prev => ({ ...prev, gender: e.target.value }))}>
+                                    <option value="">Select</option>
+                                    <option value="MALE">Male</option>
+                                    <option value="FEMALE">Female</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
 
                             {/* Resident Information Section — only for USER role */}
                             {formData.role === 'USER' && (
@@ -244,33 +405,6 @@ export default function AdminAccountManagementPage() {
                                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                                         </svg>
                                         Resident Information
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">Full Name</label>
-                                        <input className="form-input" placeholder="Full Name"
-                                            value={formData.fullName}
-                                            onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">Date of Birth</label>
-                                        <input className="form-input" type="date"
-                                            value={formData.dateOfBirth}
-                                            onChange={e => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                                        />
-                                    </div>
-
-                                    <div className="form-group">
-                                        <label className="form-label">Gender</label>
-                                        <select className="form-input" value={formData.gender}
-                                            onChange={e => setFormData(prev => ({ ...prev, gender: e.target.value }))}>
-                                            <option value="">Select</option>
-                                            <option value="MALE">Male</option>
-                                            <option value="FEMALE">Female</option>
-                                            <option value="OTHER">Other</option>
-                                        </select>
                                     </div>
 
                                     <div className="form-group">
@@ -293,10 +427,10 @@ export default function AdminAccountManagementPage() {
                                             onChange={e => setFormData(prev => ({ ...prev, apartmentId: e.target.value ? Number(e.target.value) : null }))}>
                                             <option value="">Select Apartment</option>
                                             {[...apartments]
-                                                .sort((a, b) => (a.floor - b.floor) || (a.number || a.apartmentNumber || '').localeCompare(b.number || b.apartmentNumber || ''))
+                                                .sort((a, b) => (a.floor - b.floor) || (a.apartmentNumber || '').localeCompare(b.apartmentNumber || ''))
                                                 .map(apt => (
                                                 <option key={apt.id} value={apt.id}>
-                                                    Room {apt.number || apt.apartmentNumber} (Floor {apt.floor})
+                                                    Room {apt.apartmentNumber} (Floor {apt.floor})
                                                 </option>
                                             ))}
                                         </select>

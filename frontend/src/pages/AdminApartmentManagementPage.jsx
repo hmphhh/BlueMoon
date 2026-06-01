@@ -102,7 +102,7 @@ export default function AdminApartmentManagementPage() {
         try {
             const res = await axios.get(`${API_BASE}/api/apartments`);
             const validApartments = (res.data || []).filter(apt =>
-                VALID_ROOM_NUMBERS.includes(apt.number || apt.apartmentNumber)
+                VALID_ROOM_NUMBERS.includes(apt.apartmentNumber)
             );
             setApartments(validApartments);
         } catch (err) {
@@ -126,7 +126,7 @@ export default function AdminApartmentManagementPage() {
     };
 
     const availableRooms = ROOM_LIST.filter(
-        room => !apartments.some(apt => (apt.number || apt.apartmentNumber) === room.number)
+        room => !apartments.some(apt => apt.apartmentNumber === room.number)
     );
 
     const handleCreateApartment = async () => {
@@ -162,15 +162,15 @@ export default function AdminApartmentManagementPage() {
     const getFloorApartments = (floor) => {
         return apartments
             .filter(apt => apt.floor === floor)
-            .sort((a, b) => (a.number || a.apartmentNumber || '').localeCompare(b.number || b.apartmentNumber || ''));
+            .sort((a, b) => (a.apartmentNumber || '').localeCompare(b.apartmentNumber || ''));
     };
 
     const getFloorStats = (floor) => {
         const floorApts = getFloorApartments(floor);
         const created = floorApts.length;
         const occupied = floorApts.filter(a => a.status === 'OCCUPIED').length;
-        const totalResidents = floorApts.reduce((sum, a) => sum + (a.residentCount || 0), 0);
-        return { created, occupied, totalResidents };
+        const totalUsers = floorApts.reduce((sum, a) => sum + (a.userCount || 0), 0);
+        return { created, occupied, totalUsers };
     };
 
     if (loading) {
@@ -224,9 +224,9 @@ export default function AdminApartmentManagementPage() {
                                             <span style={styles.floorBadge(isOpen)}>
                                                 {stats.occupied}/{stats.created} occupied
                                             </span>
-                                            {stats.totalResidents > 0 && (
+                                            {stats.totalUsers > 0 && (
                                                 <span style={styles.floorBadge(isOpen)}>
-                                                    {stats.totalResidents} resident{stats.totalResidents !== 1 ? 's' : ''}
+                                                    {stats.totalUsers} user{stats.totalUsers !== 1 ? 's' : ''}
                                                 </span>
                                             )}
                                         </div>
@@ -253,7 +253,7 @@ export default function AdminApartmentManagementPage() {
                                                 }}
                                             >
                                                 {/* 1. Số Phòng */}
-                                                <span style={styles.roomNumber}>{apt.number || apt.apartmentNumber}</span>
+                                                <span style={styles.roomNumber}>{apt.apartmentNumber}</span>
 
                                                 {/* 2. Loại Phòng */}
                                                 <div>
@@ -274,7 +274,7 @@ export default function AdminApartmentManagementPage() {
 
                                                 {/* 5. Số người ở - Chiếm 1fr để đẩy các nút về sát phải */}
                                                 <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                                                    {apt.residentCount > 0 ? `👤 ${apt.residentCount}` : ''}
+                                                    {apt.userCount > 0 ? `👤 ${apt.userCount}` : ''}
                                                 </div>
 
                                                 {/* 6. Các nút hành động */}

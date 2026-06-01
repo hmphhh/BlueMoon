@@ -22,11 +22,11 @@ export default function AdminPage({ user }) {
                 axios.get(`${API_BASE}/api/apartments`)
             ]);
             
-            const users = usersRes.data || [];
+            const users = usersRes.data.content || [];
             const apartments = apartmentsRes.data || [];
             
             setStats({
-                users: users.length,
+                users: usersRes.data.totalElements || 0,
                 apartments: apartments.length,
                 admins: users.filter(u => u.role === 'ADMIN').length
             });

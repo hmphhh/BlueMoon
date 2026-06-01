@@ -56,7 +56,7 @@ export default function AdminApartmentDetailPage() {
 
     const handleSaveEdit = async () => {
         try {
-            await axios.put(`${API_BASE}/api/apartments/${apartmentId}`, {
+            await axios.patch(`${API_BASE}/api/apartments/${apartmentId}`, {
                 number: editForm.number,
                 floor: editForm.floor,
                 area: editForm.area,
@@ -171,45 +171,47 @@ export default function AdminApartmentDetailPage() {
                     </button>
                 </div>
 
-                {/* Residents Section */}
+                {/* Users Section */}
                 <div className="section-title" style={{ marginTop: '28px' }}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                     </svg>
-                    Residents
+                    Users ({apartmentData.userCount || 0})
                 </div>
 
-                {apartmentData.residents?.length > 0 ? (
+                {apartmentData.users?.length > 0 ? (
                     <div style={{ overflowX: 'auto' }}>
                         <table className="table">
                             <thead>
                                 <tr>
+                                    <th>Username</th>
                                     <th>Full Name</th>
                                     <th>ID Number</th>
                                     <th>Phone</th>
-                                    <th>Gender</th>
-                                    <th>Relationship</th>
+                                    <th>Role</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {apartmentData.residents.map(resident => (
-                                    <tr key={resident.id}>
-                                        <td><strong>{resident.fullName}</strong></td>
-                                        <td>{resident.idNumber}</td>
-                                        <td>{resident.phone}</td>
-                                        <td>{resident.gender}</td>
-                                        <td>{resident.relationship}</td>
+                                {apartmentData.users.map(user => (
+                                    <tr key={user.id}>
+                                        <td><strong>{user.username}</strong></td>
+                                        <td>{user.fullName || '—'}</td>
+                                        <td>{user.idNumber || '—'}</td>
+                                        <td>{user.phone || '—'}</td>
+                                        <td><span className="badge">{user.role}</span></td>
                                         <td>
-                                            <span className={`badge ${getStatusBadge(resident.status)}`}>
-                                                {resident.status}
-                                            </span>
+                                            {user.status ? (
+                                                <span className={`badge ${getStatusBadge(user.status)}`}>
+                                                    {user.status}
+                                                </span>
+                                            ) : '—'}
                                         </td>
                                         <td>
                                             <button
                                                 className="btn btn--primary btn--sm"
-                                                onClick={() => navigate(`/resident/${resident.id}`)}
+                                                onClick={() => navigate(`/account/${user.id}`)}
                                             >
                                                 View Details
                                             </button>
@@ -221,7 +223,7 @@ export default function AdminApartmentDetailPage() {
                     </div>
                 ) : (
                     <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
-                        No residents in this apartment.
+                        No users in this apartment.
                     </p>
                 )}
 

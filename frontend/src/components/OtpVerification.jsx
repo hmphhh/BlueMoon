@@ -134,7 +134,7 @@ export default function OtpVerification({ type = 'email-verification', email, on
                 onVerified?.(res.data.resetToken);
             } else {
                 // Email verification
-                await axios.post(`${API_BASE}/api/me/verify-otp`, { otp: code });
+                await axios.post(`${API_BASE}/api/users/me/verify-otp`, { otp: code });
                 toast('Email verified successfully!', 'success');
                 onVerified?.();
             }
@@ -163,7 +163,7 @@ export default function OtpVerification({ type = 'email-verification', email, on
                 toast('New OTP sent to your email', 'success');
             } else {
                 // Resend OTP for email verification
-                await axios.post(`${API_BASE}/api/me/resend-otp`);
+                await axios.post(`${API_BASE}/api/users/me/resend-otp`);
                 toast('A new verification code has been sent', 'success');
             }
             focusInput(0);
