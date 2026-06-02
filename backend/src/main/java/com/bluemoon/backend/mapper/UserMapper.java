@@ -1,21 +1,14 @@
 package com.bluemoon.backend.mapper;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-
-import com.bluemoon.backend.dtos.response.UserResponse;
-import com.bluemoon.backend.entity.UserEntity;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 /**
  * MapStruct mapper for User-related transformations.
+ * Most mapping is now done manually in the controller due to flat DTO structure.
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface UserMapper {
-
-    /**
-     * Map UserEntity to UserResponse.
-     * Handles nested apartment relationship and extracts apartment number.
-     */
-    @Mapping(target = "apartmentNumber", source = "apartment.apartmentNumber")
-    UserResponse toResponse(UserEntity entity);
+    // Manual mapping is used in UserController for all response types
+    // since the entity-to-DTO mapping requires conditional logic for apartment/status enums.
 }

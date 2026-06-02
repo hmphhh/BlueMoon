@@ -11,7 +11,7 @@ import com.bluemoon.backend.enums.OtpTokenType;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.repository.OtpVerificationTokenRepository;
-import com.bluemoon.backend.exceptions.InvalidOperationException;
+
 @Service
 public class OtpService {
 
@@ -70,7 +70,7 @@ public class OtpService {
             otpVerificationTokenRepository.delete(otpToken);
             return false;
         }
-        
+
         // Check if OTP matches
         if (!otpToken.getOtp().equals(providedOtp)) {
             return false;

@@ -47,7 +47,7 @@ export default function ChangePasswordModal({ onSuccess, onCancel, toast }) {
 
         setLoading(true);
         try {
-            await axios.put(`${API_BASE}/api/users/change-password`, {
+            await axios.patch(`${API_BASE}/api/users/me/change-password`, {
                 currentPassword: formData.currentPassword,
                 newPassword: formData.newPassword,
                 confirmPassword: formData.confirmPassword,

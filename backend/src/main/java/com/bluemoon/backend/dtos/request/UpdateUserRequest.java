@@ -3,16 +3,17 @@ package com.bluemoon.backend.dtos.request;
 import java.time.LocalDate;
 
 import com.bluemoon.backend.enums.Gender;
+import com.bluemoon.backend.enums.ResidentStatus;
 
 import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 /**
- * Request DTO for user self-updating their profile.
- * Only these fields are allowed to be updated by the user themselves.
+ * Request DTO for admin updating a user.
+ * All fields are optional (PATCH semantics).
  */
 @Data
-public class UpdateProfileRequest {
+public class UpdateUserRequest {
 
     @Email(message = "Email must be valid")
     private String email;
@@ -22,4 +23,6 @@ public class UpdateProfileRequest {
     private LocalDate dateOfBirth;
     private Gender gender;
     private String relationship;
+    private ResidentStatus status;
+    private Long apartmentId;
 }

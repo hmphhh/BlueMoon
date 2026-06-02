@@ -9,12 +9,12 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 export default function ProfilePage({ user, setUser }) {
     const toast = useToast();
-    const [profile, setProfile] = useState({
-        fullName: '', email: '', phoneNumber: '',
-        identityCardNumber: '', apartmentNumber: '', avatarUrl: '',
+    const [profileData, setProfileData] = useState(null);
+    const [editData, setEditData] = useState({
+        email: '', fullName: '', phone: '', dateOfBirth: '', gender: '', relationship: ''
     });
-    const [isVerified, setIsVerified] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [verifying, setVerifying] = useState(false);
     const [showOtpModal, setShowOtpModal] = useState(false);
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -25,49 +25,56 @@ export default function ProfilePage({ user, setUser }) {
         try {
             const res = await axios.get(`${API_BASE}/api/users/me`);
             const data = res.data;
-            setProfile({
-                fullName: data.fullName || '', email: data.email || '',
-                phoneNumber: data.phoneNumber || '', identityCardNumber: data.identityCardNumber || '',
-                apartmentNumber: data.apartmentNumber || '', avatarUrl: data.avatarUrl || '',
+            setProfileData(data);
+            setEditData({
+                email: data.email || '',
+                fullName: data.fullName || '',
+                phone: data.phone || '',
+                dateOfBirth: data.dateOfBirth || '',
+                gender: data.gender || '',
+                relationship: data.relationship || ''
             });
-            setIsVerified(data.isVerified || data.verified || false);
         } catch (err) {
             console.error('Failed to fetch profile', err);
+            toast('Failed to load profile', 'error');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSave = async (e) => {
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
+        setSaving(true);
         try {
-            const res = await axios.put(`${API_BASE}/api/users/profile`, {
-                fullName: profile.fullName, email: profile.email, avatarUrl: profile.avatarUrl,
-            });
-            const data = res.data;
-            setIsVerified(data.isVerified || data.verified || false);
+            const payload = {};
+            if (editData.email !== (profileData.email || '')) payload.email = editData.email;
+            if (editData.fullName !== (profileData.fullName || '')) payload.fullName = editData.fullName;
+            if (editData.phone !== (profileData.phone || '')) payload.phone = editData.phone;
+            if (editData.dateOfBirth !== (profileData.dateOfBirth || '')) payload.dateOfBirth = editData.dateOfBirth;
+            if (editData.gender !== (profileData.gender || '')) payload.gender = editData.gender;
+            if (editData.relationship !== (profileData.relationship || '')) payload.relationship = editData.relationship;
+
+            if (Object.keys(payload).length === 0) {
+                toast('No changes to save', 'info');
+                setSaving(false);
+                return;
+            }
+
+            await axios.patch(`${API_BASE}/api/users/me`, payload);
             toast('Profile updated successfully!', 'success');
-            setUser(prev => ({ ...prev, fullName: profile.fullName }));
+            fetchProfile(); // Refresh data
         } catch (err) {
             console.error(err);
-            toast('Failed to update profile', 'error');
+            toast(err.response?.data?.error || 'Failed to update profile', 'error');
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleSendVerification = async () => {
-        if (!profile.email) {
-            toast('Please enter your email first', 'error');
-            return;
-        }
         setVerifying(true);
         try {
-            // Save profile first to ensure email is up to date
-            await axios.put(`${API_BASE}/api/users/profile`, {
-                fullName: profile.fullName, email: profile.email, avatarUrl: profile.avatarUrl,
-            });
-            setIsVerified(false);
-            // Send OTP
-            await axios.post(`${API_BASE}/api/users/send-verification`);
+            await axios.post(`${API_BASE}/api/users/me/send-verification`);
             toast('Verification code sent! Check your inbox.', 'success');
             setShowOtpModal(true);
         } catch (err) {
@@ -80,104 +87,165 @@ export default function ProfilePage({ user, setUser }) {
 
     const handleOtpVerified = () => {
         setShowOtpModal(false);
-        setIsVerified(true);
-        //toast('Email verified successfully!', 'success');
+        setProfileData(prev => ({ ...prev, verified: true }));
     };
 
     const handlePasswordChangeSuccess = () => {
         setShowChangePasswordModal(false);
-        //toast('Password changed successfully!', 'success');
     };
 
     if (loading) {
         return <SkeletonProfile />;
     }
 
-    const initial = (profile.fullName || user?.username || '?')[0].toUpperCase();
+    const isAdmin = profileData?.role === 'ADMIN';
+    const initial = (profileData?.fullName || profileData?.username || '?')[0].toUpperCase();
 
     return (
         <>
             <div className="page-header">
                 <h1 className="page-header__title">My Profile</h1>
-                <p className="page-header__subtitle">Manage your personal information</p>
+                <p className="page-header__subtitle">View and manage your account information</p>
             </div>
 
             <div className="card profile-card">
                 {/* Avatar */}
                 <div className="profile-avatar">
-                    {profile.avatarUrl
-                        ? <img src={profile.avatarUrl} alt="avatar" />
-                        : <span>{initial}</span>
-                    }
+                    <span>{initial}</span>
                 </div>
 
                 <div className="profile-meta">
-                    @{user?.username} ·{' '}
-                    <span className={`badge ${isVerified ? 'badge--success' : 'badge--danger'}`}>
-                        {isVerified ? '✓ Verified' : '✗ Not Verified'}
+                    {profileData?.phone || profileData?.username} ·{' '}
+                    <span className={`badge ${profileData?.verified ? 'badge--success' : 'badge--danger'}`}>
+                        {profileData?.verified ? '✓ Verified' : '✗ Not Verified'}
                     </span>
+                    {profileData?.role && (
+                        <> · <span className="badge">{profileData.role}</span></>
+                    )}
                 </div>
 
-                {/* Read-only section */}
-                <div className="section-title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    Identity Information
-                </div>
+                <form onSubmit={handleSaveProfile}>
+                    {/* Account Information Section */}
+                    <div className="section-title" style={{ marginTop: '28px' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="1"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                        </svg>
+                        Account Information
+                    </div>
 
-                <div className="form-group">
-                    <label className="form-label form-label--with-badge">Phone Number <span className="badge badge--lock">locked</span></label>
-                    <input className="form-input form-input--readonly" value={profile.phoneNumber} readOnly disabled />
-                </div>
-                <div className="form-group">
-                    <label className="form-label form-label--with-badge">Identity Card (CCCD) <span className="badge badge--lock">locked</span></label>
-                    <input className="form-input form-input--readonly" value={profile.identityCardNumber} readOnly disabled />
-                </div>
-                {profile.apartmentNumber && (
                     <div className="form-group">
-                        <label className="form-label form-label--with-badge">Apartment <span className="badge badge--lock">locked</span></label>
+                        <label className="form-label form-label--with-badge">
+                            Phone Number <span className="badge badge--lock">locked</span>
+                        </label>
                         <input className="form-input form-input--readonly"
-                            value={`Room ${profile.apartmentNumber} (Floor ${profile.apartmentNumber[0]})`} readOnly disabled />
+                            value={profileData?.phone || profileData?.username || ''} readOnly disabled />
                     </div>
-                )}
 
-                {/* Editable section */}
-                <div className="section-title" style={{ marginTop: '28px' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    Editable Information
-                </div>
-
-                <form onSubmit={handleSave}>
                     <div className="form-group">
-                        <label className="form-label">Full Name</label>
-                        <input className="form-input" value={profile.fullName}
-                            onChange={e => setProfile({ ...profile, fullName: e.target.value })}
-                            placeholder="Enter your full name" />
+                        <label className="form-label form-label--with-badge">
+                            ID Number (CCCD) <span className="badge badge--lock">locked</span>
+                        </label>
+                        <input className="form-input form-input--readonly"
+                            value={profileData?.idNumber || '—'} readOnly disabled />
                     </div>
+
                     <div className="form-group">
                         <label className="form-label form-label--with-badge">
                             Email
-                            {!isVerified && profile.email && (
+                            {!profileData?.verified && profileData?.email && (
                                 <button type="button" className="btn btn--warning btn--sm"
                                     onClick={handleSendVerification} disabled={verifying}>
                                     {verifying ? 'Sending…' : 'Verify Email'}
                                 </button>
                             )}
                         </label>
-                        <input className="form-input" type="email" value={profile.email}
-                            onChange={e => setProfile({ ...profile, email: e.target.value })}
+                        <input className="form-input" type="email" value={editData.email}
+                            onChange={e => setEditData({ ...editData, email: e.target.value })}
                             placeholder="Enter your email" />
                     </div>
+
                     <div className="form-group">
-                        <label className="form-label">Avatar URL</label>
-                        <input className="form-input" value={profile.avatarUrl}
-                            onChange={e => setProfile({ ...profile, avatarUrl: e.target.value })}
-                            placeholder="Paste an image URL" />
+                        <label className="form-label">Full Name</label>
+                        <input className="form-input" value={editData.fullName}
+                            onChange={e => setEditData({ ...editData, fullName: e.target.value })}
+                            placeholder="Enter your full name" />
                     </div>
-                    <button type="submit" className="btn btn--primary">Save Changes</button>
-                    <button type="button" className="btn btn--secondary" onClick={() => setShowChangePasswordModal(true)} style={{ marginLeft: '8px' }}>
+
+                    <div className="form-group">
+                        <label className="form-label">Date of Birth</label>
+                        <input className="form-input" type="date" value={editData.dateOfBirth}
+                            onChange={e => setEditData({ ...editData, dateOfBirth: e.target.value })} />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Gender</label>
+                        <select className="form-input" value={editData.gender}
+                            onChange={e => setEditData({ ...editData, gender: e.target.value })}>
+                            <option value="">Select</option>
+                            <option value="MALE">Male</option>
+                            <option value="FEMALE">Female</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+
+                    {!isAdmin && (
+                        <>
+                            {/* Resident Information Section */}
+                            <div className="section-title" style={{ marginTop: '28px' }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                Resident Information
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label">Relationship</label>
+                                <select className="form-input" value={editData.relationship}
+                                    onChange={e => setEditData({ ...editData, relationship: e.target.value })}>
+                                    <option value="">Select</option>
+                                    <option value="OWNER">Owner</option>
+                                    <option value="SPOUSE">Spouse</option>
+                                    <option value="CHILD">Child</option>
+                                    <option value="PARENT">Parent</option>
+                                    <option value="SIBLING">Sibling</option>
+                                    <option value="RELATIVE">Relative</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label form-label--with-badge">
+                                    Status <span className="badge badge--lock">locked</span>
+                                </label>
+                                <input className="form-input form-input--readonly"
+                                    value={profileData?.status || '—'} readOnly disabled />
+                            </div>
+
+                            {profileData?.apartment && (
+                                <div className="form-group">
+                                    <label className="form-label form-label--with-badge">
+                                        Apartment <span className="badge badge--lock">locked</span>
+                                    </label>
+                                    <input className="form-input form-input--readonly"
+                                        value={`Room ${profileData.apartment.number}`} readOnly disabled />
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+                        <button type="submit" className="btn btn--primary" disabled={saving}>
+                            {saving ? 'Saving…' : 'Save Changes'}
+                        </button>
+                    </div>
+                </form>
+
+                {/* Bottom Actions */}
+                <div style={{ marginTop: '28px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
+                    <button type="button" className="btn btn--secondary" onClick={() => setShowChangePasswordModal(true)}>
                         Change Password
                     </button>
-                </form>
+                </div>
             </div>
 
             {/* Change Password Modal */}

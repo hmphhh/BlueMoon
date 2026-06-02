@@ -35,7 +35,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of("http://localhost:5173")); // React dev server
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
 
@@ -47,21 +47,20 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Handle CORS before auth
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login").permitAll()
-                .requestMatchers("/api/auth/forgot-password/**").permitAll()
-                .requestMatchers("/api/auth/register").hasRole("ADMIN")       
+                .requestMatchers("/api/auth/**").permitAll()
+                // /api/users/me/** accessible by any authenticated user (must be before /api/users/**)
+                .requestMatchers("/api/users/me/**").authenticated()
                 .requestMatchers("/api/users/me").authenticated()
-                .requestMatchers("/api/users/profile").authenticated()
-                .requestMatchers("/api/users/send-verification").authenticated()
-                .requestMatchers("/api/users/verify-otp").authenticated()
-                .requestMatchers("/api/users/resend-otp").authenticated()
-                .requestMatchers("/api/users/change-password").authenticated()
-                .requestMatchers("/api/apartments/**").hasRole("ADMIN")
+                // /api/apartments/me accessible by any authenticated user
+                .requestMatchers("/api/apartments/me").authenticated()
+                // Other user and apartment endpoints require ADMIN
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
+                .requestMatchers("/api/apartments/**").hasRole("ADMIN")
+                .requestMatchers("/api/residents/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             );
         
