@@ -13,6 +13,10 @@ import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
 import AdminApartmentManagementPage from './pages/AdminApartmentManagementPage';
 import AdminApartmentDetailPage from './pages/AdminApartmentDetailPage';
 import AdminResidentDetailPage from './pages/AdminResidentDetailPage';
+import UserReportsPage from './pages/UserReportsPage';
+import UserReportDetailPage from './pages/UserReportDetailPage';
+import AdminReportManagementPage from './pages/AdminReportManagementPage';
+import AdminReportDetailPage from './pages/AdminReportDetailPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -129,6 +133,38 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="ADMIN">
                 <AdminResidentDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/report/:reportId"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserReportDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-reports"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminReportManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-report/:reportId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminReportDetailPage />
               </ProtectedRoute>
             }
           />
