@@ -3,6 +3,7 @@ package com.bluemoon.backend.dtos.request;
 import java.time.LocalDate;
 
 import com.bluemoon.backend.enums.Gender;
+import com.bluemoon.backend.enums.ResidentRelationship;
 
 import jakarta.validation.constraints.Email;
 import lombok.Data;
@@ -21,5 +22,5 @@ public class UpdateProfileRequest {
     private String phone;
     private LocalDate dateOfBirth;
     private Gender gender;
-    private String relationship;
+    private ResidentRelationship relationship;
 }

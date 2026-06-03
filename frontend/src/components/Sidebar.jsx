@@ -42,6 +42,7 @@ export default function Sidebar({ user, setUser, isOpen, onClose }) {
       ]
     : [
         { path: '/resident-home', label: 'Home', icon: navIcons.home },
+        { path: '/my-apartment', label: 'My Apartment', icon: navIcons.apartments },
         { path: '/reports', label: 'Reports', icon: navIcons.reports },
         { path: '/profile', label: 'My Profile', icon: navIcons.profile },
       ];

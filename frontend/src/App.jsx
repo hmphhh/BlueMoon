@@ -12,7 +12,7 @@ import AdminAccountManagementPage from './pages/AdminAccountManagementPage';
 import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
 import AdminApartmentManagementPage from './pages/AdminApartmentManagementPage';
 import AdminApartmentDetailPage from './pages/AdminApartmentDetailPage';
-import AdminResidentDetailPage from './pages/AdminResidentDetailPage';
+import UserApartmentPage from './pages/UserApartmentPage';
 import UserReportsPage from './pages/UserReportsPage';
 import UserReportDetailPage from './pages/UserReportDetailPage';
 import AdminReportManagementPage from './pages/AdminReportManagementPage';
@@ -89,6 +89,14 @@ export default function App() {
             }
           />
           <Route
+            path="/my-apartment"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserApartmentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -125,14 +133,6 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="ADMIN">
                 <AdminApartmentDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/resident/:residentId"
-            element={
-              <ProtectedRoute allowedRole="ADMIN">
-                <AdminResidentDetailPage />
               </ProtectedRoute>
             }
           />

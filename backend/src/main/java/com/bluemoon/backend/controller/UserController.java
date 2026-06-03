@@ -206,7 +206,7 @@ public class UserController {
         r.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
         r.setGender(user.getGender() != null ? user.getGender().name() : null);
         r.setIdNumber(user.getIdNumber());
-        r.setRelationship(user.getRelationship());
+        r.setRelationship(user.getRelationship() != null ? user.getRelationship().name() : null);
         r.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
 
         if (user.getApartment() != null) {
@@ -230,7 +230,7 @@ public class UserController {
         r.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
         r.setGender(user.getGender() != null ? user.getGender().name() : null);
         r.setIdNumber(user.getIdNumber());
-        r.setRelationship(user.getRelationship());
+        r.setRelationship(user.getRelationship() != null ? user.getRelationship().name() : null);
         r.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
 
         if (user.getApartment() != null) {

@@ -3,6 +3,7 @@ package com.bluemoon.backend.dtos.request;
 import java.time.LocalDate;
 
 import com.bluemoon.backend.enums.Gender;
+import com.bluemoon.backend.enums.ResidentRelationship;
 import com.bluemoon.backend.enums.UserRole;
 
 import jakarta.validation.constraints.NotBlank;
@@ -42,6 +43,6 @@ public class CreateUserRequest {
     private UserRole role;
 
     // Resident fields (required when role = USER)
-    private String relationship;
+    private ResidentRelationship relationship;
     private Long apartmentId;
 }
