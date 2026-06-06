@@ -61,6 +61,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/apartments/**").hasRole("ADMIN")
                 .requestMatchers("/api/residents/**").hasRole("ADMIN")
+                // Report endpoints: /me is for authenticated users, other paths use @PreAuthorize
+                .requestMatchers("/api/reports/me/**").authenticated()
+                .requestMatchers("/api/reports/me").authenticated()
+                .requestMatchers("/api/reports/**").authenticated()
                 .anyRequest().authenticated()
             );
         

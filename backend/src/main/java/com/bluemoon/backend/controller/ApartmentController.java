@@ -170,17 +170,31 @@ public class ApartmentController {
      * GET /api/apartments/me — Get current user's apartment.
      */
     @GetMapping("/me")
-    public ResponseEntity<ApartmentResponse> getMyApartment() {
+    public ResponseEntity<ApartmentDetailsResponse> getMyApartment() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         ApartmentEntity apartment = apartmentService.getApartmentForUser(username);
-        ApartmentResponse response = new ApartmentResponse();
+        List<UserEntity> users = apartmentService.getUsersByApartmentId(apartment.getId());
+
+        ApartmentDetailsResponse response = new ApartmentDetailsResponse();
         response.setId(apartment.getId());
         response.setApartmentNumber(apartment.getApartmentNumber());
         response.setFloor(apartment.getFloor());
         response.setArea(apartment.getArea());
         response.setStatus(apartment.getStatus());
         response.setType(apartment.getType());
-        response.setUserCount(apartmentService.getActiveUserCount(apartment.getId()));
+        response.setUserCount(users.size());
+        response.setUsers(users.stream().map(u -> {
+            ApartmentDetailsResponse.UserDto dto = new ApartmentDetailsResponse.UserDto();
+            dto.setId(u.getId());
+            dto.setUsername(u.getUsername());
+            dto.setFullName(u.getFullName());
+            dto.setIdNumber(u.getIdNumber());
+            dto.setPhone(u.getPhone());
+            dto.setStatus(u.getStatus() != null ? u.getStatus().name() : null);
+            dto.setRole(u.getRole() != null ? u.getRole().name() : null);
+            return dto;
+        }).collect(Collectors.toList()));
+
         return ResponseEntity.ok(response);
     }
 }

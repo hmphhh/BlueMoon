@@ -20,6 +20,7 @@ import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.OtpVerificationToken;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.enums.OtpTokenType;
+import com.bluemoon.backend.enums.ResidentRelationship;
 import com.bluemoon.backend.enums.ResidentStatus;
 import com.bluemoon.backend.enums.UserRole;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
@@ -121,7 +122,7 @@ public class UserService {
             ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
 
-            user.setRelationship(request.getRelationship() != null ? request.getRelationship() : "OTHER");
+            user.setRelationship(request.getRelationship() != null ? request.getRelationship() : ResidentRelationship.OTHER);
             user.setStatus(ResidentStatus.ACTIVE);
             user.setApartment(apartment);
         }

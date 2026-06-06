@@ -12,7 +12,11 @@ import AdminAccountManagementPage from './pages/AdminAccountManagementPage';
 import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
 import AdminApartmentManagementPage from './pages/AdminApartmentManagementPage';
 import AdminApartmentDetailPage from './pages/AdminApartmentDetailPage';
-import AdminResidentDetailPage from './pages/AdminResidentDetailPage';
+import UserApartmentPage from './pages/UserApartmentPage';
+import UserReportsPage from './pages/UserReportsPage';
+import UserReportDetailPage from './pages/UserReportDetailPage';
+import AdminReportManagementPage from './pages/AdminReportManagementPage';
+import AdminReportDetailPage from './pages/AdminReportDetailPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -85,6 +89,14 @@ export default function App() {
             }
           />
           <Route
+            path="/my-apartment"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserApartmentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -125,10 +137,34 @@ export default function App() {
             }
           />
           <Route
-            path="/resident/:residentId"
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/report/:reportId"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserReportDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-reports"
             element={
               <ProtectedRoute allowedRole="ADMIN">
-                <AdminResidentDetailPage />
+                <AdminReportManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-report/:reportId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminReportDetailPage />
               </ProtectedRoute>
             }
           />

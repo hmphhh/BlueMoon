@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import com.bluemoon.backend.enums.Gender;
+import com.bluemoon.backend.enums.ResidentRelationship;
 import com.bluemoon.backend.enums.ResidentStatus;
 import com.bluemoon.backend.enums.UserRole;
 
@@ -77,8 +78,9 @@ public class UserEntity {
     @Column(unique = true, name = "id_number", length = 50)
     private String idNumber;
 
-    @Column(length = 100)
-    private String relationship;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private ResidentRelationship relationship;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
