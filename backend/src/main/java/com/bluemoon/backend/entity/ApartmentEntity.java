@@ -55,6 +55,11 @@ public class ApartmentEntity {
     @EqualsAndHashCode.Exclude
     private List<UserEntity> users = new ArrayList<>();
 
+    @OneToMany(mappedBy = "apartment", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<BillEntity> bills = new ArrayList<>();
+
     public ApartmentEntity(String apartmentNumber) {
         this.apartmentNumber = apartmentNumber;
     }

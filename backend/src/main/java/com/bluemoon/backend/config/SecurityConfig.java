@@ -57,10 +57,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/users/me").authenticated()
                 // /api/apartments/me accessible by any authenticated user
                 .requestMatchers("/api/apartments/me").authenticated()
-                // Other user and apartment endpoints require ADMIN
+                .requestMatchers("/api/apartments/me/users").authenticated()
+                // /api/bills/me accessible by any authenticated user
+                .requestMatchers("/api/bills/me").authenticated()
+                // /api/bills/{id} accessible by any authenticated user (ownership checked in service)
+                .requestMatchers("/api/bills/{billId}").authenticated()
+                // Other user, apartment, bill, and bill-template endpoints require ADMIN
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/apartments/**").hasRole("ADMIN")
                 .requestMatchers("/api/residents/**").hasRole("ADMIN")
+                .requestMatchers("/api/bills/**").hasRole("ADMIN")
+                .requestMatchers("/api/bill-templates/**").hasRole("ADMIN")
                 // Report endpoints: /me is for authenticated users, other paths use @PreAuthorize
                 .requestMatchers("/api/reports/me/**").authenticated()
                 .requestMatchers("/api/reports/me").authenticated()
