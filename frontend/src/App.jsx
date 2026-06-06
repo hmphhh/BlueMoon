@@ -12,11 +12,18 @@ import AdminAccountManagementPage from './pages/AdminAccountManagementPage';
 import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
 import AdminApartmentManagementPage from './pages/AdminApartmentManagementPage';
 import AdminApartmentDetailPage from './pages/AdminApartmentDetailPage';
+import AdminApartmentMembersPage from './pages/AdminApartmentMembersPage';
+import AdminApartmentBillsPage from './pages/AdminApartmentBillsPage';
 import UserApartmentPage from './pages/UserApartmentPage';
+import UserApartmentMembersPage from './pages/UserApartmentMembersPage';
 import UserReportsPage from './pages/UserReportsPage';
 import UserReportDetailPage from './pages/UserReportDetailPage';
 import AdminReportManagementPage from './pages/AdminReportManagementPage';
 import AdminReportDetailPage from './pages/AdminReportDetailPage';
+import AdminBillManagementPage from './pages/AdminBillManagementPage';
+import AdminBillDetailPage from './pages/AdminBillDetailPage';
+import AdminBillTemplatePage from './pages/AdminBillTemplatePage';
+import UserBillsPage from './pages/UserBillsPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -97,6 +104,14 @@ export default function App() {
             }
           />
           <Route
+            path="/my-apartment/members"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserApartmentMembersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/profile"
             element={
               <ProtectedRoute>
@@ -137,6 +152,22 @@ export default function App() {
             }
           />
           <Route
+            path="/apartment/:apartmentId/members"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminApartmentMembersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/apartment/:apartmentId/bills"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminApartmentBillsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/reports"
             element={
               <ProtectedRoute allowedRole="USER">
@@ -168,8 +199,40 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin-bills"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminBillManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-bill/:billId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminBillDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-bill-templates"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminBillTemplatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-bills"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserBillsPage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </ToastProvider>
   );
-}
+}

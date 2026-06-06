@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 import { SkeletonProfile } from '../components/LoadingSkeleton';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
 export default function UserApartmentPage() {
+    const navigate = useNavigate();
     const toast = useToast();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -23,9 +25,6 @@ export default function UserApartmentPage() {
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'ACTIVE': return 'badge--success';
-            case 'TEMPORARILY_ABSENT': return 'badge--warning';
-            case 'MOVED_OUT': return 'badge--danger';
             case 'OCCUPIED': return 'badge--success';
             case 'VACANT': return 'badge--warning';
             default: return 'badge--info';
@@ -60,11 +59,13 @@ export default function UserApartmentPage() {
 
     const avatarChar = data.apartmentNumber?.charAt(0)?.toUpperCase() || 'A';
 
+
+
     return (
         <>
             <div className="page-header">
                 <h1 className="page-header__title">My Apartment</h1>
-                <p className="page-header__subtitle">View your apartment details and members</p>
+                <p className="page-header__subtitle">View your apartment details</p>
             </div>
 
             <div className="card profile-card">
@@ -117,46 +118,11 @@ export default function UserApartmentPage() {
                     <input className="form-input form-input--readonly" value={data.status || ''} readOnly disabled />
                 </div>
 
-                {/* Members Section */}
-                <div className="section-title" style={{ marginTop: '28px' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                    </svg>
-                    Members ({data.userCount || 0})
+                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button className="btn btn--primary" onClick={() => navigate('/my-apartment/members')}>
+                        View Members
+                    </button>
                 </div>
-
-                {data.users?.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Full Name</th>
-                                    <th>Phone</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.users.map(user => (
-                                    <tr key={user.id}>
-                                        <td><strong>{user.fullName || '—'}</strong></td>
-                                        <td>{user.phone || '—'}</td>
-                                        <td>
-                                            {user.status ? (
-                                                <span className={`badge ${getStatusBadge(user.status)}`}>
-                                                    {user.status}
-                                                </span>
-                                            ) : '—'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
-                        No members found.
-                    </p>
-                )}
             </div>
         </>
     );
