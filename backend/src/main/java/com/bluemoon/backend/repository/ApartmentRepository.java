@@ -1,5 +1,7 @@
 package com.bluemoon.backend.repository;
 
+import com.bluemoon.backend.dtos.response.ApartmentBillingSummaryResponse;
+import com.bluemoon.backend.dtos.response.ApartmentResidentsSummaryResponse;
 import com.bluemoon.backend.dtos.response.ApartmentResponse;
 import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.enums.ResidentStatus;
@@ -28,6 +30,7 @@ public interface ApartmentRepository extends JpaRepository<ApartmentEntity, Long
 
     /**
      * Get all apartments with user count using JPQL to avoid N+1 queries.
+     * (Legacy query kept for backward compatibility)
      */
     @Query("""
         SELECT new com.bluemoon.backend.dtos.response.ApartmentResponse(
@@ -44,4 +47,138 @@ public interface ApartmentRepository extends JpaRepository<ApartmentEntity, Long
         GROUP BY a.id, a.apartmentNumber, a.floor, a.area, a.status, a.type
     """)
     List<ApartmentResponse> findAllWithUserCount();
+
+    /**
+     * Get all apartments with resident count (for merging with billing summary).
+     */
+    @Query("""
+        SELECT new com.bluemoon.backend.dtos.response.ApartmentResidentsSummaryResponse(
+            a.id,
+            a.apartmentNumber,
+            a.floor,
+            a.area,
+            a.status,
+            a.type,
+            COUNT(u.id)
+        )
+        FROM ApartmentEntity a
+        LEFT JOIN a.users u
+        GROUP BY
+            a.id,
+            a.apartmentNumber,
+            a.floor,
+            a.area,
+            a.status,
+            a.type
+        ORDER BY a.apartmentNumber
+    """)
+    List<ApartmentResidentsSummaryResponse> findAllWithResidentCount();
+
+    /**
+     * Get resident count for a single apartment.
+     */
+    @Query("""
+        SELECT new com.bluemoon.backend.dtos.response.ApartmentResidentsSummaryResponse(
+            a.id,
+            a.apartmentNumber,
+            a.floor,
+            a.area,
+            a.status,
+            a.type,
+            COUNT(u.id)
+        )
+        FROM ApartmentEntity a
+        LEFT JOIN a.users u
+        WHERE a.id = :apartmentId
+        GROUP BY
+            a.id,
+            a.apartmentNumber,
+            a.floor,
+            a.area,
+            a.status,
+            a.type
+    """)
+    ApartmentResidentsSummaryResponse findOneWithResidentCount(@Param("apartmentId") Long apartmentId);
+
+    /**
+     * Get all apartments with billing summaries.
+     */
+    @Query("""
+        SELECT new com.bluemoon.backend.dtos.response.ApartmentBillingSummaryResponse(
+            a.id,
+            SUM(
+                CASE
+                    WHEN b.status = com.bluemoon.backend.enums.BillStatus.UNPAID
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            SUM(
+                CASE
+                    WHEN b.status = com.bluemoon.backend.enums.BillStatus.OVERDUE
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN b.status IN (
+                            com.bluemoon.backend.enums.BillStatus.UNPAID,
+                            com.bluemoon.backend.enums.BillStatus.OVERDUE
+                        )
+                        THEN b.amount
+                        ELSE 0
+                    END
+                ),
+                0
+            )
+        )
+        FROM ApartmentEntity a
+        LEFT JOIN a.bills b
+        GROUP BY a.id
+    """)
+    List<ApartmentBillingSummaryResponse> findAllWithBillingSummaries();
+
+    /**
+     * Get billing summary for a single apartment.
+     */
+    @Query("""
+        SELECT new com.bluemoon.backend.dtos.response.ApartmentBillingSummaryResponse(
+            a.id,
+            SUM(
+                CASE
+                    WHEN b.status = com.bluemoon.backend.enums.BillStatus.UNPAID
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            SUM(
+                CASE
+                    WHEN b.status = com.bluemoon.backend.enums.BillStatus.OVERDUE
+                    THEN 1
+                    ELSE 0
+                END
+            ),
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN b.status IN (
+                            com.bluemoon.backend.enums.BillStatus.UNPAID,
+                            com.bluemoon.backend.enums.BillStatus.OVERDUE
+                        )
+                        THEN b.amount
+                        ELSE 0
+                    END
+                ),
+                0
+            )
+        )
+        FROM ApartmentEntity a
+        LEFT JOIN a.bills b
+        WHERE a.id = :apartmentId
+        GROUP BY a.id
+    """)
+    ApartmentBillingSummaryResponse findOneWithBillingSummary(@Param("apartmentId") Long apartmentId);
 }
+

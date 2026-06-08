@@ -13,9 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import com.bluemoon.backend.dtos.request.ApartmentRequest;
 import com.bluemoon.backend.dtos.response.ApartmentDetailsResponse;
 import com.bluemoon.backend.dtos.response.ApartmentResponse;
+import com.bluemoon.backend.dtos.response.ApartmentWithBillingSummaryResponse;
+import com.bluemoon.backend.dtos.response.BillSummaryResponse;
 import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.UserEntity;
+import com.bluemoon.backend.enums.BillStatus;
 import com.bluemoon.backend.service.ApartmentService;
+import com.bluemoon.backend.service.BillService;
 
 @RestController
 @RequestMapping("/api/apartments")
@@ -24,19 +28,22 @@ public class ApartmentController {
     @Autowired
     private ApartmentService apartmentService;
 
+    @Autowired
+    private BillService billService;
+
     /**
-     * GET /api/apartments — All apartments with user count.
+     * GET /api/apartments — All apartments with residentCount + billingSummary.
      * Supports optional filters: search, status, type, floor.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<ApartmentResponse>> getAllApartments(
+    public ResponseEntity<List<ApartmentWithBillingSummaryResponse>> getAllApartments(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) Integer floor
     ) {
-        List<ApartmentResponse> apartments = apartmentService.getAllApartmentsWithUserCount();
+        List<ApartmentWithBillingSummaryResponse> apartments = billService.getAllApartmentsWithBillingSummary();
 
         // Apply filters in-memory (simple approach since dataset is small)
         if (search != null && !search.isBlank()) {
@@ -65,35 +72,13 @@ public class ApartmentController {
     }
 
     /**
-     * GET /api/apartments/{apartmentId} — Apartment details with users.
+     * GET /api/apartments/{apartmentId} — Apartment details with residentCount + billingSummary.
+     * Residents are now retrieved through GET /api/apartments/{apartmentId}/users.
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{apartmentId}")
-    public ResponseEntity<ApartmentDetailsResponse> getApartmentDetails(@PathVariable Long apartmentId) {
-        ApartmentEntity apartment = apartmentService.getApartmentById(apartmentId);
-        List<UserEntity> users = apartmentService.getUsersByApartmentId(apartmentId);
-
-        ApartmentDetailsResponse response = new ApartmentDetailsResponse();
-        response.setId(apartment.getId());
-        response.setApartmentNumber(apartment.getApartmentNumber());
-        response.setFloor(apartment.getFloor());
-        response.setArea(apartment.getArea());
-        response.setStatus(apartment.getStatus());
-        response.setType(apartment.getType());
-        response.setUserCount(users.size());
-        response.setUsers(users.stream().map(u -> {
-            ApartmentDetailsResponse.UserDto dto = new ApartmentDetailsResponse.UserDto();
-            dto.setId(u.getId());
-            dto.setUsername(u.getUsername());
-            dto.setFullName(u.getFullName());
-            dto.setIdNumber(u.getIdNumber());
-            dto.setPhone(u.getPhone());
-            dto.setStatus(u.getStatus() != null ? u.getStatus().name() : null);
-            dto.setRole(u.getRole() != null ? u.getRole().name() : null);
-            return dto;
-        }).collect(Collectors.toList()));
-
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApartmentWithBillingSummaryResponse> getApartmentDetails(@PathVariable Long apartmentId) {
+        return ResponseEntity.ok(billService.getApartmentWithBillingSummary(apartmentId));
     }
 
     /**
@@ -115,6 +100,18 @@ public class ApartmentController {
             return dto;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * GET /api/apartments/{apartmentId}/bills — Bills for an apartment (admin only).
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{apartmentId}/bills")
+    public ResponseEntity<List<BillSummaryResponse>> getApartmentBills(
+            @PathVariable Long apartmentId,
+            @RequestParam(required = false) BillStatus status
+    ) {
+        return ResponseEntity.ok(billService.getBillsByApartment(apartmentId, status));
     }
 
     /**
@@ -167,23 +164,24 @@ public class ApartmentController {
     }
 
     /**
-     * GET /api/apartments/me — Get current user's apartment.
+     * GET /api/apartments/me — Get current user's apartment with residentCount + billingSummary.
      */
     @GetMapping("/me")
-    public ResponseEntity<ApartmentDetailsResponse> getMyApartment() {
+    public ResponseEntity<ApartmentWithBillingSummaryResponse> getMyApartment() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        ApartmentEntity apartment = apartmentService.getApartmentForUser(username);
+        return ResponseEntity.ok(billService.getApartmentWithBillingSummary(apartment.getId()));
+    }
+
+    /**
+     * GET /api/apartments/me/users — Get members of the current user's apartment.
+     */
+    @GetMapping("/me/users")
+    public ResponseEntity<List<ApartmentDetailsResponse.UserDto>> getMyApartmentUsers() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         ApartmentEntity apartment = apartmentService.getApartmentForUser(username);
         List<UserEntity> users = apartmentService.getUsersByApartmentId(apartment.getId());
-
-        ApartmentDetailsResponse response = new ApartmentDetailsResponse();
-        response.setId(apartment.getId());
-        response.setApartmentNumber(apartment.getApartmentNumber());
-        response.setFloor(apartment.getFloor());
-        response.setArea(apartment.getArea());
-        response.setStatus(apartment.getStatus());
-        response.setType(apartment.getType());
-        response.setUserCount(users.size());
-        response.setUsers(users.stream().map(u -> {
+        List<ApartmentDetailsResponse.UserDto> dtos = users.stream().map(u -> {
             ApartmentDetailsResponse.UserDto dto = new ApartmentDetailsResponse.UserDto();
             dto.setId(u.getId());
             dto.setUsername(u.getUsername());
@@ -193,8 +191,7 @@ public class ApartmentController {
             dto.setStatus(u.getStatus() != null ? u.getStatus().name() : null);
             dto.setRole(u.getRole() != null ? u.getRole().name() : null);
             return dto;
-        }).collect(Collectors.toList()));
-
-        return ResponseEntity.ok(response);
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 }

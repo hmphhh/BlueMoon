@@ -73,9 +73,6 @@ export default function AdminApartmentDetailPage() {
 
     const getStatusBadge = (status) => {
         switch (status) {
-            case 'ACTIVE': return 'badge--success';
-            case 'TEMPORARILY_ABSENT': return 'badge--warning';
-            case 'MOVED_OUT': return 'badge--danger';
             case 'OCCUPIED': return 'badge--success';
             case 'VACANT': return 'badge--warning';
             default: return 'badge--info';
@@ -95,7 +92,6 @@ export default function AdminApartmentDetailPage() {
         );
     }
 
-    // Xử lý an toàn khi lấy ký tự đầu tiên làm Avatar
     const avatarChar = apartmentData.apartmentNumber?.charAt(0)?.toUpperCase() || 'A';
 
     return (
@@ -165,73 +161,23 @@ export default function AdminApartmentDetailPage() {
                     <input className="form-input form-input--readonly" value={apartmentData.status || ''} readOnly disabled />
                 </div>
 
-                <div style={{ marginTop: '20px' }}>
+                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     <button className="btn btn--primary" onClick={handleOpenEditModal}>
                         Edit Apartment
                     </button>
-                </div>
-
-                {/* Users Section */}
-                <div className="section-title" style={{ marginTop: '28px' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                    </svg>
-                    Users ({apartmentData.userCount || 0})
-                </div>
-
-                {apartmentData.users?.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Full Name</th>
-                                    <th>ID Number</th>
-                                    <th>Phone</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {apartmentData.users.map(user => (
-                                    <tr key={user.id}>
-                                        <td><strong>{user.username}</strong></td>
-                                        <td>{user.fullName || '—'}</td>
-                                        <td>{user.idNumber || '—'}</td>
-                                        <td>{user.phone || '—'}</td>
-                                        <td><span className="badge">{user.role}</span></td>
-                                        <td>
-                                            {user.status ? (
-                                                <span className={`badge ${getStatusBadge(user.status)}`}>
-                                                    {user.status}
-                                                </span>
-                                            ) : '—'}
-                                        </td>
-                                        <td>
-                                            <button
-                                                className="btn btn--primary btn--sm"
-                                                onClick={() => navigate(`/account/${user.id}`)}
-                                            >
-                                                View Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ) : (
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
-                        No users in this apartment.
-                    </p>
-                )}
-
-                <div style={{ marginTop: '28px' }}>
-                    <button className="btn btn--secondary" onClick={() => navigate('/apartments')}>
-                        Back to Apartments
+                    <button className="btn btn--primary" onClick={() => navigate(`/apartment/${apartmentId}/members`)}>
+                        View Members
+                    </button>
+                    <button className="btn btn--primary" onClick={() => navigate(`/apartment/${apartmentId}/bills`)}>
+                        View Bills
                     </button>
                 </div>
+            </div>
+
+            <div style={{ marginTop: '24px' }}>
+                <button className="btn btn--secondary" onClick={() => navigate('/apartments')}>
+                    Back to Apartments
+                </button>
             </div>
 
             {/* Edit Apartment Modal */}
