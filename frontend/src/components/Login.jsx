@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -41,6 +42,7 @@ export default function Login({ setUser }) {
 
     return (
         <div className="login-page">
+            <ThemeToggle className="login-theme-toggle" />
             <div className="login-card">
                 <div className="login-card__logo">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

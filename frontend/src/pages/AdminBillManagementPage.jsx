@@ -272,7 +272,7 @@ export default function AdminBillManagementPage() {
                             <tbody>
                                 {bills.map(bill => (
                                     <tr key={bill.id}>
-                                        <td><strong>{bill.apartmentNumber || '—'}</strong></td>
+                                        <td><strong>{bill.apartmentNumber ? `Room ${bill.apartmentNumber}` : '—'}</strong></td>
                                         <td>{bill.title}</td>
                                         <td>{formatCurrency(bill.amount)}</td>
                                         <td>{bill.dueDate || '—'}</td>
@@ -329,8 +329,10 @@ export default function AdminBillManagementPage() {
                                 <label className="form-label">Apartment</label>
                                 <select className="form-input" value={createForm.apartmentId} onChange={e => setCreateForm(p => ({ ...p, apartmentId: e.target.value }))}>
                                     <option value="">Select Apartment</option>
-                                    {apartments.map(a => (
-                                        <option key={a.id} value={a.id}>{a.apartmentNumber}</option>
+                                    {[...apartments]
+                                        .sort((a, b) => (a.floor - b.floor) || (a.apartmentNumber || '').localeCompare(b.apartmentNumber || ''))
+                                        .map(a => (
+                                        <option key={a.id} value={a.id}>Room {a.apartmentNumber} (Floor {a.floor})</option>
                                     ))}
                                 </select>
                             </div>
@@ -390,14 +392,16 @@ export default function AdminBillManagementPage() {
                                     </label>
                                 </div>
                                 <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '8px' }}>
-                                    {apartments.map(a => (
+                                    {[...apartments]
+                                        .sort((a, b) => (a.floor - b.floor) || (a.apartmentNumber || '').localeCompare(b.apartmentNumber || ''))
+                                        .map(a => (
                                         <label key={a.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 4px', fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer' }}>
                                             <input
                                                 type="checkbox"
                                                 checked={generateForm.apartmentIds.includes(a.id)}
                                                 onChange={() => handleToggleApartment(a.id)}
                                             />
-                                            {a.apartmentNumber}
+                                            Room {a.apartmentNumber} (Floor {a.floor})
                                         </label>
                                     ))}
                                 </div>
