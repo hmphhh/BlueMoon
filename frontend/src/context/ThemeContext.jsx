@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 const ThemeContext = createContext(undefined);
 
 const STORAGE_KEY = 'bluemoon-theme';
+const VALID_THEMES = ['dark', 'light', 'abyss'];
+const THEME_CYCLE = ['dark', 'light', 'abyss']; // cycle order
 
 /**
  * Determine the initial theme:
@@ -13,7 +15,7 @@ const STORAGE_KEY = 'bluemoon-theme';
 function getInitialTheme() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'light' || saved === 'dark') return saved;
+    if (saved && VALID_THEMES.includes(saved)) return saved;
   } catch {
     // localStorage may be unavailable (e.g. private browsing in some browsers)
   }
@@ -35,8 +37,8 @@ export function ThemeProvider({ children }) {
     const root = document.documentElement;
     root.setAttribute('data-theme', theme);
 
-    // Toggle a 'dark' class as well (useful for Tailwind-style dark: variants)
-    if (theme === 'dark') {
+    // Toggle a 'dark' class for dark-mode themes (dark + abyss)
+    if (theme === 'dark' || theme === 'abyss') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
@@ -65,12 +67,16 @@ export function ThemeProvider({ children }) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  // Cycle through themes: dark → light → abyss → dark
+  const cycleTheme = () => {
+    setTheme((prev) => {
+      const idx = THEME_CYCLE.indexOf(prev);
+      return THEME_CYCLE[(idx + 1) % THEME_CYCLE.length];
+    });
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, cycleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
