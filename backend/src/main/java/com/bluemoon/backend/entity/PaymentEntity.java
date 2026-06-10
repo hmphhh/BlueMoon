@@ -1,10 +1,11 @@
 package com.bluemoon.backend.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import com.bluemoon.backend.enums.BillStatus;
+import com.bluemoon.backend.enums.PaymentFailureReason;
+import com.bluemoon.backend.enums.PaymentMethod;
+import com.bluemoon.backend.enums.PaymentStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,43 +26,42 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "bills")
+@Table(name = "payments")
 @Getter
 @Setter
 @NoArgsConstructor
-public class BillEntity {
+public class PaymentEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "apartment_id", nullable = false)
+    @JoinColumn(name = "invoice_id", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private ApartmentEntity apartment;
+    private InvoiceEntity invoice;
 
-    @Column(nullable = false)
-    private String title;
+    @Column(nullable = false, unique = true, length = 100)
+    private String transactionCode;
 
-    private String description;
-
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
-
-    private LocalDate dueDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private BillStatus status = BillStatus.UNPAID;
+    private PaymentStatus status;
 
-    private LocalDateTime paidAt;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private PaymentMethod method;
 
-    private String note;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50)
+    private PaymentFailureReason failureReason;
 
-    /** ID of the active invoice this bill is locked to (null = available). */
-    @Column(name = "invoice_id")
-    private Long invoiceId;
+    @Column(nullable = false)
+    private LocalDateTime transactionTime;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
