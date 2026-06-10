@@ -78,22 +78,22 @@ export default function AdminBillDetailPage() {
 
     const handleMarkPaid = async () => {
         try {
-            await axios.patch(`${API_BASE}/api/bills/${billId}/paid`);
+            await axios.patch(`${API_BASE}/api/bills/paid`, { billIds: [Number(billId)] });
             toast('Bill marked as paid!', 'success');
             fetchBill();
         } catch (err) {
-            toast(err.response?.data?.error || 'Failed to mark bill as paid', 'error');
+            toast(err.response?.data?.error || err.response?.data?.message || 'Failed to mark bill as paid', 'error');
         }
     };
 
     const handleCancel = async () => {
         if (!window.confirm('Are you sure you want to cancel this bill?')) return;
         try {
-            await axios.patch(`${API_BASE}/api/bills/${billId}/cancel`);
+            await axios.patch(`${API_BASE}/api/bills/cancel`, { billIds: [Number(billId)] });
             toast('Bill cancelled!', 'success');
             fetchBill();
         } catch (err) {
-            toast(err.response?.data?.error || 'Failed to cancel bill', 'error');
+            toast(err.response?.data?.error || err.response?.data?.message || 'Failed to cancel bill', 'error');
         }
     };
 

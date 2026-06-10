@@ -29,6 +29,7 @@ export default function AdminBillManagementPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [apartments, setApartments] = useState([]);
     const [templates, setTemplates] = useState([]);
+    const [selectedBillIds, setSelectedBillIds] = useState([]);
 
     // Create bill modal
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -56,6 +57,7 @@ export default function AdminBillManagementPage() {
             if (searchQuery) params.search = searchQuery;
             const res = await axios.get(`${API_BASE}/api/bills`, { params });
             setBills(res.data || []);
+            setSelectedBillIds([]); // clear selection on refresh
         } catch (err) {
             console.error(err);
             toast('Failed to load bills', 'error');
@@ -125,24 +127,48 @@ export default function AdminBillManagementPage() {
         }
     };
 
-    const handleMarkPaid = async (billId) => {
-        try {
-            await axios.patch(`${API_BASE}/api/bills/${billId}/paid`);
-            toast('Bill marked as paid!', 'success');
-            fetchBills();
-        } catch (err) {
-            toast(err.response?.data?.error || 'Failed to mark bill as paid', 'error');
+    // Batch operations
+    const modifiableBills = bills.filter(b => b.status === 'UNPAID' || b.status === 'OVERDUE');
+
+    const toggleBillSelection = (billId) => {
+        setSelectedBillIds(prev =>
+            prev.includes(billId)
+                ? prev.filter(id => id !== billId)
+                : [...prev, billId]
+        );
+    };
+
+    const toggleSelectAllBills = () => {
+        if (selectedBillIds.length === modifiableBills.length) {
+            setSelectedBillIds([]);
+        } else {
+            setSelectedBillIds(modifiableBills.map(b => b.id));
         }
     };
 
-    const handleCancel = async (billId) => {
-        if (!window.confirm('Are you sure you want to cancel this bill?')) return;
+    const handleBatchMarkPaid = async () => {
+        if (selectedBillIds.length === 0) return;
+        if (!window.confirm(`Mark ${selectedBillIds.length} bill(s) as paid? This will create an Invoice and Payment record.`)) return;
         try {
-            await axios.patch(`${API_BASE}/api/bills/${billId}/cancel`);
-            toast('Bill cancelled!', 'success');
+            await axios.patch(`${API_BASE}/api/bills/paid`, { billIds: selectedBillIds });
+            toast(`${selectedBillIds.length} bill(s) marked as paid!`, 'success');
+            setSelectedBillIds([]);
             fetchBills();
         } catch (err) {
-            toast(err.response?.data?.error || 'Failed to cancel bill', 'error');
+            toast(err.response?.data?.error || err.response?.data?.message || 'Failed to mark bills as paid', 'error');
+        }
+    };
+
+    const handleBatchCancel = async () => {
+        if (selectedBillIds.length === 0) return;
+        if (!window.confirm(`Cancel ${selectedBillIds.length} bill(s)?`)) return;
+        try {
+            await axios.patch(`${API_BASE}/api/bills/cancel`, { billIds: selectedBillIds });
+            toast(`${selectedBillIds.length} bill(s) cancelled!`, 'success');
+            setSelectedBillIds([]);
+            fetchBills();
+        } catch (err) {
+            toast(err.response?.data?.error || err.response?.data?.message || 'Failed to cancel bills', 'error');
         }
     };
 
@@ -255,12 +281,47 @@ export default function AdminBillManagementPage() {
                     </div>
                 </div>
 
+                {/* Batch action toolbar */}
+                {selectedBillIds.length > 0 && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px 16px',
+                        marginBottom: '16px',
+                        background: 'var(--accent-bg)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--accent)',
+                    }}>
+                        <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '14px' }}>
+                            {selectedBillIds.length} bill(s) selected
+                        </span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <button className="btn btn--sm" style={{ background: 'var(--success-bg)', color: 'var(--success)' }} onClick={handleBatchMarkPaid}>
+                                ✓ Mark Paid
+                            </button>
+                            <button className="btn btn--warning btn--sm" onClick={handleBatchCancel}>
+                                ✕ Cancel
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Table */}
                 {bills.length > 0 ? (
                     <div style={{ overflowX: 'auto' }}>
                         <table className="table">
                             <thead>
                                 <tr>
+                                    <th style={{ width: '40px' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={modifiableBills.length > 0 && selectedBillIds.length === modifiableBills.length}
+                                            onChange={toggleSelectAllBills}
+                                            disabled={modifiableBills.length === 0}
+                                        />
+                                    </th>
+                                    <th style={{ width: '50px' }}>STT</th>
                                     <th>Apartment</th>
                                     <th>Title</th>
                                     <th>Amount</th>
@@ -270,41 +331,45 @@ export default function AdminBillManagementPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {bills.map(bill => (
-                                    <tr key={bill.id}>
-                                        <td><strong>{bill.apartmentNumber ? `Room ${bill.apartmentNumber}` : '—'}</strong></td>
-                                        <td>{bill.title}</td>
-                                        <td>{formatCurrency(bill.amount)}</td>
-                                        <td>{bill.dueDate || '—'}</td>
-                                        <td>
-                                            <span className={`badge ${statusBadge(bill.status)}`}>
-                                                {bill.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                <button className="btn btn--primary btn--sm" onClick={() => navigate(`/admin-bill/${bill.id}`)}>
-                                                    View
-                                                </button>
-                                                {(bill.status === 'UNPAID' || bill.status === 'OVERDUE') && (
-                                                    <>
-                                                        <button className="btn btn--sm" style={{ background: 'var(--success-bg)', color: 'var(--success)' }} onClick={() => handleMarkPaid(bill.id)}>
-                                                            Paid
-                                                        </button>
-                                                        <button className="btn btn--warning btn--sm" onClick={() => handleCancel(bill.id)}>
-                                                            Cancel
-                                                        </button>
-                                                    </>
+                                {bills.map((bill, index) => {
+                                    const isModifiable = bill.status === 'UNPAID' || bill.status === 'OVERDUE';
+                                    const isSelected = selectedBillIds.includes(bill.id);
+                                    return (
+                                        <tr key={bill.id} style={isSelected ? { background: 'var(--accent-bg)' } : {}}>
+                                            <td>
+                                                {isModifiable && (
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => toggleBillSelection(bill.id)}
+                                                    />
                                                 )}
-                                                {bill.status === 'CANCELLED' && (
-                                                    <button className="btn btn--danger btn--sm" onClick={() => handleDelete(bill.id)}>
-                                                        Delete
+                                            </td>
+                                            <td>{index + 1}</td>
+                                            <td><strong>{bill.apartmentNumber ? `Room ${bill.apartmentNumber}` : '—'}</strong></td>
+                                            <td>{bill.title}</td>
+                                            <td>{formatCurrency(bill.amount)}</td>
+                                            <td>{bill.dueDate || '—'}</td>
+                                            <td>
+                                                <span className={`badge ${statusBadge(bill.status)}`}>
+                                                    {bill.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', gap: '6px' }}>
+                                                    <button className="btn btn--primary btn--sm" onClick={() => navigate(`/admin-bill/${bill.id}`)}>
+                                                        View
                                                     </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                    {bill.status === 'CANCELLED' && (
+                                                        <button className="btn btn--danger btn--sm" onClick={() => handleDelete(bill.id)}>
+                                                            Delete
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
