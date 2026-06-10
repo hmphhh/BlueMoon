@@ -1,10 +1,9 @@
 package com.bluemoon.backend.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import com.bluemoon.backend.enums.BillStatus;
+import com.bluemoon.backend.enums.InvoiceStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,43 +24,44 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "bills")
+@Table(name = "invoices")
 @Getter
 @Setter
 @NoArgsConstructor
-public class BillEntity {
+public class InvoiceEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true, length = 50)
+    private String invoiceCode;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String referenceCode;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "apartment_id", nullable = false)
+    @JoinColumn(name = "created_by", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private ApartmentEntity apartment;
+    private UserEntity createdBy;
 
-    @Column(nullable = false)
-    private String title;
-
-    private String description;
-
-    @Column(nullable = false)
-    private BigDecimal amount;
-
-    private LocalDate dueDate;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalAmount;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private BillStatus status = BillStatus.UNPAID;
+    private InvoiceStatus status;
+
+    @Column(nullable = false, length = 1000)
+    private String qrCodeUrl;
+
+    @Column(nullable = false)
+    private LocalDateTime expiresAt;
 
     private LocalDateTime paidAt;
 
-    private String note;
-
-    /** ID of the active invoice this bill is locked to (null = available). */
-    @Column(name = "invoice_id")
-    private Long invoiceId;
+    private LocalDateTime cancelledAt;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
