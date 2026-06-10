@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import com.bluemoon.backend.dtos.request.BatchBillRequest;
 import com.bluemoon.backend.dtos.request.CreateBillRequest;
 import com.bluemoon.backend.dtos.request.GenerateBillsRequest;
 import com.bluemoon.backend.dtos.request.UpdateBillRequest;
@@ -18,6 +19,8 @@ import com.bluemoon.backend.dtos.response.BillDetailsResponse;
 import com.bluemoon.backend.dtos.response.BillSummaryResponse;
 import com.bluemoon.backend.enums.BillStatus;
 import com.bluemoon.backend.service.BillService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/bills")
@@ -94,21 +97,25 @@ public class BillController {
     }
 
     /**
-     * PATCH /api/bills/{billId}/paid — Mark bill as paid (admin only).
+     * PATCH /api/bills/paid — Batch mark bills as paid (admin only).
+     * Creates an Invoice + Payment record for the selected bills.
      */
     @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("/{billId}/paid")
-    public ResponseEntity<BillDetailsResponse> markAsPaid(@PathVariable Long billId) {
-        return ResponseEntity.ok(billService.markAsPaid(billId));
+    @PatchMapping("/paid")
+    public ResponseEntity<Map<String, String>> batchMarkAsPaid(@Valid @RequestBody BatchBillRequest request) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        billService.batchMarkAsPaid(request.getBillIds(), username);
+        return ResponseEntity.ok(Map.of("message", "Bills marked as paid successfully."));
     }
 
     /**
-     * PATCH /api/bills/{billId}/cancel — Cancel bill (admin only).
+     * PATCH /api/bills/cancel — Batch cancel bills (admin only).
      */
     @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("/{billId}/cancel")
-    public ResponseEntity<BillDetailsResponse> cancelBill(@PathVariable Long billId) {
-        return ResponseEntity.ok(billService.cancelBill(billId));
+    @PatchMapping("/cancel")
+    public ResponseEntity<Map<String, String>> batchCancelBills(@Valid @RequestBody BatchBillRequest request) {
+        billService.batchCancelBills(request.getBillIds());
+        return ResponseEntity.ok(Map.of("message", "Bills cancelled successfully."));
     }
 
     /**
@@ -121,3 +128,4 @@ public class BillController {
         return ResponseEntity.ok(Map.of("message", "Bill deleted successfully"));
     }
 }
+

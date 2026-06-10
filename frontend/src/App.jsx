@@ -24,6 +24,11 @@ import AdminBillManagementPage from './pages/AdminBillManagementPage';
 import AdminBillDetailPage from './pages/AdminBillDetailPage';
 import AdminBillTemplatePage from './pages/AdminBillTemplatePage';
 import UserBillsPage from './pages/UserBillsPage';
+import UserInvoicesPage from './pages/UserInvoicesPage';
+import UserInvoiceDetailPage from './pages/UserInvoiceDetailPage';
+import AdminInvoiceManagementPage from './pages/AdminInvoiceManagementPage';
+import AdminInvoiceDetailPage from './pages/AdminInvoiceDetailPage';
+import AdminPaymentManagementPage from './pages/AdminPaymentManagementPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -228,6 +233,46 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="USER">
                 <UserBillsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-invoices"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserInvoicesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-invoice/:invoiceId"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserInvoiceDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-invoices"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminInvoiceManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-invoice/:invoiceId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminInvoiceDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-payments"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminPaymentManagementPage />
               </ProtectedRoute>
             }
           />

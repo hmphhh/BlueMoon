@@ -52,6 +52,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                // Payment webhook: uses API key authentication, not JWT
+                .requestMatchers("/api/payment-webhooks/**").permitAll()
                 // /api/users/me/** accessible by any authenticated user (must be before /api/users/**)
                 .requestMatchers("/api/users/me/**").authenticated()
                 .requestMatchers("/api/users/me").authenticated()
@@ -62,12 +64,23 @@ public class SecurityConfig {
                 .requestMatchers("/api/bills/me").authenticated()
                 // /api/bills/{id} accessible by any authenticated user (ownership checked in service)
                 .requestMatchers("/api/bills/{billId}").authenticated()
+                // /api/invoices/me accessible by any authenticated user
+                .requestMatchers("/api/invoices/me").authenticated()
+                // /api/invoices/{id} accessible by any authenticated user (ownership checked in controller)
+                .requestMatchers("/api/invoices/{invoiceId}").authenticated()
+                // POST /api/invoices accessible by any authenticated user
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/invoices").authenticated()
+                // DELETE /api/invoices/{id} accessible by any authenticated user (ownership checked in service)
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/invoices/{invoiceId}").authenticated()
                 // Other user, apartment, bill, and bill-template endpoints require ADMIN
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/apartments/**").hasRole("ADMIN")
                 .requestMatchers("/api/residents/**").hasRole("ADMIN")
                 .requestMatchers("/api/bills/**").hasRole("ADMIN")
                 .requestMatchers("/api/bill-templates/**").hasRole("ADMIN")
+                // Invoice and payment admin endpoints (GET /api/invoices, GET /api/payments)
+                .requestMatchers("/api/invoices/**").hasRole("ADMIN")
+                .requestMatchers("/api/payments/**").hasRole("ADMIN")
                 // Report endpoints: /me is for authenticated users, other paths use @PreAuthorize
                 .requestMatchers("/api/reports/me/**").authenticated()
                 .requestMatchers("/api/reports/me").authenticated()

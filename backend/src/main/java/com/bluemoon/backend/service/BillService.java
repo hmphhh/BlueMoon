@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ import com.bluemoon.backend.dtos.response.BillingSummaryResponse;
 import com.bluemoon.backend.entity.ApartmentEntity;
 import com.bluemoon.backend.entity.BillEntity;
 import com.bluemoon.backend.entity.BillTemplateEntity;
+import com.bluemoon.backend.entity.InvoiceEntity;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.enums.BillStatus;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
@@ -46,6 +48,14 @@ public class BillService {
 
     @Autowired
     private BillTemplateService billTemplateService;
+
+    @Autowired
+    @Lazy
+    private InvoiceService invoiceService;
+
+    @Autowired
+    @Lazy
+    private PaymentService paymentService;
 
     // ============================================================
     // Apartment responses with billing summary (merged projections)
@@ -245,36 +255,78 @@ public class BillService {
     }
 
     /**
-     * Mark a bill as paid (FR-7). Only allowed when status is UNPAID or OVERDUE.
+     * Batch mark bills as paid (replaces single markAsPaid).
+     * Creates Invoice + Payment records for the selected bills.
+     * If any bill is invalid, no changes are made (atomic operation).
      */
     @Transactional
-    public BillDetailsResponse markAsPaid(Long billId) {
-        BillEntity bill = billRepository.findById(billId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bill not found with id: " + billId));
+    public void batchMarkAsPaid(List<Long> billIds, String username) {
+        UserEntity adminUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
 
-        validateModifiableStatus(bill);
+        List<BillEntity> bills = billRepository.findAllById(billIds);
+        if (bills.size() != billIds.size()) {
+            throw new InvalidOperationException("One or more bills not found.");
+        }
 
-        bill.setStatus(BillStatus.PAID);
-        bill.setPaidAt(LocalDateTime.now());
-        bill = billRepository.save(bill);
+        // Validate all bills before modifying
+        for (BillEntity bill : bills) {
+            validateModifiableStatus(bill);
+            if (bill.getInvoiceId() != null) {
+                throw new InvalidOperationException(
+                    "Bill " + bill.getId() + " is already assigned to an active invoice.");
+            }
+        }
 
-        return toDetailsResponse(bill);
+        // Validate all bills belong to the same apartment
+        Long apartmentId = bills.get(0).getApartment().getId();
+        for (BillEntity bill : bills) {
+            if (!bill.getApartment().getId().equals(apartmentId)) {
+                throw new InvalidOperationException("All bills must belong to the same apartment.");
+            }
+        }
+
+        // Create manual invoice (status = PAID immediately)
+        InvoiceEntity invoice = invoiceService.createManualInvoice(bills, adminUser);
+
+        // Create manual payment record
+        BigDecimal totalAmount = bills.stream()
+                .map(BillEntity::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        paymentService.createManualPayment(invoice, totalAmount);
+
+        // Mark all bills as paid (bills stay linked to the invoice)
+        for (BillEntity bill : bills) {
+            bill.setStatus(BillStatus.PAID);
+            bill.setPaidAt(LocalDateTime.now());
+            // bill.invoiceId is already set by createManualInvoice
+            billRepository.save(bill);
+        }
     }
 
     /**
-     * Cancel a bill (FR-8). Only allowed when status is UNPAID or OVERDUE.
+     * Batch cancel bills (replaces single cancelBill).
+     * Only allowed when status is UNPAID or OVERDUE.
      */
     @Transactional
-    public BillDetailsResponse cancelBill(Long billId) {
-        BillEntity bill = billRepository.findById(billId)
-                .orElseThrow(() -> new ResourceNotFoundException("Bill not found with id: " + billId));
+    public void batchCancelBills(List<Long> billIds) {
+        List<BillEntity> bills = billRepository.findAllById(billIds);
+        if (bills.size() != billIds.size()) {
+            throw new InvalidOperationException("One or more bills not found.");
+        }
 
-        validateModifiableStatus(bill);
+        // Validate all bills before modifying
+        for (BillEntity bill : bills) {
+            validateModifiableStatus(bill);
+        }
 
-        bill.setStatus(BillStatus.CANCELLED);
-        bill = billRepository.save(bill);
-
-        return toDetailsResponse(bill);
+        // Cancel all bills
+        for (BillEntity bill : bills) {
+            bill.setStatus(BillStatus.CANCELLED);
+            // Release from any invoice if locked
+            bill.setInvoiceId(null);
+            billRepository.save(bill);
+        }
     }
 
     /**
