@@ -65,7 +65,7 @@ export default function UserApartmentPage() {
         <>
             <div className="page-header">
                 <h1 className="page-header__title">My Apartment</h1>
-                <p className="page-header__subtitle">View your apartment details</p>
+                {/* <p className="page-header__subtitle">View your apartment details</p> */}
             </div>
 
             <div className="card profile-card">
@@ -74,15 +74,15 @@ export default function UserApartmentPage() {
                 </div>
 
                 <div className="profile-meta">
-                    <strong>{data.apartmentNumber}</strong> ·{' '}
+                    {/* <strong>{data.apartmentNumber}</strong> ·{' '} */}
                     <span className={`badge ${getStatusBadge(data.status)}`}>
                         {data.status}
                     </span>
-                    {data.type && (
+                    {/* {data.type && (
                         <>
                             {' '}· <span className="badge badge--info">{formatType(data.type)}</span>
                         </>
-                    )}
+                    )} */}
                 </div>
 
                 {/* Apartment Information Section */}

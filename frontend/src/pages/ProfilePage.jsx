@@ -105,7 +105,6 @@ export default function ProfilePage({ user, setUser }) {
         <>
             <div className="page-header">
                 <h1 className="page-header__title">My Profile</h1>
-                <p className="page-header__subtitle">View and manage your account information</p>
             </div>
 
             <div className="card profile-card">
@@ -115,20 +114,20 @@ export default function ProfilePage({ user, setUser }) {
                 </div>
 
                 <div className="profile-meta">
-                    {profileData?.phone || profileData?.username} ·{' '}
+                    {/* {profileData?.phone || profileData?.username} ·{' '} */}
                     <span className={`badge ${profileData?.verified ? 'badge--success' : 'badge--danger'}`}>
                         {profileData?.verified ? '✓ Verified' : '✗ Not Verified'}
                     </span>
-                    {profileData?.role && (
+                    {/* {profileData?.role && (
                         <> · <span className="badge">{profileData.role}</span></>
-                    )}
+                    )} */}
                 </div>
 
                 <form onSubmit={handleSaveProfile}>
                     {/* Account Information Section */}
                     <div className="section-title" style={{ marginTop: '28px' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="1"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="12" r="1" /><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
                         </svg>
                         Account Information
                     </div>
@@ -193,7 +192,7 @@ export default function ProfilePage({ user, setUser }) {
                             {/* Resident Information Section */}
                             <div className="section-title" style={{ marginTop: '28px' }}>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                                 </svg>
                                 Resident Information
                             </div>
