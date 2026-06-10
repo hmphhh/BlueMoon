@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../components/Toast';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
@@ -19,11 +20,14 @@ const statusBadge = (status) => {
 };
 
 export default function UserBillsPage() {
+    const navigate = useNavigate();
     const toast = useToast();
     const [bills, setBills] = useState([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
     const [selectedBill, setSelectedBill] = useState(null);
+    const [selectedBillIds, setSelectedBillIds] = useState([]);
+    const [creatingInvoice, setCreatingInvoice] = useState(false);
 
     useEffect(() => {
         fetchBills();
@@ -49,6 +53,49 @@ export default function UserBillsPage() {
             setSelectedBill(res.data);
         } catch (err) {
             toast('Failed to load bill details', 'error');
+        }
+    };
+
+    // Selection logic - only UNPAID/OVERDUE bills can be selected
+    const payableBills = bills.filter(b => b.status === 'UNPAID' || b.status === 'OVERDUE');
+
+    const toggleBillSelection = (billId) => {
+        setSelectedBillIds(prev =>
+            prev.includes(billId)
+                ? prev.filter(id => id !== billId)
+                : [...prev, billId]
+        );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedBillIds.length === payableBills.length) {
+            setSelectedBillIds([]);
+        } else {
+            setSelectedBillIds(payableBills.map(b => b.id));
+        }
+    };
+
+    const selectedTotal = bills
+        .filter(b => selectedBillIds.includes(b.id))
+        .reduce((sum, b) => sum + (b.amount || 0), 0);
+
+    const handleCreateInvoice = async () => {
+        if (selectedBillIds.length === 0) {
+            toast('Please select at least one bill', 'error');
+            return;
+        }
+        setCreatingInvoice(true);
+        try {
+            const res = await axios.post(`${API_BASE}/api/invoices`, {
+                billIds: selectedBillIds
+            });
+            toast('Invoice created successfully!', 'success');
+            setSelectedBillIds([]);
+            navigate(`/my-invoice/${res.data.id}`);
+        } catch (err) {
+            toast(err.response?.data?.error || err.response?.data?.message || 'Failed to create invoice', 'error');
+        } finally {
+            setCreatingInvoice(false);
         }
     };
 
@@ -93,27 +140,64 @@ export default function UserBillsPage() {
             </div>
 
             <div className="card">
-                {/* Filter */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                {/* Filter + Create Invoice bar */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                     <h2 style={{ margin: 0 }}>Bills</h2>
-                    <select
-                        className="form-input"
-                        style={{ width: '160px' }}
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                    >
-                        <option value="">All Status</option>
-                        <option value="UNPAID">Unpaid</option>
-                        <option value="OVERDUE">Overdue</option>
-                        <option value="PAID">Paid</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <select
+                            className="form-input"
+                            style={{ width: '160px' }}
+                            value={statusFilter}
+                            onChange={e => setStatusFilter(e.target.value)}
+                        >
+                            <option value="">All Status</option>
+                            <option value="UNPAID">Unpaid</option>
+                            <option value="OVERDUE">Overdue</option>
+                            <option value="PAID">Paid</option>
+                        </select>
+                    </div>
                 </div>
+
+                {/* Selection toolbar - only visible when bills are selected */}
+                {selectedBillIds.length > 0 && (
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '12px 16px',
+                        marginBottom: '16px',
+                        background: 'var(--accent-bg)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--accent)',
+                    }}>
+                        <span style={{ color: 'var(--accent)', fontWeight: 600, fontSize: '14px' }}>
+                            {selectedBillIds.length} bill(s) selected — Total: {formatCurrency(selectedTotal)}
+                        </span>
+                        <button
+                            className="btn btn--primary"
+                            onClick={handleCreateInvoice}
+                            disabled={creatingInvoice}
+                        >
+                            {creatingInvoice ? 'Creating...' : '💳 Create Invoice'}
+                        </button>
+                    </div>
+                )}
 
                 {bills.length > 0 ? (
                     <div style={{ overflowX: 'auto' }}>
                         <table className="table">
                             <thead>
                                 <tr>
+                                    {payableBills.length > 0 && (
+                                        <th style={{ width: '40px' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={payableBills.length > 0 && selectedBillIds.length === payableBills.length}
+                                                onChange={toggleSelectAll}
+                                            />
+                                        </th>
+                                    )}
+                                    <th style={{ width: '50px' }}>STT</th>
                                     <th>Title</th>
                                     <th>Amount</th>
                                     <th>Due Date</th>
@@ -122,23 +206,39 @@ export default function UserBillsPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {bills.map(bill => (
-                                    <tr key={bill.id}>
-                                        <td><strong>{bill.title}</strong></td>
-                                        <td>{formatCurrency(bill.amount)}</td>
-                                        <td>{bill.dueDate || '—'}</td>
-                                        <td>
-                                            <span className={`badge ${statusBadge(bill.status)}`}>
-                                                {bill.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <button className="btn btn--primary btn--sm" onClick={() => fetchBillDetail(bill.id)}>
-                                                Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {bills.map((bill, index) => {
+                                    const isPayable = bill.status === 'UNPAID' || bill.status === 'OVERDUE';
+                                    const isSelected = selectedBillIds.includes(bill.id);
+                                    return (
+                                        <tr key={bill.id} style={isSelected ? { background: 'var(--accent-bg)' } : {}}>
+                                            {payableBills.length > 0 && (
+                                                <td>
+                                                    {isPayable && (
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => toggleBillSelection(bill.id)}
+                                                        />
+                                                    )}
+                                                </td>
+                                            )}
+                                            <td>{index + 1}</td>
+                                            <td><strong>{bill.title}</strong></td>
+                                            <td>{formatCurrency(bill.amount)}</td>
+                                            <td>{bill.dueDate || '—'}</td>
+                                            <td>
+                                                <span className={`badge ${statusBadge(bill.status)}`}>
+                                                    {bill.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button className="btn btn--primary btn--sm" onClick={() => fetchBillDetail(bill.id)}>
+                                                    Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
