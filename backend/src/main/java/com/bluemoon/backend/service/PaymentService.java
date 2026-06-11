@@ -77,9 +77,9 @@ public class PaymentService {
         InvoiceInfo invoiceInfo = parseInvoiceInfo(request.getContent());
         if (invoiceInfo == null) {
             logger.warn("Failed to extract invoice information from content: {}", request.getContent());
-            // Cannot create payment without invoice info, so this is not recorded
+            // Cannot create payment without invoice info, so this is not recorded (INVALID_REFERENCE)
             // Log and ignore this webhook
-            return null;
+            return createFailedPayment(null, request, PaymentFailureReason.INVALID_REFERENCE);
         }
 
         // Step 4: Find invoice by reference code
@@ -88,27 +88,27 @@ public class PaymentService {
 
         if (invoice == null) {
             logger.warn("Invoice not found for reference code: {}", invoiceInfo.referenceCode);
-            // Cannot create a payment record without an invoice
+            // Cannot create a payment record without an invoice (INVOICE_NOT_FOUND)
             // Log and ignore this webhook
-            return null;
+            return createFailedPayment(invoice, request, PaymentFailureReason.INVOICE_NOT_FOUND);
         }
 
         // Step 5: Double verification - verify invoice code matches
         if (!invoice.getInvoiceCode().equals(invoiceInfo.invoiceCode)) {
             logger.warn("Invoice code mismatch: found={}, extracted={}",
                     invoice.getInvoiceCode(), invoiceInfo.invoiceCode);
-            return createFailedPayment(invoice, request, invoiceInfo, PaymentFailureReason.REFERENCE_MISMATCH);
+            return createFailedPayment(invoice, request, PaymentFailureReason.REFERENCE_MISMATCH);
         }
 
         // Step 6: Validate invoice status and amount
         PaymentFailureReason failureReason = validatePayment(invoice, request.getTransferAmount());
 
         if (failureReason != null) {
-            return createFailedPayment(invoice, request, invoiceInfo, failureReason);
+            return createFailedPayment(invoice, request, failureReason);
         }
 
         // Success path
-        return createSuccessfulPayment(invoice, request, invoiceInfo);
+        return createSuccessfulPayment(invoice, request);
     }
 
     /**
@@ -212,7 +212,7 @@ public class PaymentService {
         return null; // valid
     }
 
-    private PaymentEntity createSuccessfulPayment(InvoiceEntity invoice, PaymentWebhookRequest request, InvoiceInfo invoiceInfo) {
+    private PaymentEntity createSuccessfulPayment(InvoiceEntity invoice, PaymentWebhookRequest request) {
         PaymentEntity payment = new PaymentEntity();
         payment.setInvoice(invoice);
         payment.setTransactionId(request.getId());
@@ -235,11 +235,11 @@ public class PaymentService {
     }
 
     private PaymentEntity createFailedPayment(InvoiceEntity invoice, PaymentWebhookRequest request, 
-                                               InvoiceInfo invoiceInfo, PaymentFailureReason reason) {
+                                               PaymentFailureReason reason) {
         PaymentEntity payment = new PaymentEntity();
         payment.setInvoice(invoice);
         payment.setTransactionId(request.getId());
-        payment.setTransactionCode("AUTO-" + request.getId() + "-" + invoice.getInvoiceCode());
+        payment.setTransactionCode("AUTO-" + request.getId() + "-" + (invoice == null ? invoice.getInvoiceCode() : "INV-0"));
         payment.setBankReferenceCode(request.getReferenceCode());
         payment.setAmount(request.getTransferAmount());
         payment.setStatus(PaymentStatus.FAILED);

@@ -32,7 +32,7 @@ public class PaymentWebhookController {
      * Authenticated via Authorization header with "Apikey " prefix.
      */
     @PostMapping
-    public ResponseEntity<Map<String, String>> receiveWebhook(
+    public ResponseEntity<?> receiveWebhook(
             @Valid @RequestBody PaymentWebhookRequest request,
             HttpServletRequest httpRequest) {
 
@@ -40,12 +40,12 @@ public class PaymentWebhookController {
         String authHeader = httpRequest.getHeader("Authorization");
         if (!isValidAuthorization(authHeader)) {
             return ResponseEntity.status(401)
-                    .body(Map.of("error", "Unauthorized: Invalid or missing Authorization header."));
+                    .body(Map.of("success", false, "error", "Unauthorized: Invalid or missing Authorization header."));
         }
 
         paymentWebhookService.handleWebhook(request);
 
-        return ResponseEntity.ok(Map.of("message", "Webhook processed successfully."));
+        return ResponseEntity.ok(Map.of("success", true, "message", "Webhook processed successfully."));
     }
 
     /**

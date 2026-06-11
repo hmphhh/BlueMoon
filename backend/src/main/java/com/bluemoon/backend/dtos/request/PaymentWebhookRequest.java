@@ -3,6 +3,7 @@ package com.bluemoon.backend.dtos.request;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -26,6 +27,7 @@ public class PaymentWebhookRequest {
     private String gateway;
 
     @NotNull(message = "transactionDate must not be null")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime transactionDate;
 
     @NotBlank(message = "accountNumber must not be blank")
