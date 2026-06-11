@@ -26,6 +26,6 @@ public enum PaymentFailureReason {
     /** Reference code format is invalid or unreadable. */
     INVALID_REFERENCE,
 
-    /** Same transaction code has already been processed. */
-    DUPLICATE_TRANSACTION
+    /** Invoice code does not belong to extracted reference code. */
+    REFERENCE_MISMATCH
 }

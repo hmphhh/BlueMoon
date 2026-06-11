@@ -28,53 +28,41 @@ public class PaymentWebhookController {
     private SepayConfig sepayConfig;
 
     /**
-     * POST /api/payment-webhooks — Receive payment notification.
-     * Authenticated via API key in header.
+     * POST /api/payment-webhooks — Receive payment notification from SePay.
+     * Authenticated via Authorization header with "Apikey " prefix.
      */
     @PostMapping
     public ResponseEntity<Map<String, String>> receiveWebhook(
             @Valid @RequestBody PaymentWebhookRequest request,
             HttpServletRequest httpRequest) {
 
-        // Validate API key
-        String apiKey = httpRequest.getHeader("X-API-Key");
-        if (apiKey == null || !apiKey.equals(sepayConfig.getWebhookApiKey())) {
+        // Validate Authorization header with "Apikey " prefix
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (!isValidAuthorization(authHeader)) {
             return ResponseEntity.status(401)
-                    .body(Map.of("error", "Unauthorized: Invalid or missing API key."));
+                    .body(Map.of("error", "Unauthorized: Invalid or missing Authorization header."));
         }
-
-        // Alternative: HMAC-SHA256 signature verification
-        // String signature = httpRequest.getHeader("X-Signature");
-        // if (!verifyHmacSignature(request, signature)) {
-        //     return ResponseEntity.status(401)
-        //             .body(Map.of("error", "Unauthorized: Invalid signature."));
-        // }
 
         paymentWebhookService.handleWebhook(request);
 
         return ResponseEntity.ok(Map.of("message", "Webhook processed successfully."));
     }
 
-    // /**
-    //  * Verify HMAC-SHA256 signature for webhook requests.
-    //  * Alternative to API key authentication.
-    //  */
-    // private boolean verifyHmacSignature(PaymentWebhookRequest request, String signature) {
-    //     if (signature == null || signature.isBlank()) {
-    //         return false;
-    //     }
-    //     try {
-    //         String payload = request.getTransactionCode() + request.getReferenceCode()
-    //                 + request.getAmount().toPlainString() + request.getTransactionTime().toString();
-    //         javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
-    //         mac.init(new javax.crypto.spec.SecretKeySpec(
-    //                 sepayConfig.getWebhookHmacSecret().getBytes(java.nio.charset.StandardCharsets.UTF_8),
-    //                 "HmacSHA256"));
-    //         byte[] hash = mac.doFinal(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-    //         String computed = java.util.Base64.getEncoder().encodeToString(hash);
-    //         return computed.equals(signature);
-    //     } catch (Exception e) {
-    //         return false;
-    //     }
-    // }
+    /**
+     * Validate Authorization header format and secret.
+     * Expected format: Authorization: Apikey <SECRET_KEY>
+     */
+    private boolean isValidAuthorization(String authHeader) {
+        if (authHeader == null || authHeader.isBlank()) {
+            return false;
+        }
+
+        final String APIKEY_PREFIX = "Apikey ";
+        if (!authHeader.startsWith(APIKEY_PREFIX)) {
+            return false;
+        }
+
+        String secret = authHeader.substring(APIKEY_PREFIX.length());
+        return secret.equals(sepayConfig.getWebhookApiKey());
+    }
 }

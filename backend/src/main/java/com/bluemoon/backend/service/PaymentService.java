@@ -3,6 +3,9 @@ package com.bluemoon.backend.service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +35,9 @@ public class PaymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
+    private static final String TRANSFER_TYPE_IN = "in";
+    private static final Pattern INVOICE_INFO_PATTERN = Pattern.compile("(PAY-[A-Z0-9]+)\\s+(INV-[\\d-]+)");
+
     @Autowired
     private PaymentRepository paymentRepository;
 
@@ -46,52 +52,63 @@ public class PaymentService {
     // ============================================================
 
     /**
-     * Process an incoming payment from a webhook.
-     * Validates the payment against the invoice and either succeeds or records failure.
+     * Process an incoming payment webhook from SePay.
+     * Follows the SePay webhook processing flow specification.
      */
     @Transactional
     public PaymentEntity processPayment(PaymentWebhookRequest request) {
-        // Check for duplicate transaction (BR-08)
-        if (paymentRepository.existsByTransactionCode(request.getTransactionCode())) {
-            logger.warn("Duplicate transaction code: {}", request.getTransactionCode());
-            // Find the invoice by reference code to create a failed record
-            InvoiceEntity invoice = invoiceRepository.findByReferenceCode(request.getReferenceCode())
-                    .orElse(null);
-            if (invoice != null) {
-                return createFailedPayment(invoice, request, PaymentFailureReason.DUPLICATE_TRANSACTION);
-            }
-            // If invoice not found either, just create with the first found or skip
-            throw new RuntimeException("Duplicate transaction and invoice not found for reference: " + request.getReferenceCode());
+        logger.info("Processing webhook: id={}, transferType={}, amount={}",
+                request.getId(), request.getTransferType(), request.getTransferAmount());
+
+        // Step 1: Validate transfer type (only process incoming transfers)
+        if (!TRANSFER_TYPE_IN.equals(request.getTransferType())) {
+            logger.info("Ignoring outgoing transfer: id={}", request.getId());
+            return null; // Outgoing transfers are ignored
         }
 
-        // Validate reference code format
-        if (request.getReferenceCode() == null || !request.getReferenceCode().startsWith("PAY-")) {
-            logger.warn("Invalid reference code format: {}", request.getReferenceCode());
-            // Cannot link to an invoice, but we need to record it
-            // Since we can't create without an invoice, log and return
-            throw new RuntimeException("Invalid reference code: " + request.getReferenceCode());
+        // Step 2: Check for duplicate transaction (webhook idempotency)
+        Optional<PaymentEntity> existingPayment = paymentRepository.findByTransactionId(request.getId());
+        if (existingPayment.isPresent()) {
+            logger.info("Duplicate webhook detected: id={}, returning existing payment", request.getId());
+            return existingPayment.get();
         }
 
-        // Find invoice by reference code
-        InvoiceEntity invoice = invoiceRepository.findByReferenceCode(request.getReferenceCode())
+        // Step 3: Parse content to extract invoice information
+        InvoiceInfo invoiceInfo = parseInvoiceInfo(request.getContent());
+        if (invoiceInfo == null) {
+            logger.warn("Failed to extract invoice information from content: {}", request.getContent());
+            // Cannot create payment without invoice info, so this is not recorded
+            // Log and ignore this webhook
+            return null;
+        }
+
+        // Step 4: Find invoice by reference code
+        InvoiceEntity invoice = invoiceRepository.findByReferenceCode(invoiceInfo.referenceCode)
                 .orElse(null);
 
         if (invoice == null) {
-            logger.warn("Invoice not found for reference code: {}", request.getReferenceCode());
-            // We can't create a payment record without an invoice in the current schema
-            // This is handled at webhook level
-            throw new ResourceNotFoundException("Invoice not found for reference code: " + request.getReferenceCode());
+            logger.warn("Invoice not found for reference code: {}", invoiceInfo.referenceCode);
+            // Cannot create a payment record without an invoice
+            // Log and ignore this webhook
+            return null;
         }
 
-        // Validate invoice status
-        PaymentFailureReason failureReason = validatePayment(invoice, request.getAmount());
+        // Step 5: Double verification - verify invoice code matches
+        if (!invoice.getInvoiceCode().equals(invoiceInfo.invoiceCode)) {
+            logger.warn("Invoice code mismatch: found={}, extracted={}",
+                    invoice.getInvoiceCode(), invoiceInfo.invoiceCode);
+            return createFailedPayment(invoice, request, invoiceInfo, PaymentFailureReason.REFERENCE_MISMATCH);
+        }
+
+        // Step 6: Validate invoice status and amount
+        PaymentFailureReason failureReason = validatePayment(invoice, request.getTransferAmount());
 
         if (failureReason != null) {
-            return createFailedPayment(invoice, request, failureReason);
+            return createFailedPayment(invoice, request, invoiceInfo, failureReason);
         }
 
         // Success path
-        return createSuccessfulPayment(invoice, request);
+        return createSuccessfulPayment(invoice, request, invoiceInfo);
     }
 
     /**
@@ -101,7 +118,9 @@ public class PaymentService {
     public PaymentEntity createManualPayment(InvoiceEntity invoice, BigDecimal amount) {
         PaymentEntity payment = new PaymentEntity();
         payment.setInvoice(invoice);
+        payment.setTransactionId(null); // Manual payments have no SePay transaction ID
         payment.setTransactionCode("MANUAL-" + invoice.getReferenceCode());
+        payment.setBankReferenceCode(null); // Manual payments have no bank reference
         payment.setAmount(amount);
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setMethod(PaymentMethod.MANUAL);
@@ -146,6 +165,24 @@ public class PaymentService {
     // ============================================================
 
     /**
+     * Parse invoice information from webhook content.
+     * Expected format: "PAY-A1B2C3D4 INV-20260611-001"
+     * Returns null if format is invalid.
+     */
+    private InvoiceInfo parseInvoiceInfo(String content) {
+        if (content == null || content.isBlank()) {
+            return null;
+        }
+
+        Matcher matcher = INVOICE_INFO_PATTERN.matcher(content);
+        if (matcher.find()) {
+            return new InvoiceInfo(matcher.group(1), matcher.group(2));
+        }
+
+        return null;
+    }
+
+    /**
      * Validate payment against invoice rules.
      * Returns null if valid, or the failure reason if invalid.
      */
@@ -175,40 +212,44 @@ public class PaymentService {
         return null; // valid
     }
 
-    private PaymentEntity createSuccessfulPayment(InvoiceEntity invoice, PaymentWebhookRequest request) {
+    private PaymentEntity createSuccessfulPayment(InvoiceEntity invoice, PaymentWebhookRequest request, InvoiceInfo invoiceInfo) {
         PaymentEntity payment = new PaymentEntity();
         payment.setInvoice(invoice);
-        payment.setTransactionCode(request.getTransactionCode());
-        payment.setAmount(request.getAmount());
+        payment.setTransactionId(request.getId());
+        payment.setTransactionCode("AUTO-" + request.getId() + "-" + invoice.getInvoiceCode());
+        payment.setBankReferenceCode(request.getReferenceCode());
+        payment.setAmount(request.getTransferAmount());
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setMethod(PaymentMethod.AUTOMATIC);
-        payment.setTransactionTime(request.getTransactionTime());
+        payment.setTransactionTime(request.getTransactionDate());
 
         payment = paymentRepository.save(payment);
 
         // Settle the invoice and bills
         invoiceService.markAsPaid(invoice.getId());
 
-        logger.info("Payment SUCCESS for invoice {}: transaction {}",
-                invoice.getInvoiceCode(), request.getTransactionCode());
+        logger.info("Payment SUCCESS for invoice {}: transactionId={}, code={}",
+                invoice.getInvoiceCode(), request.getId(), payment.getTransactionCode());
 
         return payment;
     }
 
-    private PaymentEntity createFailedPayment(InvoiceEntity invoice, PaymentWebhookRequest request,
-                                               PaymentFailureReason reason) {
+    private PaymentEntity createFailedPayment(InvoiceEntity invoice, PaymentWebhookRequest request, 
+                                               InvoiceInfo invoiceInfo, PaymentFailureReason reason) {
         PaymentEntity payment = new PaymentEntity();
         payment.setInvoice(invoice);
-        payment.setTransactionCode(request.getTransactionCode());
-        payment.setAmount(request.getAmount());
+        payment.setTransactionId(request.getId());
+        payment.setTransactionCode("AUTO-" + request.getId() + "-" + invoice.getInvoiceCode());
+        payment.setBankReferenceCode(request.getReferenceCode());
+        payment.setAmount(request.getTransferAmount());
         payment.setStatus(PaymentStatus.FAILED);
         payment.setFailureReason(reason);
-        payment.setTransactionTime(request.getTransactionTime());
+        payment.setTransactionTime(request.getTransactionDate());
 
         payment = paymentRepository.save(payment);
 
-        logger.warn("Payment FAILED for invoice {}: reason={}, transaction={}",
-                invoice.getInvoiceCode(), reason, request.getTransactionCode());
+        logger.warn("Payment FAILED for invoice {}: reason={}, transactionId={}",
+                invoice.getInvoiceCode(), reason, request.getId());
 
         return payment;
     }
@@ -240,5 +281,22 @@ public class PaymentService {
                 payment.getTransactionTime(),
                 payment.getCreatedAt()
         );
+    }
+
+    // ============================================================
+    // Helper Class
+    // ============================================================
+
+    /**
+     * Simple holder for parsed invoice information from webhook content.
+     */
+    private static class InvoiceInfo {
+        final String referenceCode;
+        final String invoiceCode;
+
+        InvoiceInfo(String referenceCode, String invoiceCode) {
+            this.referenceCode = referenceCode;
+            this.invoiceCode = invoiceCode;
+        }
     }
 }

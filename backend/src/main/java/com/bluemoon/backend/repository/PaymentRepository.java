@@ -36,4 +36,16 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
     boolean existsByTransactionCode(String transactionCode);
 
     Optional<PaymentEntity> findByTransactionCode(String transactionCode);
+
+    /**
+     * Check if a SePay transaction ID has already been processed.
+     * Used for webhook idempotency.
+     */
+    boolean existsByTransactionId(Long transactionId);
+
+    /**
+     * Find payment by SePay transaction ID.
+     * Used to retrieve existing payment for duplicate webhooks.
+     */
+    Optional<PaymentEntity> findByTransactionId(Long transactionId);
 }

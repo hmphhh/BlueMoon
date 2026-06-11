@@ -42,8 +42,14 @@ public class PaymentEntity {
     @EqualsAndHashCode.Exclude
     private InvoiceEntity invoice;
 
+    @Column(unique = true)
+    private Long transactionId;
+
     @Column(nullable = false, unique = true, length = 100)
     private String transactionCode;
+
+    @Column(length = 100)
+    private String bankReferenceCode;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
