@@ -9,8 +9,8 @@ import com.bluemoon.backend.dtos.request.PaymentWebhookRequest;
 import com.bluemoon.backend.entity.PaymentEntity;
 
 /**
- * Integration layer between the payment provider and the application.
- * Contains no business logic — only receives, parses, and delegates.
+ * Integration layer between SePay and the application.
+ * Contains no business logic — only receives, parses, and delegates to PaymentService.
  */
 @Service
 public class PaymentWebhookService {
@@ -24,16 +24,21 @@ public class PaymentWebhookService {
      * Handle an incoming webhook request from the payment provider.
      */
     public void handleWebhook(PaymentWebhookRequest request) {
-        logger.info("Received payment webhook: transactionCode={}, referenceCode={}, amount={}",
-                request.getTransactionCode(), request.getReferenceCode(), request.getAmount());
+        logger.info("Received SePay webhook: id={}, transferType={}, amount={}",
+                request.getId(), request.getTransferType(), request.getTransferAmount());
 
         try {
             PaymentEntity payment = paymentService.processPayment(request);
-            logger.info("Webhook processed: paymentId={}, status={}",
-                    payment.getId(), payment.getStatus());
+            
+            if (payment != null) {
+                logger.info("Webhook processed: paymentId={}, status={}, transactionCode={}",
+                        payment.getId(), payment.getStatus(), payment.getTransactionCode());
+            } else {
+                logger.info("Webhook ignored: outgoing transfer or invalid format (id={})", request.getId());
+            }
         } catch (Exception e) {
-            logger.error("Webhook processing failed for transaction {}: {}",
-                    request.getTransactionCode(), e.getMessage());
+            logger.error("Webhook processing failed for transaction {}: {}", 
+                    request.getId(), e.getMessage(), e);
             throw e;
         }
     }
