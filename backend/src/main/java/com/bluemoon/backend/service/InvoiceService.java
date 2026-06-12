@@ -328,7 +328,7 @@ public class InvoiceService {
         String code;
         do {
             count++;
-            code = String.format("INV-%s-%03d", datePart, count);
+            code = String.format("INV%s%03d", datePart, count);
         } while (invoiceRepository.existsByInvoiceCode(code));
         return code;
     }
@@ -339,7 +339,7 @@ public class InvoiceService {
     private String generateReferenceCode() {
         String code;
         do {
-            StringBuilder sb = new StringBuilder("PAY-");
+            StringBuilder sb = new StringBuilder("PAY");
             for (int i = 0; i < REFERENCE_CODE_LENGTH; i++) {
                 sb.append(REFERENCE_CODE_CHARS.charAt(SECURE_RANDOM.nextInt(REFERENCE_CODE_CHARS.length())));
             }

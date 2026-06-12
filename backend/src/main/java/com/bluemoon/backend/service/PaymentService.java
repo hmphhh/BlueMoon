@@ -36,7 +36,7 @@ public class PaymentService {
     private static final Logger logger = LoggerFactory.getLogger(PaymentService.class);
 
     private static final String TRANSFER_TYPE_IN = "in";
-    private static final Pattern INVOICE_INFO_PATTERN = Pattern.compile("(PAY-[A-Z0-9]+)\\s+(INV-[\\d-]+)");
+    private static final Pattern INVOICE_INFO_PATTERN = Pattern.compile("(PAY[A-Z0-9]+)\\s+(INV[\\d]+)");
 
     @Autowired
     private PaymentRepository paymentRepository;
@@ -166,7 +166,7 @@ public class PaymentService {
 
     /**
      * Parse invoice information from webhook content.
-     * Expected format: "PAY-A1B2C3D4 INV-20260611-001"
+     * Expected format: "PAYA1B2C3D4 INV20260611001"
      * Returns null if format is invalid.
      */
     private InvoiceInfo parseInvoiceInfo(String content) {
@@ -239,7 +239,7 @@ public class PaymentService {
         PaymentEntity payment = new PaymentEntity();
         payment.setInvoice(invoice);
         payment.setTransactionId(request.getId());
-        payment.setTransactionCode("AUTO-" + request.getId() + "-" + (invoice == null ? invoice.getInvoiceCode() : "INV-0"));
+        payment.setTransactionCode("AUTO-" + request.getId() + "-" + (invoice != null ? invoice.getInvoiceCode() : "INV-0"));
         payment.setBankReferenceCode(request.getReferenceCode());
         payment.setAmount(request.getTransferAmount());
         payment.setStatus(PaymentStatus.FAILED);
@@ -249,7 +249,7 @@ public class PaymentService {
         payment = paymentRepository.save(payment);
 
         logger.warn("Payment FAILED for invoice {}: reason={}, transactionId={}",
-                invoice.getInvoiceCode(), reason, request.getId());
+                (invoice != null ? invoice.getInvoiceCode() : "INV-0"), reason, request.getId());
 
         return payment;
     }
