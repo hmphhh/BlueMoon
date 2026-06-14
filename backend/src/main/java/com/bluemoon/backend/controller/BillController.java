@@ -114,7 +114,8 @@ public class BillController {
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/cancel")
     public ResponseEntity<Map<String, String>> batchCancelBills(@Valid @RequestBody BatchBillRequest request) {
-        billService.batchCancelBills(request.getBillIds());
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        billService.batchCancelBills(request.getBillIds(), username);
         return ResponseEntity.ok(Map.of("message", "Bills cancelled successfully."));
     }
 

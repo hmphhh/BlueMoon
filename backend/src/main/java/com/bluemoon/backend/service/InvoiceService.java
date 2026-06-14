@@ -32,6 +32,9 @@ import com.bluemoon.backend.repository.BillRepository;
 import com.bluemoon.backend.repository.InvoiceBillSnapshotRepository;
 import com.bluemoon.backend.repository.InvoiceRepository;
 import com.bluemoon.backend.repository.UserRepository;
+import com.bluemoon.backend.enums.NotificationPriority;
+import com.bluemoon.backend.enums.NotificationReferenceType;
+import com.bluemoon.backend.enums.NotificationType;
 
 /**
  * Core business service for the payment module.
@@ -63,6 +66,9 @@ public class InvoiceService {
 
     @Autowired
     private SepayConfig sepayConfig;
+
+    @Autowired
+    private NotificationService notificationService;
 
     // ============================================================
     // Invoice Creation
@@ -260,6 +266,21 @@ public class InvoiceService {
             invoiceRepository.save(invoice);
             releaseBills(invoice.getId());
             logger.info("Expired invoice: {}", invoice.getInvoiceCode());
+
+            // Send INVOICE_EXPIRED notification to the invoice creator
+            try {
+                notificationService.createAutoNotification(
+                        invoice.getCreatedBy(),
+                        "Invoice Expired",
+                        "Your invoice " + invoice.getInvoiceCode() + " has expired. Please create a new invoice if you still wish to pay.",
+                        NotificationType.INVOICE_EXPIRED,
+                        NotificationReferenceType.INVOICE,
+                        invoice.getId(),
+                        NotificationPriority.HIGH
+                );
+            } catch (Exception e) {
+                // Don't fail expiration if notification fails
+            }
         }
 
         if (!expiredInvoices.isEmpty()) {

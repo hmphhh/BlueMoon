@@ -24,6 +24,9 @@ import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.ReportRepository;
 import com.bluemoon.backend.repository.UserRepository;
+import com.bluemoon.backend.enums.NotificationPriority;
+import com.bluemoon.backend.enums.NotificationReferenceType;
+import com.bluemoon.backend.enums.NotificationType;
 
 @Service
 public class ReportService {
@@ -33,6 +36,9 @@ public class ReportService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     // ═══════════════════════════════════════════════
     // USER OPERATIONS
@@ -56,6 +62,20 @@ public class ReportService {
         report.setCreatedBy(user);
 
         report = reportRepository.save(report);
+
+        // Section 2.2: Notify all admins about the new report
+        try {
+            notificationService.notifyAllAdmins(
+                    "New Report Submitted",
+                    "User \"" + user.getFullName() + "\" submitted a new report: \"" + report.getTitle() + "\".",
+                    NotificationType.REPORT_CREATED,
+                    NotificationReferenceType.REPORT,
+                    report.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail report creation if notification fails
+        }
 
         return new ReportSummaryResponse(
             report.getId(),
@@ -135,6 +155,21 @@ public class ReportService {
         }
 
         report = reportRepository.save(report);
+
+        // Section 2.2: Notify all admins about the report update
+        try {
+            notificationService.notifyAllAdmins(
+                    "Report Updated",
+                    "User \"" + user.getFullName() + "\" updated report: \"" + report.getTitle() + "\".",
+                    NotificationType.REPORT_UPDATED,
+                    NotificationReferenceType.REPORT,
+                    report.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail report update if notification fails
+        }
+
         return toReportDetailsResponse(report);
     }
 
@@ -196,6 +231,27 @@ public class ReportService {
         report.setReviewedAt(LocalDateTime.now());
 
         report = reportRepository.save(report);
+
+        // Section 1.4: Send REPORT_APPROVED or REPORT_REJECTED notification to the report creator
+        try {
+            boolean isApproved = request.getStatus() == ReportStatus.APPROVED;
+            String statusLabel = isApproved ? "approved" : "rejected";
+            NotificationType notifType = isApproved
+                    ? NotificationType.REPORT_APPROVED
+                    : NotificationType.REPORT_REJECTED;
+            notificationService.createAutoNotification(
+                    report.getCreatedBy(),
+                    "Report " + (isApproved ? "Approved" : "Rejected"),
+                    "Your report \"" + report.getTitle() + "\" has been " + statusLabel + ".",
+                    notifType,
+                    NotificationReferenceType.REPORT,
+                    report.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail review if notification fails
+        }
+
         return toReportDetailsResponse(report);
     }
 

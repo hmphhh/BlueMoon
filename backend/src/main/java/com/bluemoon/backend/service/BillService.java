@@ -33,6 +33,9 @@ import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.ApartmentRepository;
 import com.bluemoon.backend.repository.BillRepository;
 import com.bluemoon.backend.repository.UserRepository;
+import com.bluemoon.backend.enums.NotificationPriority;
+import com.bluemoon.backend.enums.NotificationReferenceType;
+import com.bluemoon.backend.enums.NotificationType;
 
 @Service
 public class BillService {
@@ -56,6 +59,10 @@ public class BillService {
     @Autowired
     @Lazy
     private PaymentService paymentService;
+
+    @Autowired
+    @Lazy
+    private NotificationService notificationService;
 
     // ============================================================
     // Apartment responses with billing summary (merged projections)
@@ -194,6 +201,10 @@ public class BillService {
         bill.setStatus(BillStatus.UNPAID);
 
         bill = billRepository.save(bill);
+
+        // Send BILL_CREATED notification to apartment residents
+        notifyApartmentResidents(apartment, bill);
+
         return toSummaryResponse(bill);
     }
 
@@ -221,6 +232,12 @@ public class BillService {
         }
 
         billRepository.saveAll(bills);
+
+        // Send BILL_CREATED notification for each bill to apartment residents
+        for (BillEntity bill : bills) {
+            notifyApartmentResidents(bill.getApartment(), bill);
+        }
+
         return bills.size();
     }
 
@@ -234,23 +251,48 @@ public class BillService {
 
         validateModifiableStatus(bill);
 
+        // Track which fields changed for targeted notifications
+        boolean amountChanged = false;
+        boolean dueDateChanged = false;
+
         if (request.getTitle() != null) {
             bill.setTitle(request.getTitle());
         }
         if (request.getDescription() != null) {
             bill.setDescription(request.getDescription());
         }
-        if (request.getAmount() != null) {
+        if (request.getAmount() != null && request.getAmount().compareTo(bill.getAmount()) != 0) {
             bill.setAmount(request.getAmount());
+            amountChanged = true;
         }
-        if (request.getDueDate() != null) {
+        if (request.getDueDate() != null && !request.getDueDate().equals(bill.getDueDate())) {
             bill.setDueDate(request.getDueDate());
+            dueDateChanged = true;
         }
         if (request.getNote() != null) {
             bill.setNote(request.getNote());
         }
 
         bill = billRepository.save(bill);
+
+        // Section 1.1: Notify apartment residents about amount/due date changes
+        if (amountChanged) {
+            notifyApartmentResidentsAboutBillChange(
+                    bill.getApartment(), bill,
+                    "Bill Amount Updated",
+                    "The amount for bill \"" + bill.getTitle() + "\" has been updated to " + bill.getAmount() + ".",
+                    NotificationType.BILL_AMOUNT_UPDATED
+            );
+        }
+        if (dueDateChanged) {
+            notifyApartmentResidentsAboutBillChange(
+                    bill.getApartment(), bill,
+                    "Bill Due Date Updated",
+                    "The due date for bill \"" + bill.getTitle() + "\" has been updated to " + bill.getDueDate() + ".",
+                    NotificationType.BILL_DUE_DATE_UPDATED
+            );
+        }
+
         return toSummaryResponse(bill);
     }
 
@@ -302,6 +344,22 @@ public class BillService {
             // bill.invoiceId is already set by createManualInvoice
             billRepository.save(bill);
         }
+
+        // Section 3: Notify other admins about manual payment (admin-to-admin)
+        try {
+            String billTitles = bills.stream().map(BillEntity::getTitle).reduce((a, b) -> a + ", " + b).orElse("");
+            notificationService.notifyOtherAdmins(
+                    adminUser,
+                    "Payment Marked as Paid",
+                    "Bills [" + billTitles + "] have been manually marked as paid.",
+                    NotificationType.PAYMENT_ACCEPTED,
+                    NotificationReferenceType.PAYMENT,
+                    invoice.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail the operation if notification fails
+        }
     }
 
     /**
@@ -309,7 +367,10 @@ public class BillService {
      * Only allowed when status is UNPAID or OVERDUE.
      */
     @Transactional
-    public void batchCancelBills(List<Long> billIds) {
+    public void batchCancelBills(List<Long> billIds, String username) {
+        UserEntity adminUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
         List<BillEntity> bills = billRepository.findAllById(billIds);
         if (bills.size() != billIds.size()) {
             throw new InvalidOperationException("One or more bills not found.");
@@ -320,12 +381,46 @@ public class BillService {
             validateModifiableStatus(bill);
         }
 
-        // Cancel all bills
+        // Cancel all bills and notify residents
         for (BillEntity bill : bills) {
             bill.setStatus(BillStatus.CANCELLED);
             // Release from any invoice if locked
             bill.setInvoiceId(null);
             billRepository.save(bill);
+
+            // Section 1.1: Send BILL_CANCELLED notification to apartment residents
+            List<UserEntity> residents = userRepository.findByApartmentId(bill.getApartment().getId());
+            for (UserEntity resident : residents) {
+                try {
+                    notificationService.createAutoNotification(
+                            resident,
+                            "Bill Cancelled",
+                            "The bill \"" + bill.getTitle() + "\" for your apartment has been cancelled.",
+                            NotificationType.BILL_CANCELLED,
+                            NotificationReferenceType.BILL,
+                            bill.getId(),
+                            NotificationPriority.NORMAL
+                    );
+                } catch (Exception e) {
+                    // Don't fail bill cancellation if notification fails
+                }
+            }
+        }
+
+        // Section 3: Notify other admins about bill cancellation (admin-to-admin)
+        try {
+            String billTitles = bills.stream().map(BillEntity::getTitle).reduce((a, b) -> a + ", " + b).orElse("");
+            notificationService.notifyOtherAdmins(
+                    adminUser,
+                    "Bills Cancelled",
+                    "Bills [" + billTitles + "] have been cancelled.",
+                    NotificationType.BILL_CANCELLED,
+                    NotificationReferenceType.BILL,
+                    null,
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail the operation if notification fails
         }
     }
 
@@ -373,6 +468,51 @@ public class BillService {
             throw new InvalidOperationException(
                     "Bill can only be modified when status is UNPAID or OVERDUE. Current status: " + bill.getStatus()
             );
+        }
+    }
+
+    /**
+     * Notify all residents of an apartment about a new bill (Section 1.1: BILL_CREATED).
+     */
+    private void notifyApartmentResidents(ApartmentEntity apartment, BillEntity bill) {
+        try {
+            List<UserEntity> residents = userRepository.findByApartmentId(apartment.getId());
+            for (UserEntity resident : residents) {
+                notificationService.createAutoNotification(
+                        resident,
+                        "New Bill Generated",
+                        "A new bill \"" + bill.getTitle() + "\" has been generated for your apartment.",
+                        NotificationType.BILL_CREATED,
+                        NotificationReferenceType.BILL,
+                        bill.getId(),
+                        NotificationPriority.NORMAL
+                );
+            }
+        } catch (Exception e) {
+            // Don't fail bill creation if notification fails
+        }
+    }
+
+    /**
+     * Notify all residents of an apartment about a bill change (Section 1.1: amount/due date updates).
+     */
+    private void notifyApartmentResidentsAboutBillChange(
+            ApartmentEntity apartment, BillEntity bill, String title, String message, NotificationType type) {
+        try {
+            List<UserEntity> residents = userRepository.findByApartmentId(apartment.getId());
+            for (UserEntity resident : residents) {
+                notificationService.createAutoNotification(
+                        resident,
+                        title,
+                        message,
+                        type,
+                        NotificationReferenceType.BILL,
+                        bill.getId(),
+                        NotificationPriority.NORMAL
+                );
+            }
+        } catch (Exception e) {
+            // Don't fail bill update if notification fails
         }
     }
 
