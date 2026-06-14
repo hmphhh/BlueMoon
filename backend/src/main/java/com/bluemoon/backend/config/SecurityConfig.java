@@ -85,6 +85,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/reports/me/**").authenticated()
                 .requestMatchers("/api/reports/me").authenticated()
                 .requestMatchers("/api/reports/**").authenticated()
+                // Notification endpoints: /me is for authenticated users
+                .requestMatchers("/api/notifications/me/**").authenticated()
+                .requestMatchers("/api/notifications/me").authenticated()
+                .requestMatchers("/api/notifications/*/read").authenticated()
+                .requestMatchers("/api/notifications/*").authenticated()
+                // Admin notification endpoints (uses @PreAuthorize on controller)
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             );
         
