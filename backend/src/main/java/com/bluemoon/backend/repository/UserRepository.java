@@ -25,6 +25,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     List<UserEntity> findByApartmentId(Long apartmentId);
 
+    List<UserEntity> findByRole(UserRole role);
+
     /**
      * Paginated search and filter for admin user list.
      * Searches across username, fullName, email, phone, idNumber.
