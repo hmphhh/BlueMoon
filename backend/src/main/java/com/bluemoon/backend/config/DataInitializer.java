@@ -10,12 +10,15 @@ import com.bluemoon.backend.enums.ApartmentType;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class DataInitializer {
 
     @Bean
+    @Order(1)
     CommandLineRunner seedData(ApartmentRepository apartmentRepository,
                                UserRepository userRepository,
                                PasswordEncoder passwordEncoder) {
@@ -53,4 +56,37 @@ public class DataInitializer {
             }
         };
     }
+
+    /**
+     * Migrate old notification type values that no longer exist in the NotificationType enum.
+     * Without this, Hibernate throws IllegalArgumentException when loading rows with
+     * stale enum values, causing "failed to load notifications" errors.
+     */
+    @Bean
+    @Order(0)
+    CommandLineRunner migrateNotificationTypes(JdbcTemplate jdbcTemplate) {
+        return args -> {
+            try {
+                int updated = 0;
+
+                // REPORT_REVIEWED → REPORT_APPROVED (safe default)
+                updated += jdbcTemplate.update(
+                    "UPDATE notifications SET type = 'REPORT_APPROVED' WHERE type = 'REPORT_REVIEWED'"
+                );
+
+                // SYSTEM → SYSTEM_ERROR
+                updated += jdbcTemplate.update(
+                    "UPDATE notifications SET type = 'SYSTEM_ERROR' WHERE type = 'SYSTEM'"
+                );
+
+                if (updated > 0) {
+                    System.out.println("✅ Migrated " + updated + " notification(s) with old type values");
+                }
+            } catch (Exception e) {
+                // Table may not exist on first run — safe to ignore
+                System.out.println("⚠️ Notification migration skipped (table may not exist yet): " + e.getMessage());
+            }
+        };
+    }
 }
+
