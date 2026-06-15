@@ -29,6 +29,8 @@ import UserInvoiceDetailPage from './pages/UserInvoiceDetailPage';
 import AdminInvoiceManagementPage from './pages/AdminInvoiceManagementPage';
 import AdminInvoiceDetailPage from './pages/AdminInvoiceDetailPage';
 import AdminPaymentManagementPage from './pages/AdminPaymentManagementPage';
+import UserNotificationsPage from './pages/UserNotificationsPage';
+import AdminNotificationManagementPage from './pages/AdminNotificationManagementPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -273,6 +275,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="ADMIN">
                 <AdminPaymentManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-notifications"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserNotificationsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-notifications"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminNotificationManagementPage />
               </ProtectedRoute>
             }
           />
