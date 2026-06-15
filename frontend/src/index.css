@@ -1923,3 +1923,32 @@ select.form-select option {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ===== Notification Bell ===== */
+.notification-bell-btn:hover {
+  background: var(--bg-card-hover) !important;
+}
+
+@keyframes notification-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+@keyframes notif-dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Notification dropdown responsive */
+@media (max-width: 480px) {
+  .notification-bell-btn + div > div:last-child {
+    width: calc(100vw - 32px) !important;
+    right: -60px !important;
+  }
+}
