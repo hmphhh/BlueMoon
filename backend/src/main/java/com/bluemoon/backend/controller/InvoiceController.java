@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import com.bluemoon.backend.dtos.request.CreateContributionInvoiceRequest;
 import com.bluemoon.backend.dtos.request.CreateInvoiceRequest;
 import com.bluemoon.backend.dtos.response.InvoiceDetailsResponse;
 import com.bluemoon.backend.dtos.response.InvoiceResponse;
@@ -40,13 +41,25 @@ public class InvoiceController {
     private UserRepository userRepository;
 
     /**
-     * POST /api/invoices — Create a new invoice.
+     * POST /api/invoices/bill — Create a new bill invoice.
      * Authenticated User.
      */
-    @PostMapping
-    public ResponseEntity<InvoiceResponse> createInvoice(@Valid @RequestBody CreateInvoiceRequest request) {
+    @PostMapping("/bill")
+    public ResponseEntity<InvoiceResponse> createBillInvoice(@Valid @RequestBody CreateInvoiceRequest request) {
         Long userId = getCurrentUserId();
         InvoiceResponse response = invoiceService.createInvoice(request.getBillIds(), userId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * POST /api/invoices/contribution — Create a new contribution invoice.
+     * Authenticated User (resident only).
+     */
+    @PostMapping("/contribution")
+    public ResponseEntity<InvoiceResponse> createContributionInvoice(
+            @Valid @RequestBody CreateContributionInvoiceRequest request) {
+        Long userId = getCurrentUserId();
+        InvoiceResponse response = invoiceService.createContributionInvoice(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
