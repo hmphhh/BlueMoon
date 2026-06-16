@@ -34,6 +34,11 @@ public enum NotificationType {
     REPORT_APPROVED,
     REPORT_REJECTED,
 
+    // Contribution events
+    CAMPAIGN_LAUNCHED,
+    CAMPAIGN_COMPLETED,
+    CONTRIBUTION_PAID,
+
     // System events
     SYSTEM_ERROR
 }

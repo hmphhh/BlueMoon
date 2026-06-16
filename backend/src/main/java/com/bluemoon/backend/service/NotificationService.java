@@ -396,6 +396,8 @@ public class NotificationService {
         "PAYMENT",      Arrays.asList(NotificationType.PAYMENT_SUCCESS, NotificationType.PAYMENT_ACCEPTED),
         "REPORT",       Arrays.asList(NotificationType.REPORT_CREATED, NotificationType.REPORT_UPDATED,
                                       NotificationType.REPORT_APPROVED, NotificationType.REPORT_REJECTED),
+        "CONTRIBUTION", Arrays.asList(NotificationType.CAMPAIGN_LAUNCHED, NotificationType.CAMPAIGN_COMPLETED,
+                                      NotificationType.CONTRIBUTION_PAID),
         "SYSTEM",       Arrays.asList(NotificationType.SYSTEM_ERROR)
     );
 

@@ -10,5 +10,7 @@ public enum NotificationReferenceType {
     INVOICE,
     PAYMENT,
     REPORT,
+    CAMPAIGN,
+    CONTRIBUTION,
     NONE
 }
