@@ -17,6 +17,7 @@ const categoryLabels = {
     BILL: 'Bill',
     INVOICE: 'Invoice',
     PAYMENT: 'Payment',
+    CONTRIBUTION: 'Contribution',
     REPORT: 'Report',
     SYSTEM: 'System',
 };
@@ -36,6 +37,9 @@ const typeToCategory = {
     REPORT_UPDATED:        { label: 'Report',         class: 'badge--info',    icon: '📝' },
     REPORT_APPROVED:       { label: 'Report',         class: 'badge--success', icon: '✅' },
     REPORT_REJECTED:       { label: 'Report',         class: 'badge--danger',  icon: '❌' },
+    CAMPAIGN_LAUNCHED:     { label: 'Contribution',   class: 'badge--success', icon: '🚀' },
+    CAMPAIGN_COMPLETED:    { label: 'Contribution',   class: 'badge--secondary', icon: '✅' },
+    CONTRIBUTION_PAID:     { label: 'Contribution',   class: 'badge--success', icon: '💝' },
     SYSTEM_ERROR:          { label: 'System',         class: 'badge--secondary', icon: '⚙️' },
 };
 
