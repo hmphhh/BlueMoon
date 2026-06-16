@@ -30,6 +30,9 @@ const typeIcons = {
     REPORT_UPDATED: '📝',
     REPORT_APPROVED: '✅',
     REPORT_REJECTED: '❌',
+    CAMPAIGN_LAUNCHED: '🚀',
+    CAMPAIGN_COMPLETED: '✅',
+    CONTRIBUTION_PAID: '💝',
     SYSTEM_ERROR: '⚙️',
 };
 

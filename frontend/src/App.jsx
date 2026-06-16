@@ -31,6 +31,11 @@ import AdminInvoiceDetailPage from './pages/AdminInvoiceDetailPage';
 import AdminPaymentManagementPage from './pages/AdminPaymentManagementPage';
 import UserNotificationsPage from './pages/UserNotificationsPage';
 import AdminNotificationManagementPage from './pages/AdminNotificationManagementPage';
+import AdminCampaignManagementPage from './pages/AdminCampaignManagementPage';
+import AdminCampaignDetailPage from './pages/AdminCampaignDetailPage';
+import AdminContributionDetailPage from './pages/AdminContributionDetailPage';
+import UserContributionsPage from './pages/UserContributionsPage';
+import UserContributionDetailPage from './pages/UserContributionDetailPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -291,6 +296,46 @@ export default function App() {
             element={
               <ProtectedRoute allowedRole="ADMIN">
                 <AdminNotificationManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-campaigns"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminCampaignManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-campaign/:campaignId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminCampaignDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-contribution/:contributionId"
+            element={
+              <ProtectedRoute allowedRole="ADMIN">
+                <AdminContributionDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-contributions"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserContributionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-contribution/:contributionId"
+            element={
+              <ProtectedRoute allowedRole="USER">
+                <UserContributionDetailPage />
               </ProtectedRoute>
             }
           />
