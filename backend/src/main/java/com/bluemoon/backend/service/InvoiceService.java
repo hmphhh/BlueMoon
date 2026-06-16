@@ -16,18 +16,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bluemoon.backend.config.SepayConfig;
+import com.bluemoon.backend.dtos.request.CreateContributionInvoiceRequest;
 import com.bluemoon.backend.dtos.response.InvoiceDetailsResponse;
 import com.bluemoon.backend.dtos.response.InvoiceResponse;
 import com.bluemoon.backend.dtos.response.InvoiceSummaryResponse;
 import com.bluemoon.backend.dtos.response.UserSummaryResponse;
+import com.bluemoon.backend.entity.ApartmentContributionEntity;
 import com.bluemoon.backend.entity.BillEntity;
+import com.bluemoon.backend.entity.ContributionCampaignEntity;
 import com.bluemoon.backend.entity.InvoiceBillSnapshotEntity;
 import com.bluemoon.backend.entity.InvoiceEntity;
 import com.bluemoon.backend.entity.UserEntity;
 import com.bluemoon.backend.enums.BillStatus;
+import com.bluemoon.backend.enums.ContributionCampaignStatus;
 import com.bluemoon.backend.enums.InvoiceStatus;
+import com.bluemoon.backend.enums.InvoiceType;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
+import com.bluemoon.backend.repository.ApartmentContributionRepository;
 import com.bluemoon.backend.repository.BillRepository;
 import com.bluemoon.backend.repository.InvoiceBillSnapshotRepository;
 import com.bluemoon.backend.repository.InvoiceRepository;
@@ -70,6 +76,12 @@ public class InvoiceService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private ApartmentContributionRepository apartmentContributionRepository;
+
+    @Autowired
+    private ApartmentContributionService apartmentContributionService;
+
     // ============================================================
     // Invoice Creation
     // ============================================================
@@ -95,6 +107,7 @@ public class InvoiceService {
 
         // Build invoice entity
         InvoiceEntity invoice = new InvoiceEntity();
+        invoice.setInvoiceType(InvoiceType.BILL);
         invoice.setInvoiceCode(invoiceCode);
         invoice.setReferenceCode(referenceCode);
         invoice.setCreatedBy(user);
@@ -123,6 +136,80 @@ public class InvoiceService {
         return toInvoiceResponse(invoice);
     }
 
+    // ============================================================
+    // Contribution Invoice Creation
+    // ============================================================
+
+    /**
+     * Create a contribution invoice for an ApartmentContribution.
+     * Validates: campaign active, date window, no existing pending invoice, positive amount.
+     */
+    @Transactional
+    public InvoiceResponse createContributionInvoice(CreateContributionInvoiceRequest request, Long userId) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        // Validate apartment contribution exists
+        ApartmentContributionEntity ac = apartmentContributionRepository.findByIdWithDetails(request.getApartmentContributionId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Apartment contribution not found with id: " + request.getApartmentContributionId()));
+
+        // Validate ownership: user must belong to the same apartment
+        if (user.getApartment() == null || !user.getApartment().getId().equals(ac.getApartment().getId())) {
+            throw new InvalidOperationException(
+                    "You can only create contribution invoices for your own apartment.");
+        }
+
+        // Validate campaign is ACTIVE
+        ContributionCampaignEntity campaign = ac.getCampaign();
+        if (campaign.getStatus() != ContributionCampaignStatus.ACTIVE) {
+            throw new InvalidOperationException(
+                    "Campaign is not active. Current status: " + campaign.getStatus());
+        }
+
+        // Validate current date is within campaign period
+        LocalDate today = LocalDate.now();
+        if (today.isBefore(campaign.getStartDate()) || today.isAfter(campaign.getEndDate())) {
+            throw new InvalidOperationException(
+                    "Contribution invoices can only be created between "
+                    + campaign.getStartDate() + " and " + campaign.getEndDate() + ".");
+        }
+
+        // Validate no existing PENDING invoice for this apartment contribution
+        if (invoiceRepository.existsByApartmentContributionIdAndStatus(
+                ac.getId(), InvoiceStatus.PENDING)) {
+            throw new InvalidOperationException(
+                    "A pending contribution invoice already exists for this apartment contribution.");
+        }
+
+        // Generate codes
+        String invoiceCode = generateInvoiceCode();
+        String referenceCode = generateReferenceCode();
+
+        // Build invoice entity
+        InvoiceEntity invoice = new InvoiceEntity();
+        invoice.setInvoiceType(InvoiceType.CONTRIBUTION);
+        invoice.setApartmentContribution(ac);
+        invoice.setInvoiceCode(invoiceCode);
+        invoice.setReferenceCode(referenceCode);
+        invoice.setCreatedBy(user);
+        invoice.setTotalAmount(request.getAmount());
+        invoice.setStatus(InvoiceStatus.PENDING);
+        invoice.setExpiresAt(LocalDateTime.now().plusMinutes(sepayConfig.getInvoiceExpirationMinutes()));
+        invoice.setQrCodeUrl(""); // placeholder
+        invoice = invoiceRepository.save(invoice);
+
+        // Generate real QR URL
+        String qrCodeUrl = qrCodeService.generateQrCodeUrl(invoice);
+        invoice.setQrCodeUrl(qrCodeUrl);
+        invoice = invoiceRepository.save(invoice);
+
+        logger.info("Created contribution invoice: id={}, apartmentContribution={}, amount={}",
+                invoice.getId(), ac.getId(), request.getAmount());
+
+        return toInvoiceResponse(invoice);
+    }
+
     /**
      * Create an invoice for manual bill payment (admin marks bills as paid).
      * Returns the created invoice entity for linking with the payment record.
@@ -134,6 +221,7 @@ public class InvoiceService {
         String referenceCode = generateReferenceCode();
 
         InvoiceEntity invoice = new InvoiceEntity();
+        invoice.setInvoiceType(InvoiceType.BILL);
         invoice.setInvoiceCode(invoiceCode);
         invoice.setReferenceCode(referenceCode);
         invoice.setCreatedBy(adminUser);
@@ -233,7 +321,9 @@ public class InvoiceService {
     // ============================================================
 
     /**
-     * Mark an invoice as paid and settle all associated bills.
+     * Mark an invoice as paid and settle the associated payment source.
+     * For BILL invoices: settle all associated bills.
+     * For CONTRIBUTION invoices: recalculate the apartment contribution.
      */
     @Transactional
     public void markAsPaid(Long invoiceId) {
@@ -244,8 +334,50 @@ public class InvoiceService {
         invoice.setPaidAt(LocalDateTime.now());
         invoiceRepository.save(invoice);
 
-        // Mark all bills as PAID (bills stay linked to the invoice per data consistency rule)
-        markBillsPaid(invoiceId);
+        if (invoice.getInvoiceType() == InvoiceType.CONTRIBUTION
+                && invoice.getApartmentContribution() != null) {
+            // Recalculate apartment contribution (idempotent SUM-based)
+            apartmentContributionService.recalculateContribution(
+                    invoice.getApartmentContribution().getId());
+
+            // Notify apartment residents about the contribution payment
+            try {
+                ApartmentContributionEntity ac = invoice.getApartmentContribution();
+                String campaignTitle = ac.getCampaign() != null ? ac.getCampaign().getTitle() : "Unknown";
+                String payerName = invoice.getCreatedBy() != null ? invoice.getCreatedBy().getFullName() : "Someone";
+                List<UserEntity> residents = userRepository.findByApartmentId(ac.getApartment().getId());
+                for (UserEntity resident : residents) {
+                    notificationService.createAutoNotification(
+                            resident,
+                            "Contribution Payment Received",
+                            payerName + " contributed " + invoice.getTotalAmount()
+                                    + " to campaign \"" + campaignTitle + "\".",
+                            NotificationType.CONTRIBUTION_PAID,
+                            NotificationReferenceType.CONTRIBUTION,
+                            ac.getId(),
+                            NotificationPriority.NORMAL
+                    );
+                }
+
+                // Also notify admins
+                notificationService.notifyAllAdmins(
+                        "Contribution Payment Received",
+                        "Room " + ac.getApartment().getApartmentNumber()
+                                + ": " + payerName + " contributed " + invoice.getTotalAmount()
+                                + " to campaign \"" + campaignTitle + "\".",
+                        NotificationType.CONTRIBUTION_PAID,
+                        NotificationReferenceType.CONTRIBUTION,
+                        ac.getId(),
+                        NotificationPriority.NORMAL
+                );
+            } catch (Exception e) {
+                // Don't fail payment if notification fails
+                logger.warn("Failed to send contribution payment notification: {}", e.getMessage());
+            }
+        } else {
+            // Bill invoice: mark all bills as PAID
+            markBillsPaid(invoiceId);
+        }
     }
 
     // ============================================================
