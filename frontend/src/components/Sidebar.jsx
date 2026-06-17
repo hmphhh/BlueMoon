@@ -52,14 +52,14 @@ export default function Sidebar({ user, setUser, isOpen, onClose }) {
         { path: '/profile', label: 'My Profile', icon: navIcons.profile },
       ]
     : [
-        { path: '/resident-home', label: 'Home', icon: navIcons.home },
-        { path: '/my-apartment', label: 'My Apartment', icon: navIcons.apartments },
-        { path: '/my-bills', label: 'My Bills', icon: navIcons.bills },
+        { path: '/resident-home', label: 'Dashboard', icon: navIcons.dashboard },
+        { path: '/my-apartment', label: 'Apartment', icon: navIcons.apartments },
+        { path: '/my-bills', label: 'Bills', icon: navIcons.bills },
         { path: '/my-contributions', label: 'Contributions', icon: navIcons.contributions },
-        { path: '/my-invoices', label: 'My Invoices', icon: navIcons.invoices },
+        { path: '/my-invoices', label: 'Invoices', icon: navIcons.invoices },
         { path: '/reports', label: 'Reports', icon: navIcons.reports },
         { path: '/my-notifications', label: 'Notifications', icon: navIcons.notifications },
-        { path: '/profile', label: 'My Profile', icon: navIcons.profile },
+        { path: '/profile', label: 'Profile', icon: navIcons.profile },
       ];
 
   const initial = (user?.fullName || user?.username || '?')[0].toUpperCase();
