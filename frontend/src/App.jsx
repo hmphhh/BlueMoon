@@ -1,41 +1,41 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ToastProvider } from './components/Toast';
-import Login from './components/Login';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
-import DashboardLayout from './components/DashboardLayout';
-import AdminPage from './pages/AdminPage';
-import UserPage from './pages/UserPage';
-import ProfilePage from './pages/ProfilePage';
-import AdminAccountManagementPage from './pages/AdminAccountManagementPage';
-import AdminAccountDetailPage from './pages/AdminAccountDetailPage';
-import AdminApartmentManagementPage from './pages/AdminApartmentManagementPage';
-import AdminApartmentDetailPage from './pages/AdminApartmentDetailPage';
-import AdminApartmentMembersPage from './pages/AdminApartmentMembersPage';
-import AdminApartmentBillsPage from './pages/AdminApartmentBillsPage';
-import UserApartmentPage from './pages/UserApartmentPage';
-import UserApartmentMembersPage from './pages/UserApartmentMembersPage';
-import UserReportsPage from './pages/UserReportsPage';
-import UserReportDetailPage from './pages/UserReportDetailPage';
-import AdminReportManagementPage from './pages/AdminReportManagementPage';
-import AdminReportDetailPage from './pages/AdminReportDetailPage';
-import AdminBillManagementPage from './pages/AdminBillManagementPage';
-import AdminBillDetailPage from './pages/AdminBillDetailPage';
-import AdminBillTemplatePage from './pages/AdminBillTemplatePage';
-import UserBillsPage from './pages/UserBillsPage';
-import UserInvoicesPage from './pages/UserInvoicesPage';
-import UserInvoiceDetailPage from './pages/UserInvoiceDetailPage';
-import AdminInvoiceManagementPage from './pages/AdminInvoiceManagementPage';
-import AdminInvoiceDetailPage from './pages/AdminInvoiceDetailPage';
-import AdminPaymentManagementPage from './pages/AdminPaymentManagementPage';
-import UserNotificationsPage from './pages/UserNotificationsPage';
-import AdminNotificationManagementPage from './pages/AdminNotificationManagementPage';
-import AdminCampaignManagementPage from './pages/AdminCampaignManagementPage';
-import AdminCampaignDetailPage from './pages/AdminCampaignDetailPage';
-import AdminContributionDetailPage from './pages/AdminContributionDetailPage';
-import UserContributionsPage from './pages/UserContributionsPage';
-import UserContributionDetailPage from './pages/UserContributionDetailPage';
+import { ToastProvider } from './components/ui/Toast';
+import Login from './components/auth/Login';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import DashboardLayout from './components/layout/DashboardLayout';
+import AdminPage from './pages/admin/AdminPage';
+import UserPage from './pages/user/UserPage';
+import ProfilePage from './pages/shared/ProfilePage';
+import AdminAccountManagementPage from './pages/admin/AdminAccountManagementPage';
+import AdminAccountDetailPage from './pages/admin/AdminAccountDetailPage';
+import AdminApartmentManagementPage from './pages/admin/AdminApartmentManagementPage';
+import AdminApartmentDetailPage from './pages/admin/AdminApartmentDetailPage';
+import AdminApartmentMembersPage from './pages/admin/AdminApartmentMembersPage';
+import AdminApartmentBillsPage from './pages/admin/AdminApartmentBillsPage';
+import UserApartmentPage from './pages/user/UserApartmentPage';
+import UserApartmentMembersPage from './pages/user/UserApartmentMembersPage';
+import UserReportsPage from './pages/user/UserReportsPage';
+import UserReportDetailPage from './pages/user/UserReportDetailPage';
+import AdminReportManagementPage from './pages/admin/AdminReportManagementPage';
+import AdminReportDetailPage from './pages/admin/AdminReportDetailPage';
+import AdminBillManagementPage from './pages/admin/AdminBillManagementPage';
+import AdminBillDetailPage from './pages/admin/AdminBillDetailPage';
+import AdminBillTemplatePage from './pages/admin/AdminBillTemplatePage';
+import UserBillsPage from './pages/user/UserBillsPage';
+import UserInvoicesPage from './pages/user/UserInvoicesPage';
+import UserInvoiceDetailPage from './pages/user/UserInvoiceDetailPage';
+import AdminInvoiceManagementPage from './pages/admin/AdminInvoiceManagementPage';
+import AdminInvoiceDetailPage from './pages/admin/AdminInvoiceDetailPage';
+import AdminPaymentManagementPage from './pages/admin/AdminPaymentManagementPage';
+import UserNotificationsPage from './pages/user/UserNotificationsPage';
+import AdminNotificationManagementPage from './pages/admin/AdminNotificationManagementPage';
+import AdminCampaignManagementPage from './pages/admin/AdminCampaignManagementPage';
+import AdminCampaignDetailPage from './pages/admin/AdminCampaignDetailPage';
+import AdminContributionDetailPage from './pages/admin/AdminContributionDetailPage';
+import UserContributionsPage from './pages/user/UserContributionsPage';
+import UserContributionDetailPage from './pages/user/UserContributionDetailPage';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -343,4 +343,4 @@ export default function App() {
       </BrowserRouter>
     </ToastProvider>
   );
-}
+}
