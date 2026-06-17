@@ -86,7 +86,7 @@ export default function UserBillsPage() {
         }
         setCreatingInvoice(true);
         try {
-            const res = await axios.post(`${API_BASE}/api/invoices`, {
+            const res = await axios.post(`${API_BASE}/api/invoices/bill`, {
                 billIds: selectedBillIds
             });
             toast('Invoice created successfully!', 'success');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Sidebar from './Sidebar';
 import ThemeToggle from './ThemeToggle';
+import NotificationBell from './NotificationBell';
 
 export default function DashboardLayout({ user, setUser, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +28,7 @@ export default function DashboardLayout({ user, setUser, children }) {
             </svg>
           </button>
           <div className="layout__topbar-right">
+            <NotificationBell user={user} />
             <ThemeToggle />
           </div>
         </header>
@@ -37,3 +39,4 @@ export default function DashboardLayout({ user, setUser, children }) {
     </div>
   );
 }
+

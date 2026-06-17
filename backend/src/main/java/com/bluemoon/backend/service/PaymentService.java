@@ -25,6 +25,9 @@ import com.bluemoon.backend.enums.PaymentStatus;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.InvoiceRepository;
 import com.bluemoon.backend.repository.PaymentRepository;
+import com.bluemoon.backend.enums.NotificationPriority;
+import com.bluemoon.backend.enums.NotificationReferenceType;
+import com.bluemoon.backend.enums.NotificationType;
 
 /**
  * Service responsible for processing incoming payment transactions.
@@ -46,6 +49,9 @@ public class PaymentService {
 
     @Autowired
     private InvoiceService invoiceService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     // ============================================================
     // Payment Processing (BR-06, BR-07, BR-08)
@@ -125,7 +131,24 @@ public class PaymentService {
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setMethod(PaymentMethod.MANUAL);
         payment.setTransactionTime(LocalDateTime.now());
-        return paymentRepository.save(payment);
+        payment = paymentRepository.save(payment);
+
+        // Section 1.3: Send PAYMENT_ACCEPTED notification to the invoice creator (manual payment accepted)
+        try {
+            notificationService.createAutoNotification(
+                    invoice.getCreatedBy(),
+                    "Payment Accepted",
+                    "Your manual payment of " + amount + " has been accepted and marked as paid.",
+                    NotificationType.PAYMENT_ACCEPTED,
+                    NotificationReferenceType.PAYMENT,
+                    payment.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail payment if notification fails
+        }
+
+        return payment;
     }
 
     // ============================================================
@@ -230,6 +253,35 @@ public class PaymentService {
 
         logger.info("Payment SUCCESS for invoice {}: transactionId={}, code={}",
                 invoice.getInvoiceCode(), request.getId(), payment.getTransactionCode());
+
+        // Section 1.3: Send PAYMENT_SUCCESS notification to the invoice creator (user)
+        try {
+            notificationService.createAutoNotification(
+                    invoice.getCreatedBy(),
+                    "Payment Successful",
+                    "Your payment for invoice " + invoice.getInvoiceCode() + " has been successfully processed.",
+                    NotificationType.PAYMENT_SUCCESS,
+                    NotificationReferenceType.PAYMENT,
+                    payment.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail payment if notification fails
+        }
+
+        // Section 2.1: Notify all admins about the successful payment
+        try {
+            notificationService.notifyAllAdmins(
+                    "User Payment Received",
+                    "Payment of " + payment.getAmount() + " received for invoice " + invoice.getInvoiceCode() + ".",
+                    NotificationType.PAYMENT_SUCCESS,
+                    NotificationReferenceType.PAYMENT,
+                    payment.getId(),
+                    NotificationPriority.NORMAL
+            );
+        } catch (Exception e) {
+            // Don't fail payment if notification fails
+        }
 
         return payment;
     }

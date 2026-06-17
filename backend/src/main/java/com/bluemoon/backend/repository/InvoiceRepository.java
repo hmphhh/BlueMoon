@@ -1,5 +1,6 @@
 package com.bluemoon.backend.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -74,4 +75,24 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, Long> {
      * Check if an invoice code already exists.
      */
     boolean existsByInvoiceCode(String invoiceCode);
+
+    /**
+     * Check if an ApartmentContribution already has an invoice with the given status.
+     * Used to enforce the "at most one PENDING invoice per ApartmentContribution" rule.
+     */
+    boolean existsByApartmentContributionIdAndStatus(Long apartmentContributionId, InvoiceStatus status);
+
+    /**
+     * Sum the totalAmount of all PAID invoices linked to a specific ApartmentContribution.
+     * Returns null if no PAID invoices exist (caller should treat null as ZERO).
+     */
+    @Query("""
+        SELECT COALESCE(SUM(i.totalAmount), 0)
+        FROM InvoiceEntity i
+        WHERE i.apartmentContribution.id = :apartmentContributionId
+          AND i.status = com.bluemoon.backend.enums.InvoiceStatus.PAID
+    """)
+    BigDecimal sumPaidAmountByApartmentContributionId(
+        @Param("apartmentContributionId") Long apartmentContributionId
+    );
 }

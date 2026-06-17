@@ -68,10 +68,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/invoices/me").authenticated()
                 // /api/invoices/{id} accessible by any authenticated user (ownership checked in controller)
                 .requestMatchers("/api/invoices/{invoiceId}").authenticated()
-                // POST /api/invoices accessible by any authenticated user
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/invoices").authenticated()
+                // POST /api/invoices/bill and /api/invoices/contribution accessible by any authenticated user
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/invoices/bill").authenticated()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/invoices/contribution").authenticated()
                 // DELETE /api/invoices/{id} accessible by any authenticated user (ownership checked in service)
                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/invoices/{invoiceId}").authenticated()
+                // Contribution campaigns: admin only (uses @PreAuthorize on controller)
+                .requestMatchers("/api/contribution-campaigns/**").hasRole("ADMIN")
+                // Apartment contributions: /me for authenticated users, /{id} for authenticated (ownership checked)
+                .requestMatchers("/api/apartment-contributions/me").authenticated()
+                .requestMatchers("/api/apartment-contributions/{id}").authenticated()
+                .requestMatchers("/api/apartment-contributions/**").hasRole("ADMIN")
                 // Other user, apartment, bill, and bill-template endpoints require ADMIN
                 .requestMatchers("/api/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/apartments/**").hasRole("ADMIN")
@@ -85,6 +92,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/reports/me/**").authenticated()
                 .requestMatchers("/api/reports/me").authenticated()
                 .requestMatchers("/api/reports/**").authenticated()
+                // Notification endpoints: /me is for authenticated users
+                .requestMatchers("/api/notifications/me/**").authenticated()
+                .requestMatchers("/api/notifications/me").authenticated()
+                .requestMatchers("/api/notifications/*/read").authenticated()
+                .requestMatchers("/api/notifications/*").authenticated()
+                // Admin notification endpoints (uses @PreAuthorize on controller)
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             );
         

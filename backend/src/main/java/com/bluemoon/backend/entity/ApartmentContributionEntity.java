@@ -3,8 +3,7 @@ package com.bluemoon.backend.entity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.bluemoon.backend.enums.InvoiceStatus;
-import com.bluemoon.backend.enums.InvoiceType;
+import com.bluemoon.backend.enums.ApartmentContributionStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -20,59 +19,41 @@ import jakarta.persistence.Table;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "invoices")
+@Table(name = "apartment_contributions")
 @Getter
 @Setter
 @NoArgsConstructor
-public class InvoiceEntity {
+@AllArgsConstructor
+public class ApartmentContributionEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private InvoiceType invoiceType = InvoiceType.BILL;
-
-    @Column(nullable = false, unique = true, length = 50)
-    private String invoiceCode;
-
-    @Column(nullable = false, unique = true, length = 100)
-    private String referenceCode;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
+    @JoinColumn(name = "campaign_id", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private UserEntity createdBy;
+    private ContributionCampaignEntity campaign;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "apartment_contribution_id")
+    @JoinColumn(name = "apartment_id", nullable = false)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private ApartmentContributionEntity apartmentContribution;
+    private ApartmentEntity apartment;
 
     @Column(nullable = false, precision = 12, scale = 2)
-    private BigDecimal totalAmount;
+    private BigDecimal collectedAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private InvoiceStatus status;
-
-    @Column(nullable = false, length = 1000)
-    private String qrCodeUrl;
-
-    @Column(nullable = false)
-    private LocalDateTime expiresAt;
-
-    private LocalDateTime paidAt;
-
-    private LocalDateTime cancelledAt;
+    private ApartmentContributionStatus status = ApartmentContributionStatus.NOT_STARTED;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
