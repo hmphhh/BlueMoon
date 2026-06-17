@@ -1,11 +1,13 @@
 package com.bluemoon.backend.config;
+import com.bluemoon.backend.enums.communication.NotificationType;
 
-import com.bluemoon.backend.entity.ApartmentEntity;
-import com.bluemoon.backend.entity.UserEntity;
-import com.bluemoon.backend.repository.ApartmentRepository;
-import com.bluemoon.backend.repository.UserRepository;
-import com.bluemoon.backend.enums.UserRole;
-import com.bluemoon.backend.enums.ApartmentType;
+
+import com.bluemoon.backend.entity.apartment.ApartmentEntity;
+import com.bluemoon.backend.entity.auth.UserEntity;
+import com.bluemoon.backend.repository.apartment.ApartmentRepository;
+import com.bluemoon.backend.repository.auth.UserRepository;
+import com.bluemoon.backend.enums.auth.UserRole;
+import com.bluemoon.backend.enums.apartment.ApartmentType;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
