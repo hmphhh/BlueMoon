@@ -43,7 +43,6 @@ export default function Sidebar({ user, setUser, isOpen, onClose }) {
         { path: '/accounts', label: 'Accounts', icon: navIcons.accounts },
         { path: '/apartments', label: 'Apartments', icon: navIcons.apartments },
         { path: '/admin-bills', label: 'Bills', icon: navIcons.bills },
-        { path: '/admin-bill-templates', label: 'Bill Templates', icon: navIcons.bills },
         { path: '/admin-campaigns', label: 'Campaigns', icon: navIcons.contributions },
         { path: '/admin-invoices', label: 'Invoices', icon: navIcons.invoices },
         { path: '/admin-payments', label: 'Payments', icon: navIcons.payments },

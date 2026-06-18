@@ -181,10 +181,10 @@ export default function NotificationBell({ user }) {
                     right: '0',
                     width: '380px',
                     maxHeight: '480px',
-                    background: 'var(--card-bg, #1a1a2e)',
-                    border: '1px solid var(--border-color, #333)',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
                     borderRadius: '14px',
-                    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.3)',
+                    boxShadow: 'var(--shadow-lg)',
                     zIndex: 1000,
                     overflow: 'hidden',
                     animation: 'notif-dropdown-enter 0.2s ease',
@@ -192,17 +192,17 @@ export default function NotificationBell({ user }) {
                     {/* Header */}
                     <div style={{
                         padding: '16px 18px',
-                        borderBottom: '1px solid var(--border-color, #333)',
+                        borderBottom: '1px solid var(--border)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                     }}>
-                        <div style={{ fontWeight: 700, fontSize: '16px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '16px', color: 'var(--text-primary)' }}>
                             Notifications
                             {unreadCount > 0 && (
                                 <span style={{
                                     marginLeft: '8px',
-                                    background: 'var(--primary, #7c6ef0)',
+                                    background: 'var(--accent)',
                                     color: '#fff',
                                     borderRadius: '12px',
                                     padding: '2px 10px',
@@ -219,7 +219,7 @@ export default function NotificationBell({ user }) {
                                 style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: 'var(--primary, #7c6ef0)',
+                                    color: 'var(--accent)',
                                     cursor: 'pointer',
                                     fontSize: '13px',
                                     fontWeight: 600,
@@ -241,23 +241,24 @@ export default function NotificationBell({ user }) {
                                     onClick={() => { setShowDropdown(false); navigate(notifPagePath); }}
                                     style={{
                                         padding: '14px 18px',
-                                        borderBottom: '1px solid var(--border-color, #333)',
+                                        borderBottom: '1px solid var(--border)',
                                         cursor: 'pointer',
                                         transition: 'background 0.15s',
-                                        background: n.read ? 'transparent' : 'rgba(124, 110, 240, 0.05)',
+                                        background: n.read ? 'transparent' : 'var(--accent-bg)',
                                         display: 'flex',
                                         gap: '12px',
                                         alignItems: 'flex-start',
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(124, 110, 240, 0.1)'}
-                                    onMouseLeave={e => e.currentTarget.style.background = n.read ? 'transparent' : 'rgba(124, 110, 240, 0.05)'}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = n.read ? 'transparent' : 'var(--accent-bg)'}
                                 >
                                     <span style={{ fontSize: '20px', flexShrink: 0, marginTop: '2px' }}>
                                         {typeIcons[n.type] || '🔔'}
                                     </span>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{
-                                            fontWeight: n.read ? 400 : 700,
+                                            fontWeight: n.read ? 400 : 600,
+                                            color: 'var(--text-primary)',
                                             fontSize: '14px',
                                             marginBottom: '3px',
                                             overflow: 'hidden',
@@ -268,14 +269,14 @@ export default function NotificationBell({ user }) {
                                         </div>
                                         <div style={{
                                             fontSize: '13px',
-                                            color: 'var(--text-secondary, #aaa)',
+                                            color: 'var(--text-secondary)',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
                                             whiteSpace: 'nowrap',
                                         }}>
                                             {n.message}
                                         </div>
-                                        <div style={{ fontSize: '12px', color: 'var(--text-muted, #666)', marginTop: '4px' }}>
+                                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                                             {formatTimeAgo(n.createdAt)}
                                         </div>
                                     </div>
@@ -296,7 +297,7 @@ export default function NotificationBell({ user }) {
                                                 width: '10px',
                                                 height: '10px',
                                                 borderRadius: '50%',
-                                                background: 'var(--primary, #7c6ef0)',
+                                                background: 'var(--accent)',
                                             }} />
                                         </button>
                                     )}
@@ -313,7 +314,7 @@ export default function NotificationBell({ user }) {
                     {/* Footer */}
                     <div style={{
                         padding: '12px 18px',
-                        borderTop: '1px solid var(--border-color, #333)',
+                        borderTop: '1px solid var(--border)',
                         textAlign: 'center',
                     }}>
                         <button
@@ -321,7 +322,7 @@ export default function NotificationBell({ user }) {
                             style={{
                                 background: 'none',
                                 border: 'none',
-                                color: 'var(--primary, #7c6ef0)',
+                                color: 'var(--accent)',
                                 cursor: 'pointer',
                                 fontWeight: 600,
                                 fontSize: '14px',

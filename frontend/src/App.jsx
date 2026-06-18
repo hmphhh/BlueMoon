@@ -22,7 +22,7 @@ import AdminReportManagementPage from './pages/admin/AdminReportManagementPage';
 import AdminReportDetailPage from './pages/admin/AdminReportDetailPage';
 import AdminBillManagementPage from './pages/admin/AdminBillManagementPage';
 import AdminBillDetailPage from './pages/admin/AdminBillDetailPage';
-import AdminBillTemplatePage from './pages/admin/AdminBillTemplatePage';
+
 import UserBillsPage from './pages/user/UserBillsPage';
 import UserInvoicesPage from './pages/user/UserInvoicesPage';
 import UserInvoiceDetailPage from './pages/user/UserInvoiceDetailPage';
@@ -229,11 +229,7 @@ export default function App() {
           />
           <Route
             path="/admin-bill-templates"
-            element={
-              <ProtectedRoute allowedRole="ADMIN">
-                <AdminBillTemplatePage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/admin-bills" replace />}
           />
           <Route
             path="/my-bills"
