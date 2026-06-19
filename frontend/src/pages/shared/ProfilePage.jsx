@@ -232,19 +232,15 @@ export default function ProfilePage({ user, setUser }) {
                         </>
                     )}
 
-                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
+                    <div style={{ marginTop: '20px', display: 'flex', gap: '12px', alignItems: 'center' }}>
                         <button type="submit" className="btn btn--primary" disabled={saving}>
                             {saving ? 'Saving…' : 'Save Changes'}
                         </button>
+                        <button type="button" className="btn btn--secondary" onClick={() => setShowChangePasswordModal(true)}>
+                            Change Password
+                        </button>
                     </div>
                 </form>
-
-                {/* Bottom Actions */}
-                <div style={{ marginTop: '28px', borderTop: '1px solid #eee', paddingTop: '20px' }}>
-                    <button type="button" className="btn btn--secondary" onClick={() => setShowChangePasswordModal(true)}>
-                        Change Password
-                    </button>
-                </div>
             </div>
 
             {/* Change Password Modal */}

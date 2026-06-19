@@ -156,7 +156,7 @@ export default function NotificationBell({ user }) {
                         position: 'absolute',
                         top: '2px',
                         right: '2px',
-                        background: 'linear-gradient(135deg, #ff4757, #ff6b81)',
+                        background: 'var(--danger)',
                         color: '#fff',
                         borderRadius: '10px',
                         padding: '1px 6px',
@@ -165,7 +165,7 @@ export default function NotificationBell({ user }) {
                         lineHeight: '16px',
                         minWidth: '18px',
                         textAlign: 'center',
-                        boxShadow: '0 2px 6px rgba(255, 71, 87, 0.4)',
+                        boxShadow: 'var(--shadow-sm)',
                         animation: 'notification-pulse 2s infinite',
                     }}>
                         {unreadCount > 99 ? '99+' : unreadCount}

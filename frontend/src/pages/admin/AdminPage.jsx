@@ -61,8 +61,8 @@ export default function AdminPage({ user }) {
                     <div className="stat-card__label">Apartments</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-card__icon" style={{ background: 'rgba(139,92,246,0.12)' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+                    <div className="stat-card__icon" style={{ background: 'var(--accent-bg)' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
                     </div>
                     <div className="stat-card__value">{stats.admins}</div>
                     <div className="stat-card__label">Admins</div>

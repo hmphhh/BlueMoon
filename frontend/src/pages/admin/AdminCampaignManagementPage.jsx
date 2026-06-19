@@ -187,7 +187,7 @@ export default function AdminCampaignManagementPage() {
                     <div className="stat-card__label">Active</div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-card__icon" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
+                    <div className="stat-card__icon" style={{ background: 'var(--bg-input)', color: 'var(--text-muted)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                     </div>
                     <div className="stat-card__value">{completedCount}</div>
@@ -257,7 +257,7 @@ export default function AdminCampaignManagementPage() {
                                                 </button>
                                                 {c.status === 'DRAFT' && (
                                                     <>
-                                                        <button className="btn btn--sm" style={{ background: 'var(--info-bg, rgba(59,130,246,0.1))', color: 'var(--info, #3b82f6)' }} onClick={() => openEditModal(c.id)}>
+                                                        <button className="btn btn--sm" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }} onClick={() => openEditModal(c.id)}>
                                                             Edit
                                                         </button>
                                                         <button className="btn btn--success btn--sm" onClick={() => handleLaunch(c.id)}>
@@ -269,7 +269,7 @@ export default function AdminCampaignManagementPage() {
                                                     </>
                                                 )}
                                                 {c.status === 'ACTIVE' && (
-                                                    <button className="btn btn--sm" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }} onClick={() => handleComplete(c.id)}>
+                                                    <button className="btn btn--sm" style={{ background: 'var(--bg-input)', color: 'var(--text-muted)' }} onClick={() => handleComplete(c.id)}>
                                                         ✓ Complete
                                                     </button>
                                                 )}

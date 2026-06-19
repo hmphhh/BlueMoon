@@ -214,8 +214,8 @@ export default function UserNotificationsPage() {
                                     padding: '16px',
                                     borderRadius: '10px',
                                     marginBottom: '10px',
-                                    border: `1px solid ${n.read ? 'var(--border-color, #333)' : 'var(--primary, #7c6ef0)'}`,
-                                    background: n.read ? 'var(--card-bg, #1a1a2e)' : 'rgba(124, 110, 240, 0.06)',
+                                    border: `1px solid ${n.read ? 'var(--border)' : 'var(--accent)'}`,
+                                    background: n.read ? 'var(--bg-card)' : 'var(--accent-bg)',
                                     cursor: 'pointer',
                                     transition: 'all 0.2s ease',
                                     position: 'relative',
@@ -226,7 +226,7 @@ export default function UserNotificationsPage() {
                                     <div style={{
                                         position: 'absolute', top: '18px', left: '8px',
                                         width: '8px', height: '8px', borderRadius: '50%',
-                                        background: 'var(--primary, #7c6ef0)',
+                                        background: 'var(--accent)',
                                     }} />
                                 )}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', paddingLeft: n.read ? '0' : '14px' }}>

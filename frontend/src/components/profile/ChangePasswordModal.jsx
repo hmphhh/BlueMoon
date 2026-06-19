@@ -98,7 +98,7 @@ export default function ChangePasswordModal({ onSuccess, onCancel, toast }) {
                         disabled={loading}
                     />
                     {errors.currentPassword && (
-                        <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px' }}>
+                        <p style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px' }}>
                             {errors.currentPassword}
                         </p>
                     )}
@@ -115,7 +115,7 @@ export default function ChangePasswordModal({ onSuccess, onCancel, toast }) {
                         disabled={loading}
                     />
                     {errors.newPassword && (
-                        <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px' }}>
+                        <p style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px' }}>
                             {errors.newPassword}
                         </p>
                     )}
@@ -132,7 +132,7 @@ export default function ChangePasswordModal({ onSuccess, onCancel, toast }) {
                         disabled={loading}
                     />
                     {errors.confirmPassword && (
-                        <p style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px' }}>
+                        <p style={{ color: 'var(--danger)', fontSize: '12px', marginTop: '4px' }}>
                             {errors.confirmPassword}
                         </p>
                     )}
