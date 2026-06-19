@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -24,28 +26,50 @@ export default function AdminInvoiceManagementPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [invoiceStats, setInvoiceStats] = useState({});
 
-    useEffect(() => {
-        fetchInvoices();
-    }, [statusFilter, searchQuery]);
+    const {
+        currentPage, apiPage, pageSize,
+        search, debouncedSearch,
+        setCurrentPage, setPageSize, setSearch, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
 
-    const fetchInvoices = async () => {
+    const fetchInvoices = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
-            const params = {};
-            if (statusFilter) params.status = statusFilter;
-            if (searchQuery) params.invoiceCode = searchQuery;
-            const res = await axios.get(`${API_BASE}/api/invoices`, { params });
-            setInvoices(res.data || []);
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (statusFilter) params.set('status', statusFilter);
+            if (debouncedSearch) params.set('invoiceCode', debouncedSearch);
+            const res = await axios.get(`${API_BASE}/api/invoices?${params.toString()}`, { signal });
+            setInvoices(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load invoices', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiPage, pageSize, statusFilter, debouncedSearch]);
+
+    useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/invoices/stats`)
+            .then(res => setInvoiceStats(res.data || {}))
+            .catch(err => console.error('Failed to load invoice stats', err));
+    }, []);
+
+    const handleStatusChange = (val) => { setStatusFilter(val); resetPage(); };
 
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
@@ -64,28 +88,28 @@ export default function AdminInvoiceManagementPage() {
                     <div className="stat-card__icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                     </div>
-                    <div className="stat-card__value">{invoices.filter(i => i.status === 'PENDING').length}</div>
+                    <div className="stat-card__value">{invoiceStats['PENDING'] ?? '—'}</div>
                     <div className="stat-card__label">Pending</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
-                    <div className="stat-card__value">{invoices.filter(i => i.status === 'PAID').length}</div>
+                    <div className="stat-card__value">{invoiceStats['PAID'] ?? '—'}</div>
                     <div className="stat-card__label">Paid</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                     </div>
-                    <div className="stat-card__value">{invoices.filter(i => i.status === 'EXPIRED' || i.status === 'CANCELLED').length}</div>
+                    <div className="stat-card__value">{((invoiceStats['EXPIRED'] ?? 0) + (invoiceStats['CANCELLED'] ?? 0)) || '—'}</div>
                     <div className="stat-card__label">Expired / Cancelled</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="stat-card__value">{invoices.length}</div>
+                    <div className="stat-card__value">{totalElements || '—'}</div>
                     <div className="stat-card__label">Total</div>
                 </div>
             </div>
@@ -99,15 +123,15 @@ export default function AdminInvoiceManagementPage() {
                             <input
                                 className="search-bar__input"
                                 placeholder="Search by invoice code..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
                             />
                         </div>
                         <select
                             className="form-input"
                             style={{ width: '160px' }}
                             value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
+                            onChange={e => handleStatusChange(e.target.value)}
                         >
                             <option value="">All Status</option>
                             <option value="PENDING">Pending</option>
@@ -160,6 +184,14 @@ export default function AdminInvoiceManagementPage() {
                         <p>No invoices found</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
         </>
     );

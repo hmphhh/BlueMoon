@@ -7,6 +7,8 @@ import java.util.Optional;
 
 import com.bluemoon.backend.entity.billing.InvoiceEntity;
 import com.bluemoon.backend.enums.billing.InvoiceStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,6 +31,32 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, Long> {
     );
 
     /**
+     * Paginated: invoices for a specific user with optional status filter.
+     */
+    @Query(value = """
+        SELECT i FROM InvoiceEntity i
+        JOIN FETCH i.createdBy u
+        WHERE u.id = :userId
+          AND (:status IS NULL OR i.status = :status)
+          AND (i.status = com.bluemoon.backend.enums.billing.InvoiceStatus.PAID
+               OR i.status = com.bluemoon.backend.enums.billing.InvoiceStatus.PENDING)
+        ORDER BY i.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(i) FROM InvoiceEntity i
+        JOIN i.createdBy u
+        WHERE u.id = :userId
+          AND (:status IS NULL OR i.status = :status)
+          AND (i.status = com.bluemoon.backend.enums.billing.InvoiceStatus.PAID
+               OR i.status = com.bluemoon.backend.enums.billing.InvoiceStatus.PENDING)
+    """)
+    Page<InvoiceEntity> findByCreatedByIdAndOptionalStatus(
+        @Param("userId") Long userId,
+        @Param("status") InvoiceStatus status,
+        Pageable pageable
+    );
+
+    /**
      * Find all invoices with optional filters (admin).
      */
     @Query("""
@@ -43,6 +71,50 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, Long> {
         @Param("status") InvoiceStatus status,
         @Param("createdBy") Long createdBy,
         @Param("invoiceCode") String invoiceCode
+    );
+
+    /**
+     * Paginated: all invoices with optional filters (admin).
+     */
+    @Query(value = """
+        SELECT i FROM InvoiceEntity i
+        JOIN FETCH i.createdBy u
+        WHERE (:status IS NULL OR i.status = :status)
+          AND (:createdBy IS NULL OR u.id = :createdBy)
+          AND (:invoiceCode IS NULL OR :invoiceCode = '' OR i.invoiceCode LIKE CONCAT('%', :invoiceCode, '%'))
+        ORDER BY i.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(i) FROM InvoiceEntity i
+        JOIN i.createdBy u
+        WHERE (:status IS NULL OR i.status = :status)
+          AND (:createdBy IS NULL OR u.id = :createdBy)
+          AND (:invoiceCode IS NULL OR :invoiceCode = '' OR i.invoiceCode LIKE CONCAT('%', :invoiceCode, '%'))
+    """)
+    Page<InvoiceEntity> findAllWithFilters(
+        @Param("status") InvoiceStatus status,
+        @Param("createdBy") Long createdBy,
+        @Param("invoiceCode") String invoiceCode,
+        Pageable pageable
+    );
+
+    /**
+     * Count invoices by status (for admin stats card — full scope, not paginated).
+     */
+    @Query("SELECT COUNT(i) FROM InvoiceEntity i WHERE (:status IS NULL OR i.status = :status)")
+    long countByOptionalStatus(@Param("status") InvoiceStatus status);
+
+    /**
+     * Count invoices by status for a specific user.
+     */
+    @Query("""
+        SELECT COUNT(i) FROM InvoiceEntity i
+        WHERE i.createdBy.id = :userId
+          AND (:status IS NULL OR i.status = :status)
+    """)
+    long countByCreatedByIdAndOptionalStatus(
+        @Param("userId") Long userId,
+        @Param("status") InvoiceStatus status
     );
 
     Optional<InvoiceEntity> findByReferenceCode(String referenceCode);

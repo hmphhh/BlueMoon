@@ -8,6 +8,8 @@ import java.util.Optional;
 
 import com.bluemoon.backend.entity.contribution.ApartmentContributionEntity;
 import com.bluemoon.backend.enums.contribution.ApartmentContributionStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -56,6 +58,42 @@ public interface ApartmentContributionRepository extends JpaRepository<Apartment
         ORDER BY ac.createdAt DESC
     """)
     List<ApartmentContributionEntity> findByApartmentId(@Param("apartmentId") Long apartmentId);
+
+    /**
+     * Paginated: contributions for a specific apartment (user view).
+     */
+    @Query(value = """
+        SELECT ac FROM ApartmentContributionEntity ac
+        JOIN FETCH ac.campaign c
+        WHERE ac.apartment.id = :apartmentId
+          AND c.status <> com.bluemoon.backend.enums.contribution.ContributionCampaignStatus.CANCELED
+        ORDER BY ac.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(ac) FROM ApartmentContributionEntity ac
+        JOIN ac.campaign c
+        WHERE ac.apartment.id = :apartmentId
+          AND c.status <> com.bluemoon.backend.enums.contribution.ContributionCampaignStatus.CANCELED
+    """)
+    Page<ApartmentContributionEntity> findByApartmentId(
+        @Param("apartmentId") Long apartmentId,
+        Pageable pageable
+    );
+
+    /**
+     * Count contributions by status for a specific apartment.
+     */
+    @Query("""
+        SELECT COUNT(ac) FROM ApartmentContributionEntity ac
+        JOIN ac.campaign c
+        WHERE ac.apartment.id = :apartmentId
+          AND c.status <> com.bluemoon.backend.enums.contribution.ContributionCampaignStatus.CANCELED
+          AND (:status IS NULL OR ac.status = :status)
+    """)
+    long countByApartmentIdAndOptionalStatus(
+        @Param("apartmentId") Long apartmentId,
+        @Param("status") ApartmentContributionStatus status
+    );
 
     boolean existsByCampaignIdAndApartmentId(Long campaignId, Long apartmentId);
 

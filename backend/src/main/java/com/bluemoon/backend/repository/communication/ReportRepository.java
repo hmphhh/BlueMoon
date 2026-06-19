@@ -19,6 +19,26 @@ public interface ReportRepository extends JpaRepository<ReportEntity, Long> {
     List<ReportEntity> findByCreatedByIdAndStatusOrderByCreatedAtDesc(Long userId, ReportStatus status);
 
     /**
+     * Paginated: reports for a specific user, optionally filtered by status.
+     */
+    @Query(value = """
+        SELECT r FROM ReportEntity r
+        WHERE r.createdBy.id = :userId
+          AND (:status IS NULL OR r.status = :status)
+        ORDER BY r.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(r) FROM ReportEntity r
+        WHERE r.createdBy.id = :userId
+          AND (:status IS NULL OR r.status = :status)
+    """)
+    Page<ReportEntity> findByCreatedByIdAndOptionalStatus(
+        @Param("userId") Long userId,
+        @Param("status") ReportStatus status,
+        Pageable pageable
+    );
+
+    /**
      * Admin listing with JPQL constructor query to avoid N+1.
      * Joins user + apartment, with optional filters for status, userId, apartmentId.
      */

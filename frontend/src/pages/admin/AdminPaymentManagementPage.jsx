@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -20,25 +22,40 @@ const paymentStatusBadge = (status) => {
 export default function AdminPaymentManagementPage() {
     const toast = useToast();
     const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [detailLoading, setDetailLoading] = useState(false);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [stats, setStats] = useState({});
 
-    useEffect(() => {
-        fetchPayments();
-    }, []);
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
 
-    const fetchPayments = async () => {
+    const fetchPayments = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/api/payments`);
-            setPayments(res.data || []);
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            const res = await axios.get(`${API_BASE}/api/payments?${params.toString()}`, { signal });
+            setPayments(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load payments', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiPage, pageSize]);
+
+    useEffect(() => { fetchPayments(); }, [fetchPayments]);
 
     const fetchPaymentDetail = async (paymentId) => {
         setDetailLoading(true);
@@ -52,11 +69,15 @@ export default function AdminPaymentManagementPage() {
         }
     };
 
-    const successCount = payments.filter(p => p.status === 'SUCCESS').length;
-    const failedCount = payments.filter(p => p.status === 'FAILED').length;
-    const totalSuccess = payments
-        .filter(p => p.status === 'SUCCESS')
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/payments/stats`)
+            .then(res => setStats(res.data || {}))
+            .catch(err => console.error('Failed to load payment stats', err));
+    }, []);
+
+    const successCount = stats['SUCCESS'] ?? '—';
+    const failedCount = stats['FAILED'] ?? '—';
+    const totalSuccess = null; // totalSuccess in VND requires a separate aggregate endpoint; omit for now
 
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
@@ -89,8 +110,8 @@ export default function AdminPaymentManagementPage() {
                     <div className="stat-card__icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="stat-card__value">{formatCurrency(totalSuccess)}</div>
-                    <div className="stat-card__label">Total Collected</div>
+                    <div className="stat-card__value">{totalElements || '—'}</div>
+                    <div className="stat-card__label">Total Transactions</div>
                 </div>
             </div>
 
@@ -138,6 +159,14 @@ export default function AdminPaymentManagementPage() {
                         <p>No payment transactions found</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
 
             {/* Payment Detail Modal */}

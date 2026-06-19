@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -24,32 +26,55 @@ export default function UserInvoicesPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [invoices, setInvoices] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [invoiceStats, setInvoiceStats] = useState({});
 
-    useEffect(() => {
-        fetchInvoices();
-    }, [statusFilter]);
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
 
-    const fetchInvoices = async () => {
+    const fetchInvoices = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
-            const params = {};
-            if (statusFilter) params.status = statusFilter;
-            const res = await axios.get(`${API_BASE}/api/invoices/me`, { params });
-            setInvoices(res.data || []);
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (statusFilter) params.set('status', statusFilter);
+            const res = await axios.get(`${API_BASE}/api/invoices/me?${params.toString()}`, { signal });
+            setInvoices(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load invoices', 'error');
         } finally {
             setLoading(false);
         }
+    }, [apiPage, pageSize, statusFilter]);
+
+    useEffect(() => { fetchInvoices(); }, [fetchInvoices]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/invoices/me/stats`)
+            .then(res => setInvoiceStats(res.data || {}))
+            .catch(err => console.error('Failed to load invoice stats', err));
+    }, []);
+
+    const handleStatusFilterChange = (e) => {
+        setStatusFilter(e.target.value);
+        resetPage();
     };
 
-    const pendingCount = invoices.filter(i => i.status === 'PENDING').length;
-    const paidCount = invoices.filter(i => i.status === 'PAID').length;
-    const totalPending = invoices
-        .filter(i => i.status === 'PENDING')
-        .reduce((sum, i) => sum + (i.totalAmount || 0), 0);
+    const pendingCount = invoiceStats['PENDING'] ?? '—';
+    const paidCount = invoiceStats['PAID'] ?? '—';
+    const totalPending = null; // Requires aggregate endpoint if amount is needed
 
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
@@ -82,8 +107,8 @@ export default function UserInvoicesPage() {
                     <div className="stat-card__icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="stat-card__value">{formatCurrency(totalPending)}</div>
-                    <div className="stat-card__label">Pending Amount</div>
+                    <div className="stat-card__value">{totalElements || '—'}</div>
+                    <div className="stat-card__label">Total Invoices</div>
                 </div>
             </div>
 
@@ -94,7 +119,7 @@ export default function UserInvoicesPage() {
                         className="form-input"
                         style={{ width: '160px' }}
                         value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
+                        onChange={handleStatusFilterChange}
                     >
                         <option value="">All Status</option>
                         <option value="PENDING">Pending</option>
@@ -141,6 +166,14 @@ export default function UserInvoicesPage() {
                         <p>No invoices found. Create one from your bills page!</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
         </>
     );

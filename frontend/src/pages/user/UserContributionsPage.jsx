@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -31,7 +33,16 @@ export default function UserContributionsPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [contributions, setContributions] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [contributionStats, setContributionStats] = useState({});
+
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
 
     // Pay modal
     const [showPayModal, setShowPayModal] = useState(false);
@@ -39,21 +50,33 @@ export default function UserContributionsPage() {
     const [payAmount, setPayAmount] = useState('');
     const [creatingInvoice, setCreatingInvoice] = useState(false);
 
-    useEffect(() => {
-        fetchContributions();
-    }, []);
-
-    const fetchContributions = async () => {
+    const fetchContributions = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/api/apartment-contributions/me`);
-            setContributions(res.data || []);
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            const res = await axios.get(`${API_BASE}/api/apartment-contributions/me?${params.toString()}`, { signal });
+            setContributions(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load contributions', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiPage, pageSize]);
+
+    useEffect(() => { fetchContributions(); }, [fetchContributions]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/apartment-contributions/me/stats`)
+            .then(res => setContributionStats(res.data || {}))
+            .catch(err => console.error('Failed to load contribution stats', err));
+    }, []);
 
     const openPayModal = (contribution) => {
         setSelectedContribution(contribution);
@@ -90,8 +113,8 @@ export default function UserContributionsPage() {
         }
     };
 
-    const activeContributions = contributions.filter(c => c.status !== 'COMPLETED');
-    const completedContributions = contributions.filter(c => c.status === 'COMPLETED');
+    const activeCount = (contributionStats['NOT_STARTED'] || 0) + (contributionStats['STARTED'] || 0);
+    const completedCount = contributionStats['COMPLETED'] || 0;
 
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
@@ -110,21 +133,21 @@ export default function UserContributionsPage() {
                     <div className="stat-card__icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                     </div>
-                    <div className="stat-card__value">{activeContributions.length}</div>
+                    <div className="stat-card__value">{activeCount || '—'}</div>
                     <div className="stat-card__label">Active</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
-                    <div className="stat-card__value">{completedContributions.length}</div>
+                    <div className="stat-card__value">{completedCount || '—'}</div>
                     <div className="stat-card__label">Completed</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="stat-card__value">{contributions.length}</div>
+                    <div className="stat-card__value">{totalElements || '—'}</div>
                     <div className="stat-card__label">Total</div>
                 </div>
             </div>
@@ -197,6 +220,14 @@ export default function UserContributionsPage() {
                         <p>No contribution campaigns found for your apartment</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
 
             {/* Pay Modal */}

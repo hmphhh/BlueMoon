@@ -6,6 +6,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -85,7 +87,7 @@ public class ApartmentContributionService {
     }
 
     /**
-     * Get contributions for the authenticated user's apartment.
+     * Get contributions for the authenticated user's apartment — non-paginated.
      */
     public List<MyContributionResponse> getMyContributions(String username) {
         UserEntity user = userRepository.findByUsername(username)
@@ -99,6 +101,37 @@ public class ApartmentContributionService {
                 .stream()
                 .map(this::toMyContributionResponse)
                 .toList();
+    }
+
+    /**
+     * Get contributions for the authenticated user's apartment — paginated.
+     */
+    public Page<MyContributionResponse> getMyContributions(String username, Pageable pageable) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        if (user.getApartment() == null) {
+            throw new InvalidOperationException("User is not assigned to any apartment.");
+        }
+
+        return apartmentContributionRepository.findByApartmentId(user.getApartment().getId(), pageable)
+                .map(this::toMyContributionResponse);
+    }
+
+    /**
+     * Get apartment contribution stats for the current user's apartment.
+     */
+    public java.util.Map<String, Long> getMyContributionStats(String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        if (user.getApartment() == null) {
+            throw new InvalidOperationException("User is not assigned to any apartment.");
+        }
+        java.util.Map<String, Long> stats = new java.util.LinkedHashMap<>();
+        for (ApartmentContributionStatus s : ApartmentContributionStatus.values()) {
+            stats.put(s.name(), apartmentContributionRepository.countByApartmentIdAndOptionalStatus(user.getApartment().getId(), s));
+        }
+        return stats;
     }
 
     // ============================================================

@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -21,49 +23,35 @@ const statusBadge = (status) => {
 };
 
 /* ─────────────────────────────────────────────
-   Section: Bill Statistics
+   Section: Bill Statistics (full-scope aggregate)
    ───────────────────────────────────────────── */
-function BillStatsSection({ bills }) {
-    const stats = [
-        {
-            label: 'Unpaid',
-            count: bills.filter(b => b.status === 'UNPAID').length,
-            iconBg: 'var(--warning-bg)',
-            iconColor: 'var(--warning)',
-            icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
-        },
-        {
-            label: 'Overdue',
-            count: bills.filter(b => b.status === 'OVERDUE').length,
-            iconBg: 'var(--danger-bg)',
-            iconColor: 'var(--danger)',
-            icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
-        },
-        {
-            label: 'Paid',
-            count: bills.filter(b => b.status === 'PAID').length,
-            iconBg: 'var(--success-bg)',
-            iconColor: 'var(--success)',
-            icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-        },
-        {
-            label: 'Cancelled',
-            count: bills.filter(b => b.status === 'CANCELLED').length,
-            iconBg: 'rgba(255,255,255,0.06)',
-            iconColor: 'var(--text-muted)',
-            icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
-        },
+function BillStatsSection() {
+    const [stats, setStats] = useState({});
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/bills/stats`)
+            .then(res => setStats(res.data || {}))
+            .catch(err => console.error('Failed to load bill stats', err));
+    }, []);
+
+    const cards = [
+        { label: 'Unpaid',    key: 'UNPAID',    iconBg: 'var(--warning-bg)', iconColor: 'var(--warning)',
+          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> },
+        { label: 'Overdue',   key: 'OVERDUE',   iconBg: 'var(--danger-bg)',  iconColor: 'var(--danger)',
+          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> },
+        { label: 'Paid',      key: 'PAID',      iconBg: 'var(--success-bg)', iconColor: 'var(--success)',
+          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> },
+        { label: 'Cancelled', key: 'CANCELLED', iconBg: 'rgba(255,255,255,0.06)', iconColor: 'var(--text-muted)',
+          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> },
     ];
 
     return (
         <div className="stats-grid" style={{ marginBottom: '24px' }}>
-            {stats.map(s => (
-                <div className="stat-card" key={s.label}>
-                    <div className="stat-card__icon" style={{ background: s.iconBg, color: s.iconColor }}>
-                        {s.icon}
-                    </div>
-                    <div className="stat-card__value">{s.count}</div>
-                    <div className="stat-card__label">{s.label}</div>
+            {cards.map(c => (
+                <div className="stat-card" key={c.label}>
+                    <div className="stat-card__icon" style={{ background: c.iconBg, color: c.iconColor }}>{c.icon}</div>
+                    <div className="stat-card__value">{stats[c.key] ?? '—'}</div>
+                    <div className="stat-card__label">{c.label}</div>
                 </div>
             ))}
         </div>
@@ -268,11 +256,43 @@ function BillTemplatesSection({ templates, fetchTemplates, toast }) {
 /* ─────────────────────────────────────────────
    Section: Bills
    ───────────────────────────────────────────── */
-function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
+function BillsSection({ templates, apartments, toast }) {
     const navigate = useNavigate();
+    const {
+        currentPage, apiPage, pageSize,
+        search, debouncedSearch,
+        setCurrentPage, setPageSize, setSearch, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
+
+    const [bills, setBills] = useState([]);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
     const [statusFilter, setStatusFilter] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
     const [selectedBillIds, setSelectedBillIds] = useState([]);
+
+    const fetchBills = useCallback(async () => {
+        const signal = getAbortSignal();
+        try {
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (statusFilter) params.set('status', statusFilter);
+            if (debouncedSearch) params.set('search', debouncedSearch);
+            const res = await axios.get(`${API_BASE}/api/bills?${params.toString()}`, { signal });
+            setBills(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
+        } catch (err) {
+            if (axios.isCancel(err)) return;
+            console.error(err);
+        }
+    }, [apiPage, pageSize, statusFilter, debouncedSearch]);
+
+    useEffect(() => { fetchBills(); }, [fetchBills]);
+
+    // Reset to page 1 when filter changes
+    const handleStatusChange = (val) => { setStatusFilter(val); resetPage(); };
 
     // Create bill modal
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -282,11 +302,6 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
     const [showGenerateModal, setShowGenerateModal] = useState(false);
     const [generateForm, setGenerateForm] = useState({ templateId: '', apartmentIds: [], dueDate: '' });
     const [selectAll, setSelectAll] = useState(false);
-
-    useEffect(() => {
-        fetchBills(statusFilter, searchQuery);
-        setSelectedBillIds([]);
-    }, [statusFilter, searchQuery]);
 
     const handleCreateBill = async () => {
         if (!createForm.apartmentId || !createForm.title || !createForm.amount) {
@@ -304,7 +319,7 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
             toast('Bill created successfully!', 'success');
             setShowCreateModal(false);
             setCreateForm({ apartmentId: '', title: '', description: '', amount: '', dueDate: '' });
-            fetchBills(statusFilter, searchQuery);
+            fetchBills();
         } catch (err) {
             toast(err.response?.data?.error || 'Failed to create bill', 'error');
         }
@@ -333,7 +348,7 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
             setShowGenerateModal(false);
             setGenerateForm({ templateId: '', apartmentIds: [], dueDate: '' });
             setSelectAll(false);
-            fetchBills(statusFilter, searchQuery);
+            fetchBills();
         } catch (err) {
             toast(err.response?.data?.error || 'Failed to generate bills', 'error');
         }
@@ -365,7 +380,7 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
             await axios.patch(`${API_BASE}/api/bills/paid`, { billIds: selectedBillIds });
             toast(`${selectedBillIds.length} bill(s) marked as paid!`, 'success');
             setSelectedBillIds([]);
-            fetchBills(statusFilter, searchQuery);
+            fetchBills();
         } catch (err) {
             toast(err.response?.data?.error || err.response?.data?.message || 'Failed to mark bills as paid', 'error');
         }
@@ -378,7 +393,7 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
             await axios.patch(`${API_BASE}/api/bills/cancel`, { billIds: selectedBillIds });
             toast(`${selectedBillIds.length} bill(s) cancelled!`, 'success');
             setSelectedBillIds([]);
-            fetchBills(statusFilter, searchQuery);
+            fetchBills();
         } catch (err) {
             toast(err.response?.data?.error || err.response?.data?.message || 'Failed to cancel bills', 'error');
         }
@@ -389,7 +404,7 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
         try {
             await axios.delete(`${API_BASE}/api/bills/${billId}`);
             toast('Bill deleted successfully!', 'success');
-            fetchBills(statusFilter, searchQuery);
+            fetchBills();
         } catch (err) {
             toast(err.response?.data?.error || 'Failed to delete bill', 'error');
         }
@@ -432,15 +447,15 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
                             <input
                                 className="search-bar__input"
                                 placeholder="Search bills..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
                             />
                         </div>
                         <select
                             className="form-input"
                             style={{ width: '160px' }}
                             value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
+                            onChange={e => handleStatusChange(e.target.value)}
                         >
                             <option value="">All Status</option>
                             <option value="UNPAID">Unpaid</option>
@@ -557,6 +572,14 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
                         <p>No bills found</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
 
             {/* Create Bill Modal */}
@@ -668,28 +691,14 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
    ───────────────────────────────────────────── */
 export default function AdminBillManagementPage() {
     const toast = useToast();
-    const [bills, setBills] = useState([]);
     const [templates, setTemplates] = useState([]);
     const [apartments, setApartments] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([fetchBills(), fetchApartments(), fetchTemplates()])
+        Promise.all([fetchApartments(), fetchTemplates()])
             .finally(() => setLoading(false));
     }, []);
-
-    const fetchBills = async (status, search) => {
-        try {
-            const params = {};
-            if (status) params.status = status;
-            if (search) params.search = search;
-            const res = await axios.get(`${API_BASE}/api/bills`, { params });
-            setBills(res.data || []);
-        } catch (err) {
-            console.error(err);
-            toast('Failed to load bills', 'error');
-        }
-    };
 
     const fetchApartments = async () => {
         try {
@@ -722,7 +731,7 @@ export default function AdminBillManagementPage() {
             </div>
 
             {/* 2. Statistics */}
-            <BillStatsSection bills={bills} />
+            <BillStatsSection />
 
             {/* 3. Bill Templates Section */}
             <BillTemplatesSection
@@ -733,10 +742,8 @@ export default function AdminBillManagementPage() {
 
             {/* 4. Bills Section */}
             <BillsSection
-                bills={bills}
                 templates={templates}
                 apartments={apartments}
-                fetchBills={fetchBills}
                 toast={toast}
             />
         </>

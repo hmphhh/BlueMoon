@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -9,16 +11,45 @@ export default function UserReportsPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [reports, setReports] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ALL');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [formData, setFormData] = useState({ title: '', content: '' });
     const [submitting, setSubmitting] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
 
-    useEffect(() => {
-        fetchReports();
-    }, [activeTab]);
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
+
+    const fetchReports = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (activeTab !== 'ALL') {
+                params.set('status', activeTab);
+            }
+            const res = await axios.get(`${API_BASE}/api/reports/me?${params.toString()}`, { signal });
+            setReports(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
+        } catch (err) {
+            if (axios.isCancel(err)) return;
+            console.error(err);
+            toast('Failed to load reports', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [apiPage, pageSize, activeTab]);
+
+    useEffect(() => { fetchReports(); }, [fetchReports]);
 
     // Auto-open create modal if navigated with ?create=true
     useEffect(() => {
@@ -28,23 +59,11 @@ export default function UserReportsPage() {
             searchParams.delete('create');
             setSearchParams(searchParams, { replace: true });
         }
-    }, []);
+    }, [searchParams, setSearchParams]);
 
-    const fetchReports = async () => {
-        try {
-            setLoading(true);
-            let url = `${API_BASE}/api/reports/me`;
-            if (activeTab !== 'ALL') {
-                url += `?status=${activeTab}`;
-            }
-            const res = await axios.get(url);
-            setReports(res.data || []);
-        } catch (err) {
-            console.error(err);
-            toast('Failed to load reports', 'error');
-        } finally {
-            setLoading(false);
-        }
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        resetPage();
     };
 
     const handleCreate = async () => {
@@ -100,7 +119,7 @@ export default function UserReportsPage() {
 
             <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2>Reports ({reports.length})</h2>
+                    <h2>Reports ({totalElements})</h2>
                     <button className="btn btn--primary" onClick={() => setShowCreateModal(true)}>
                         + New Report
                     </button>
@@ -111,7 +130,7 @@ export default function UserReportsPage() {
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
+                            onClick={() => handleTabChange(tab.key)}
                             style={{
                                 padding: '10px 24px', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
                                 border: 'none', background: 'none',
@@ -170,6 +189,16 @@ export default function UserReportsPage() {
                         </svg>
                         <p>No reports found. Click "New Report" to create one.</p>
                     </div>
+                )}
+                {!loading && (
+                    <PaginationControls
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        pageSize={pageSize}
+                        totalItems={totalElements}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={setPageSize}
+                    />
                 )}
             </div>
 

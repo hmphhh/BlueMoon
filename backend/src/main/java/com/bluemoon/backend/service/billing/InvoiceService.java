@@ -10,10 +10,13 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -269,7 +272,7 @@ public class InvoiceService {
     }
 
     /**
-     * Get invoices created by the authenticated user.
+     * Get invoices created by the authenticated user (non-paginated).
      * Only shows PAID and PENDING invoices.
      */
     public List<InvoiceSummaryResponse> getMyInvoices(Long userId, InvoiceStatus status) {
@@ -282,12 +285,52 @@ public class InvoiceService {
     }
 
     /**
-     * Get all invoices with optional filters (admin).
+     * Get invoices created by the authenticated user — paginated.
+     * Only PAID and PENDING (filtered in repo query).
+     */
+    public Page<InvoiceSummaryResponse> getMyInvoices(Long userId, InvoiceStatus status, Pageable pageable) {
+        return invoiceRepository.findByCreatedByIdAndOptionalStatus(userId, status, pageable)
+                .map(i -> toInvoiceSummaryResponse(i, false));
+    }
+
+    /**
+     * Get all invoices with optional filters (admin) — non-paginated.
      */
     public List<InvoiceSummaryResponse> getAllInvoices(InvoiceStatus status, Long createdBy, String invoiceCode) {
         return invoiceRepository.findAllWithFilters(status, createdBy, invoiceCode).stream()
                 .map(i -> toInvoiceSummaryResponse(i, true))
                 .toList();
+    }
+
+    /**
+     * Get all invoices with optional filters (admin) — paginated.
+     */
+    public Page<InvoiceSummaryResponse> getAllInvoices(
+            InvoiceStatus status, Long createdBy, String invoiceCode, Pageable pageable) {
+        return invoiceRepository.findAllWithFilters(status, createdBy, invoiceCode, pageable)
+                .map(i -> toInvoiceSummaryResponse(i, true));
+    }
+
+    /**
+     * Invoice counts by status for admin stats cards (full scope).
+     */
+    public Map<String, Long> getInvoiceStats() {
+        Map<String, Long> stats = new java.util.LinkedHashMap<>();
+        for (InvoiceStatus s : InvoiceStatus.values()) {
+            stats.put(s.name(), invoiceRepository.countByOptionalStatus(s));
+        }
+        return stats;
+    }
+
+    /**
+     * Invoice counts by status for user stats cards (user scope).
+     */
+    public Map<String, Long> getMyInvoiceStats(Long userId) {
+        Map<String, Long> stats = new java.util.LinkedHashMap<>();
+        for (InvoiceStatus s : InvoiceStatus.values()) {
+            stats.put(s.name(), invoiceRepository.countByCreatedByIdAndOptionalStatus(userId, s));
+        }
+        return stats;
     }
 
     // ============================================================

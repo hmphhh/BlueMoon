@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -9,21 +11,11 @@ export default function AdminAccountManagementPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [users, setUsers] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [apartments, setApartments] = useState([]);
-
-    // Pagination
-    const [page, setPage] = useState(0);
-    const [size] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
-
-    // Search and filters
-    const [search, setSearch] = useState('');
-    const [filterRole, setFilterRole] = useState('USER');
-    const [filterStatus, setFilterStatus] = useState('');
-    const [filterApartmentId, setFilterApartmentId] = useState('');
 
     // Create form
     const [formData, setFormData] = useState({
@@ -33,32 +25,43 @@ export default function AdminAccountManagementPage() {
         relationship: 'OTHER', apartmentId: null
     });
 
-    useEffect(() => {
-        fetchUsers();
-    }, [page, search, filterRole, filterStatus, filterApartmentId]);
+    // Filters
+    const [filterRole, setFilterRole] = useState('USER');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [filterApartmentId, setFilterApartmentId] = useState('');
 
-    const fetchUsers = async () => {
+    const {
+        currentPage, apiPage, pageSize,
+        search, debouncedSearch,
+        setCurrentPage, setPageSize, setSearch, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
+
+    const fetchUsers = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
             const params = new URLSearchParams();
-            params.set('page', page);
-            params.set('size', size);
-            if (search) params.set('search', search);
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (debouncedSearch) params.set('search', debouncedSearch);
             if (filterRole) params.set('role', filterRole);
             if (filterStatus) params.set('status', filterStatus);
             if (filterApartmentId) params.set('apartmentId', filterApartmentId);
-
-            const res = await axios.get(`${API_BASE}/api/users?${params.toString()}`);
-            const data = res.data;
-            setUsers(data.content || []);
-            setTotalPages(data.totalPages || 0);
-            setTotalElements(data.totalElements || 0);
+            const res = await axios.get(`${API_BASE}/api/users?${params.toString()}`, { signal });
+            setUsers(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load users', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiPage, pageSize, debouncedSearch, filterRole, filterStatus, filterApartmentId]);
+
+    useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
     const fetchApartments = async () => {
         try {
@@ -122,10 +125,7 @@ export default function AdminAccountManagementPage() {
         }
     };
 
-    const handleSearchChange = (e) => {
-        setSearch(e.target.value);
-        setPage(0);
-    };
+    const handleSearchChange = (e) => { setSearch(e.target.value); };
 
     const [activeTab, setActiveTab] = useState('USER');
 
@@ -155,7 +155,7 @@ export default function AdminAccountManagementPage() {
                 {/* Tabs */}
                 <div style={{ display: 'flex', gap: '0', marginBottom: '20px', borderBottom: '2px solid var(--border-color, #333)' }}>
                     <button
-                        onClick={() => { setActiveTab('USER'); setFilterRole('USER'); setFilterStatus(''); setPage(0); }}
+                        onClick={() => { setActiveTab('USER'); setFilterRole('USER'); setFilterStatus(''); resetPage(); }}
                         style={{
                             padding: '10px 24px', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
                             border: 'none', background: 'none',
@@ -167,7 +167,7 @@ export default function AdminAccountManagementPage() {
                         User Accounts
                     </button>
                     <button
-                        onClick={() => { setActiveTab('ADMIN'); setFilterRole('ADMIN'); setFilterStatus(''); setPage(0); }}
+                        onClick={() => { setActiveTab('ADMIN'); setFilterRole('ADMIN'); setFilterStatus(''); resetPage(); }}
                         style={{
                             padding: '10px 24px', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
                             border: 'none', background: 'none',
@@ -191,7 +191,7 @@ export default function AdminAccountManagementPage() {
                     />
                     {activeTab === 'USER' && (
                         <select className="form-input" style={{ width: '180px' }} value={filterStatus}
-                            onChange={e => { setFilterStatus(e.target.value); setPage(0); }}>
+                            onChange={e => { setFilterStatus(e.target.value); resetPage(); }}>
                             <option value="">All Status</option>
                             <option value="ACTIVE">Active</option>
                             <option value="TEMPORARILY_ABSENT">Temporarily Absent</option>
@@ -233,19 +233,14 @@ export default function AdminAccountManagementPage() {
                                     </tbody>
                                 </table>
 
-                                {totalPages > 1 && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                                            ← Previous
-                                        </button>
-                                        <span style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
-                                            Page {page + 1} of {totalPages}
-                                        </span>
-                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-                                            Next →
-                                        </button>
-                                    </div>
-                                )}
+                                <PaginationControls
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    pageSize={pageSize}
+                                    totalItems={totalElements}
+                                    onPageChange={setCurrentPage}
+                                    onPageSizeChange={setPageSize}
+                                />
                             </>
                         ) : (
                             <p>No admin accounts found.</p>
@@ -296,19 +291,14 @@ export default function AdminAccountManagementPage() {
                                     </tbody>
                                 </table>
 
-                                {totalPages > 1 && (
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                                            ← Previous
-                                        </button>
-                                        <span style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
-                                            Page {page + 1} of {totalPages}
-                                        </span>
-                                        <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-                                            Next →
-                                        </button>
-                                    </div>
-                                )}
+                                <PaginationControls
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    pageSize={pageSize}
+                                    totalItems={totalElements}
+                                    onPageChange={setCurrentPage}
+                                    onPageSizeChange={setPageSize}
+                                />
                             </>
                         ) : (
                             <p>No user accounts found.</p>

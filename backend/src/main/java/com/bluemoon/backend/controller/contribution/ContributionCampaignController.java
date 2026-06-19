@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,12 +53,25 @@ public class ContributionCampaignController {
      * GET /api/contribution-campaigns — List campaigns with optional filters.
      */
     @GetMapping
-    public ResponseEntity<List<CampaignSummaryResponse>> getCampaigns(
+    public ResponseEntity<Page<CampaignSummaryResponse>> getCampaigns(
             @RequestParam(required = false) ContributionCampaignStatus status,
             @RequestParam(required = false) ContributionType contributionType,
             @RequestParam(required = false) LocalDate startDate,
-            @RequestParam(required = false) LocalDate endDate) {
-        return ResponseEntity.ok(campaignService.getCampaigns(status, contributionType, startDate, endDate));
+            @RequestParam(required = false) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        int cappedSize = Math.min(size, 50);
+        return ResponseEntity.ok(campaignService.getCampaigns(
+                status, contributionType, startDate, endDate,
+                PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "createdAt"))));
+    }
+
+    /**
+     * GET /api/contribution-campaigns/stats — Campaign counts by status (admin only).
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getCampaignStats() {
+        return ResponseEntity.ok(campaignService.getCampaignStats());
     }
 
     /**

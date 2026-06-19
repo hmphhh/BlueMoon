@@ -3,6 +3,9 @@ package com.bluemoon.backend.controller.contribution;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -44,9 +47,23 @@ public class ApartmentContributionController {
      * GET /api/apartment-contributions/me — Get contributions for authenticated user's apartment.
      */
     @GetMapping("/me")
-    public ResponseEntity<List<MyContributionResponse>> getMyContributions() {
+    public ResponseEntity<Page<MyContributionResponse>> getMyContributions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        int cappedSize = Math.min(size, 50);
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ResponseEntity.ok(contributionService.getMyContributions(username));
+        return ResponseEntity.ok(contributionService.getMyContributions(
+                username,
+                PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "createdAt"))));
+    }
+
+    /**
+     * GET /api/apartment-contributions/me/stats — Get contribution stats for user's apartment.
+     */
+    @GetMapping("/me/stats")
+    public ResponseEntity<java.util.Map<String, Long>> getMyContributionStats() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(contributionService.getMyContributionStats(username));
     }
 
     /**

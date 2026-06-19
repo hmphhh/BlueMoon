@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -23,28 +25,54 @@ export default function UserBillsPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [bills, setBills] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const [selectedBill, setSelectedBill] = useState(null);
     const [selectedBillIds, setSelectedBillIds] = useState([]);
     const [creatingInvoice, setCreatingInvoice] = useState(false);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [billStats, setBillStats] = useState({});
 
-    useEffect(() => {
-        fetchBills();
-    }, [statusFilter]);
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
 
-    const fetchBills = async () => {
+    const fetchBills = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
-            const params = {};
-            if (statusFilter) params.status = statusFilter;
-            const res = await axios.get(`${API_BASE}/api/bills/me`, { params });
-            setBills(res.data || []);
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (statusFilter) params.set('status', statusFilter);
+            
+            const res = await axios.get(`${API_BASE}/api/bills/me?${params.toString()}`, { signal });
+            setBills(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load bills', 'error');
         } finally {
             setLoading(false);
         }
+    }, [apiPage, pageSize, statusFilter]);
+
+    useEffect(() => { fetchBills(); }, [fetchBills]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/bills/me/stats`)
+            .then(res => setBillStats(res.data || {}))
+            .catch(err => console.error('Failed to load bill stats', err));
+    }, []);
+
+    const handleStatusFilterChange = (e) => {
+        setStatusFilter(e.target.value);
+        resetPage();
     };
 
     const fetchBillDetail = async (billId) => {
@@ -99,9 +127,9 @@ export default function UserBillsPage() {
         }
     };
 
-    const unpaidBills = bills.filter(b => b.status === 'UNPAID');
-    const overdueBills = bills.filter(b => b.status === 'OVERDUE');
-    const totalOutstanding = [...unpaidBills, ...overdueBills].reduce((sum, b) => sum + (b.amount || 0), 0);
+    const unpaidCount = billStats['UNPAID'] ?? '—';
+    const overdueCount = billStats['OVERDUE'] ?? '—';
+    const totalOutstanding = null; // Cannot calculate total amount efficiently from counts alone. Assuming this requires a custom endpoint if needed.
 
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
@@ -120,22 +148,22 @@ export default function UserBillsPage() {
                     <div className="stat-card__icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                     </div>
-                    <div className="stat-card__value">{unpaidBills.length}</div>
+                    <div className="stat-card__value">{unpaidCount}</div>
                     <div className="stat-card__label">Unpaid</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'var(--danger-bg)', color: 'var(--danger)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                     </div>
-                    <div className="stat-card__value">{overdueBills.length}</div>
+                    <div className="stat-card__value">{overdueCount}</div>
                     <div className="stat-card__label">Overdue</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-card__icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="stat-card__value">{formatCurrency(totalOutstanding)}</div>
-                    <div className="stat-card__label">Total Outstanding</div>
+                    <div className="stat-card__value">{totalElements || '—'}</div>
+                    <div className="stat-card__label">Total Bills</div>
                 </div>
             </div>
 
@@ -148,7 +176,7 @@ export default function UserBillsPage() {
                             className="form-input"
                             style={{ width: '160px' }}
                             value={statusFilter}
-                            onChange={e => setStatusFilter(e.target.value)}
+                            onChange={handleStatusFilterChange}
                         >
                             <option value="">All Status</option>
                             <option value="UNPAID">Unpaid</option>
@@ -248,6 +276,14 @@ export default function UserBillsPage() {
                         <p>No bills found. You're all caught up!</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
 
             {/* Bill Detail Modal */}

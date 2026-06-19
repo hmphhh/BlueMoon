@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -68,10 +71,24 @@ public class InvoiceController {
      * Only shows PAID and PENDING invoices. createdBy field is not included.
      */
     @GetMapping("/me")
-    public ResponseEntity<List<InvoiceSummaryResponse>> getMyInvoices(
-            @RequestParam(required = false) InvoiceStatus status) {
+    public ResponseEntity<Page<InvoiceSummaryResponse>> getMyInvoices(
+            @RequestParam(required = false) InvoiceStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        int cappedSize = Math.min(size, 50);
         Long userId = getCurrentUserId();
-        return ResponseEntity.ok(invoiceService.getMyInvoices(userId, status));
+        return ResponseEntity.ok(invoiceService.getMyInvoices(
+                userId, status,
+                PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "createdAt"))));
+    }
+
+    /**
+     * GET /api/invoices/me/stats — Count of invoices by status for current user.
+     */
+    @GetMapping("/me/stats")
+    public ResponseEntity<Map<String, Long>> getMyInvoiceStats() {
+        Long userId = getCurrentUserId();
+        return ResponseEntity.ok(invoiceService.getMyInvoiceStats(userId));
     }
 
     /**
@@ -113,11 +130,25 @@ public class InvoiceController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<InvoiceSummaryResponse>> getAllInvoices(
+    public ResponseEntity<Page<InvoiceSummaryResponse>> getAllInvoices(
             @RequestParam(required = false) InvoiceStatus status,
             @RequestParam(required = false) Long createdBy,
-            @RequestParam(required = false) String invoiceCode) {
-        return ResponseEntity.ok(invoiceService.getAllInvoices(status, createdBy, invoiceCode));
+            @RequestParam(required = false) String invoiceCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        int cappedSize = Math.min(size, 50);
+        return ResponseEntity.ok(invoiceService.getAllInvoices(
+                status, createdBy, invoiceCode,
+                PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "createdAt"))));
+    }
+
+    /**
+     * GET /api/invoices/stats — Aggregate invoice counts by status (admin only).
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getInvoiceStats() {
+        return ResponseEntity.ok(invoiceService.getInvoiceStats());
     }
 
     /**

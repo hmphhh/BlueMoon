@@ -5,12 +5,16 @@ import com.bluemoon.backend.service.communication.NotificationService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -118,7 +122,7 @@ public class BillService {
     // ============================================================
 
     /**
-     * Get all bills with optional filters (admin).
+     * Get all bills with optional filters (admin) — non-paginated.
      */
     public List<BillSummaryResponse> getAllBills(Long apartmentId, BillStatus status, String search) {
         return billRepository.findAllWithFilters(apartmentId, status, search).stream()
@@ -127,7 +131,43 @@ public class BillService {
     }
 
     /**
-     * Get bills for the current user's apartment (excludes CANCELLED).
+     * Get all bills with optional filters (admin) — paginated.
+     */
+    public Page<BillSummaryResponse> getAllBills(
+            Long apartmentId, BillStatus status, String search, Pageable pageable) {
+        return billRepository.findAllWithFilters(apartmentId, status, search, pageable)
+                .map(this::toSummaryResponse);
+    }
+
+    /**
+     * Aggregate bill counts by status for admin stats cards (full scope).
+     */
+    public Map<String, Long> getBillStats() {
+        Map<String, Long> stats = new LinkedHashMap<>();
+        for (BillStatus s : BillStatus.values()) {
+            stats.put(s.name(), billRepository.countByOptionalStatus(s));
+        }
+        return stats;
+    }
+
+    /**
+     * Aggregate bill counts by status for user stats cards (user apartment scope).
+     */
+    public Map<String, Long> getMyBillStats(String username) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        if (user.getApartment() == null) {
+            throw new InvalidOperationException("User is not assigned to any apartment.");
+        }
+        Map<String, Long> stats = new LinkedHashMap<>();
+        for (BillStatus s : BillStatus.values()) {
+            stats.put(s.name(), billRepository.countByApartmentIdExcludingCancelledAndOptionalStatus(user.getApartment().getId(), s));
+        }
+        return stats;
+    }
+
+    /**
+     * Get bills for the current user's apartment (excludes CANCELLED) — non-paginated.
      */
     public List<BillSummaryResponse> getMyBills(String username, BillStatus status) {
         UserEntity user = userRepository.findByUsername(username)
@@ -144,6 +184,25 @@ public class BillService {
                         b.getTitle(), b.getAmount(), b.getStatus(), b.getDueDate()
                 ))
                 .toList();
+    }
+
+    /**
+     * Get bills for the current user's apartment (excludes CANCELLED) — paginated.
+     */
+    public Page<BillSummaryResponse> getMyBills(String username, BillStatus status, Pageable pageable) {
+        UserEntity user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        if (user.getApartment() == null) {
+            throw new InvalidOperationException("User is not assigned to any apartment.");
+        }
+
+        return billRepository.findByApartmentIdExcludingCancelled(
+                        user.getApartment().getId(), status, pageable)
+                .map(b -> new BillSummaryResponse(
+                        b.getId(), null, null,
+                        b.getTitle(), b.getAmount(), b.getStatus(), b.getDueDate()
+                ));
     }
 
     /**

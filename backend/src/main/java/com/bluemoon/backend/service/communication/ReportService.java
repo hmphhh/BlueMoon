@@ -86,7 +86,7 @@ public class ReportService {
     }
 
     /**
-     * Get current user's reports, optionally filtered by status.
+     * Get current user's reports, optionally filtered by status — non-paginated.
      */
     public List<ReportSummaryResponse> getMyReports(String username, ReportStatus status) {
         UserEntity user = getUserByUsername(username);
@@ -101,6 +101,15 @@ public class ReportService {
         return reports.stream()
             .map(r -> new ReportSummaryResponse(r.getId(), r.getTitle(), r.getStatus(), r.getCreatedAt()))
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Get current user's reports, optionally filtered by status — paginated.
+     */
+    public Page<ReportSummaryResponse> getMyReports(String username, ReportStatus status, Pageable pageable) {
+        UserEntity user = getUserByUsername(username);
+        return reportRepository.findByCreatedByIdAndOptionalStatus(user.getId(), status, pageable)
+            .map(r -> new ReportSummaryResponse(r.getId(), r.getTitle(), r.getStatus(), r.getCreatedAt()));
     }
 
     /**

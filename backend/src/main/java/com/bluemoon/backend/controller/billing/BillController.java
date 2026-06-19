@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,23 +37,52 @@ public class BillController {
      */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<List<BillSummaryResponse>> getAllBills(
+    public ResponseEntity<Page<BillSummaryResponse>> getAllBills(
             @RequestParam(required = false) Long apartmentId,
             @RequestParam(required = false) BillStatus status,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(billService.getAllBills(apartmentId, status, search));
+        int cappedSize = Math.min(size, 50);
+        return ResponseEntity.ok(billService.getAllBills(
+                apartmentId, status, search,
+                PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "createdAt"))));
+    }
+
+    /**
+     * GET /api/bills/stats — Aggregate bill counts by status (admin only).
+     * Used by stats cards to show full-scope counts independent of pagination.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getBillStats() {
+        return ResponseEntity.ok(billService.getBillStats());
+    }
+
+    /**
+     * GET /api/bills/me/stats — Count of bills by status for current user's apartment.
+     */
+    @GetMapping("/me/stats")
+    public ResponseEntity<Map<String, Long>> getMyBillStats() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(billService.getMyBillStats(username));
     }
 
     /**
      * GET /api/bills/me — List bills for current user's apartment (excludes CANCELLED).
      */
     @GetMapping("/me")
-    public ResponseEntity<List<BillSummaryResponse>> getMyBills(
-            @RequestParam(required = false) BillStatus status
+    public ResponseEntity<Page<BillSummaryResponse>> getMyBills(
+            @RequestParam(required = false) BillStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
+        int cappedSize = Math.min(size, 50);
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ResponseEntity.ok(billService.getMyBills(username, status));
+        return ResponseEntity.ok(billService.getMyBills(
+                username, status,
+                PageRequest.of(page, cappedSize, Sort.by(Sort.Direction.DESC, "createdAt"))));
     }
 
     /**

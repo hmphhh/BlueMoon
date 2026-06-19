@@ -7,6 +7,8 @@ import java.util.Optional;
 import com.bluemoon.backend.entity.contribution.ContributionCampaignEntity;
 import com.bluemoon.backend.enums.contribution.ContributionCampaignStatus;
 import com.bluemoon.backend.enums.contribution.ContributionType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,6 +33,39 @@ public interface ContributionCampaignRepository extends JpaRepository<Contributi
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
+
+    /**
+     * Paginated: campaigns with optional filters.
+     */
+    @Query(value = """
+        SELECT c FROM ContributionCampaignEntity c
+        JOIN FETCH c.createdBy
+        WHERE (:status IS NULL OR c.status = :status)
+          AND (:contributionType IS NULL OR c.contributionType = :contributionType)
+          AND (CAST(:startDate AS date) IS NULL OR c.startDate >= :startDate)
+          AND (CAST(:endDate AS date) IS NULL OR c.endDate <= :endDate)
+        ORDER BY c.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(c) FROM ContributionCampaignEntity c
+        WHERE (:status IS NULL OR c.status = :status)
+          AND (:contributionType IS NULL OR c.contributionType = :contributionType)
+          AND (CAST(:startDate AS date) IS NULL OR c.startDate >= :startDate)
+          AND (CAST(:endDate AS date) IS NULL OR c.endDate <= :endDate)
+    """)
+    Page<ContributionCampaignEntity> findAllWithFilters(
+        @Param("status") ContributionCampaignStatus status,
+        @Param("contributionType") ContributionType contributionType,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        Pageable pageable
+    );
+
+    /**
+     * Count campaigns by status for stats cards (full scope, not paginated).
+     */
+    @Query("SELECT COUNT(c) FROM ContributionCampaignEntity c WHERE (:status IS NULL OR c.status = :status)")
+    long countByOptionalStatus(@Param("status") ContributionCampaignStatus status);
 
     /**
      * Find a campaign by ID with createdBy eagerly fetched.

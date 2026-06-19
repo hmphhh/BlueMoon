@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.bluemoon.backend.entity.billing.BillEntity;
 import com.bluemoon.backend.enums.billing.BillStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -26,6 +28,33 @@ public interface BillRepository extends JpaRepository<BillEntity, Long> {
         @Param("apartmentId") Long apartmentId,
         @Param("status") BillStatus status,
         @Param("search") String search
+    );
+
+    /**
+     * Paginated variant of findAllWithFilters (admin).
+     */
+    @Query(value = """
+        SELECT b FROM BillEntity b
+        JOIN FETCH b.apartment a
+        WHERE (:apartmentId IS NULL OR a.id = :apartmentId)
+          AND (:status IS NULL OR b.status = :status)
+          AND (:search IS NULL OR :search = ''
+               OR LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')))
+        ORDER BY b.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(b) FROM BillEntity b
+        JOIN b.apartment a
+        WHERE (:apartmentId IS NULL OR a.id = :apartmentId)
+          AND (:status IS NULL OR b.status = :status)
+          AND (:search IS NULL OR :search = ''
+               OR LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')))
+    """)
+    Page<BillEntity> findAllWithFilters(
+        @Param("apartmentId") Long apartmentId,
+        @Param("status") BillStatus status,
+        @Param("search") String search,
+        Pageable pageable
     );
 
     /**
@@ -53,6 +82,48 @@ public interface BillRepository extends JpaRepository<BillEntity, Long> {
         ORDER BY b.createdAt DESC
     """)
     List<BillEntity> findByApartmentIdExcludingCancelled(
+        @Param("apartmentId") Long apartmentId,
+        @Param("status") BillStatus status
+    );
+
+    /**
+     * Paginated variant for user's apartment bills (excludes CANCELLED).
+     */
+    @Query(value = """
+        SELECT b FROM BillEntity b
+        WHERE b.apartment.id = :apartmentId
+          AND b.status <> com.bluemoon.backend.enums.billing.BillStatus.CANCELLED
+          AND (:status IS NULL OR b.status = :status)
+        ORDER BY b.createdAt DESC
+    """,
+    countQuery = """
+        SELECT COUNT(b) FROM BillEntity b
+        WHERE b.apartment.id = :apartmentId
+          AND b.status <> com.bluemoon.backend.enums.billing.BillStatus.CANCELLED
+          AND (:status IS NULL OR b.status = :status)
+    """)
+    Page<BillEntity> findByApartmentIdExcludingCancelled(
+        @Param("apartmentId") Long apartmentId,
+        @Param("status") BillStatus status,
+        Pageable pageable
+    );
+
+    /**
+     * Count bills by status for admin stats (full scope, not paginated).
+     */
+    @Query("SELECT COUNT(b) FROM BillEntity b WHERE (:status IS NULL OR b.status = :status)")
+    long countByOptionalStatus(@Param("status") BillStatus status);
+
+    /**
+     * Count bills by status for a specific apartment (user stats, excludes CANCELLED).
+     */
+    @Query("""
+        SELECT COUNT(b) FROM BillEntity b
+        WHERE b.apartment.id = :apartmentId
+          AND b.status <> com.bluemoon.backend.enums.billing.BillStatus.CANCELLED
+          AND (:status IS NULL OR b.status = :status)
+    """)
+    long countByApartmentIdExcludingCancelledAndOptionalStatus(
         @Param("apartmentId") Long apartmentId,
         @Param("status") BillStatus status
     );

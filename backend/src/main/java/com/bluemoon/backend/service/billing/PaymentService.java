@@ -5,6 +5,7 @@ import com.bluemoon.backend.service.communication.NotificationService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,6 +13,8 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -177,12 +180,32 @@ public class PaymentService {
     }
 
     /**
-     * Get all payments (admin).
+     * Get all payments (admin) — non-paginated.
      */
     public List<PaymentSummaryResponse> getAllPayments() {
         return paymentRepository.findAllWithInvoice().stream()
                 .map(this::toSummaryResponse)
                 .toList();
+    }
+
+    /**
+     * Get all payments (admin) — paginated.
+     */
+    public Page<PaymentSummaryResponse> getAllPayments(Pageable pageable) {
+        return paymentRepository.findAllWithInvoice(pageable)
+                .map(this::toSummaryResponse);
+    }
+
+    /**
+     * Payment counts by status for admin stats cards (full scope).
+     */
+    public Map<String, Long> getPaymentStats() {
+        Map<String, Long> stats = new java.util.LinkedHashMap<>();
+        for (com.bluemoon.backend.enums.billing.PaymentStatus s
+                : com.bluemoon.backend.enums.billing.PaymentStatus.values()) {
+            stats.put(s.name(), paymentRepository.countByStatus(s));
+        }
+        return stats;
     }
 
     // ============================================================

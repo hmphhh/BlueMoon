@@ -5,10 +5,13 @@ import com.bluemoon.backend.service.communication.NotificationService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,7 +94,7 @@ public class ContributionCampaignService {
     }
 
     /**
-     * List campaigns with optional filters.
+     * List campaigns with optional filters — non-paginated.
      */
     public List<CampaignSummaryResponse> getCampaigns(
             ContributionCampaignStatus status,
@@ -102,6 +105,30 @@ public class ContributionCampaignService {
                 .stream()
                 .map(this::toCampaignSummary)
                 .toList();
+    }
+
+    /**
+     * List campaigns with optional filters — paginated.
+     */
+    public Page<CampaignSummaryResponse> getCampaigns(
+            ContributionCampaignStatus status,
+            ContributionType contributionType,
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable) {
+        return campaignRepository.findAllWithFilters(status, contributionType, startDate, endDate, pageable)
+                .map(this::toCampaignSummary);
+    }
+
+    /**
+     * Campaign counts by status for admin stats cards (full scope).
+     */
+    public Map<String, Long> getCampaignStats() {
+        Map<String, Long> stats = new java.util.LinkedHashMap<>();
+        for (ContributionCampaignStatus s : ContributionCampaignStatus.values()) {
+            stats.put(s.name(), campaignRepository.countByOptionalStatus(s));
+        }
+        return stats;
     }
 
     /**

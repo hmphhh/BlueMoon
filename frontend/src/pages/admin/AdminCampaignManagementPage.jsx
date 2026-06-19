@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -32,9 +34,50 @@ export default function AdminCampaignManagementPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [campaigns, setCampaigns] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalElements, setTotalElements] = useState(0);
+    const [campaignStats, setCampaignStats] = useState({});
+
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
+
+    const fetchCampaigns = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (statusFilter) params.set('status', statusFilter);
+            if (typeFilter) params.set('contributionType', typeFilter);
+            const res = await axios.get(`${API_BASE}/api/contribution-campaigns?${params.toString()}`, { signal });
+            setCampaigns(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
+        } catch (err) {
+            if (axios.isCancel(err)) return;
+            console.error(err);
+            toast('Failed to load campaigns', 'error');
+        } finally {
+            setLoading(false);
+        }
+    }, [apiPage, pageSize, statusFilter, typeFilter]);
+
+    useEffect(() => { fetchCampaigns(); }, [fetchCampaigns]);
+
+    useEffect(() => {
+        axios.get(`${API_BASE}/api/contribution-campaigns/stats`)
+            .then(res => setCampaignStats(res.data || {}))
+            .catch(err => console.error('Failed to load campaign stats', err));
+    }, []);
+
+    const handleFilterChange = (setter) => (e) => { setter(e.target.value); resetPage(); };
 
     // Create/Edit modal
     const [showModal, setShowModal] = useState(false);
@@ -43,25 +86,6 @@ export default function AdminCampaignManagementPage() {
         title: '', description: '', contributionType: 'MANDATORY',
         startDate: '', endDate: '', requiredAmount: '', targetAmount: ''
     });
-
-    useEffect(() => {
-        fetchCampaigns();
-    }, [statusFilter, typeFilter]);
-
-    const fetchCampaigns = async () => {
-        try {
-            const params = {};
-            if (statusFilter) params.status = statusFilter;
-            if (typeFilter) params.contributionType = typeFilter;
-            const res = await axios.get(`${API_BASE}/api/contribution-campaigns`, { params });
-            setCampaigns(res.data || []);
-        } catch (err) {
-            console.error(err);
-            toast('Failed to load campaigns', 'error');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const openCreateModal = () => {
         setEditingId(null);
@@ -155,9 +179,9 @@ export default function AdminCampaignManagementPage() {
         }
     };
 
-    const draftCount = campaigns.filter(c => c.status === 'DRAFT').length;
-    const activeCount = campaigns.filter(c => c.status === 'ACTIVE').length;
-    const completedCount = campaigns.filter(c => c.status === 'COMPLETED').length;
+    const draftCount = campaignStats['DRAFT'] ?? '—';
+    const activeCount = campaignStats['ACTIVE'] ?? '—';
+    const completedCount = campaignStats['COMPLETED'] ?? '—';
 
     if (loading) {
         return <div className="page-header"><h1>Loading...</h1></div>;
@@ -197,7 +221,7 @@ export default function AdminCampaignManagementPage() {
                     <div className="stat-card__icon" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                     </div>
-                    <div className="stat-card__value">{campaigns.length}</div>
+                    <div className="stat-card__value">{totalElements || '—'}</div>
                     <div className="stat-card__label">Total</div>
                 </div>
             </div>
@@ -206,14 +230,14 @@ export default function AdminCampaignManagementPage() {
                 {/* Toolbar */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <select className="form-input" style={{ width: '160px' }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+                        <select className="form-input" style={{ width: '160px' }} value={statusFilter} onChange={handleFilterChange(setStatusFilter)}>
                             <option value="">All Status</option>
                             <option value="DRAFT">Draft</option>
                             <option value="ACTIVE">Active</option>
                             <option value="COMPLETED">Completed</option>
                             <option value="CANCELED">Canceled</option>
                         </select>
-                        <select className="form-input" style={{ width: '160px' }} value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                        <select className="form-input" style={{ width: '160px' }} value={typeFilter} onChange={handleFilterChange(setTypeFilter)}>
                             <option value="">All Types</option>
                             <option value="MANDATORY">Mandatory</option>
                             <option value="VOLUNTARY">Voluntary</option>
@@ -286,6 +310,14 @@ export default function AdminCampaignManagementPage() {
                         <p>No campaigns found</p>
                     </div>
                 )}
+                <PaginationControls
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalItems={totalElements}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                />
             </div>
 
             {/* Create/Edit Modal */}

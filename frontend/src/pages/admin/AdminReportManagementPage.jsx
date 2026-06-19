@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import usePagination from '../../hooks/usePagination';
+import PaginationControls from '../../components/ui/PaginationControls';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 
@@ -9,41 +11,39 @@ export default function AdminReportManagementPage() {
     const navigate = useNavigate();
     const toast = useToast();
     const [reports, setReports] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('ALL');
-
-    // Pagination
-    const [page, setPage] = useState(0);
-    const [size] = useState(10);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
 
-    useEffect(() => {
-        fetchReports();
-    }, [page, activeTab]);
+    const {
+        currentPage, apiPage, pageSize,
+        setCurrentPage, setPageSize, resetPage,
+        getAbortSignal,
+    } = usePagination({ initialPageSize: 10 });
 
-    const fetchReports = async () => {
+    const fetchReports = useCallback(async () => {
+        const signal = getAbortSignal();
+        setLoading(true);
         try {
-            setLoading(true);
             const params = new URLSearchParams();
-            params.set('page', page);
-            params.set('size', size);
-            if (activeTab !== 'ALL') {
-                params.set('status', activeTab);
-            }
-
-            const res = await axios.get(`${API_BASE}/api/reports?${params.toString()}`);
-            const data = res.data;
-            setReports(data.content || []);
-            setTotalPages(data.totalPages || 0);
-            setTotalElements(data.totalElements || 0);
+            params.set('page', apiPage);
+            params.set('size', pageSize);
+            if (activeTab !== 'ALL') params.set('status', activeTab);
+            const res = await axios.get(`${API_BASE}/api/reports?${params.toString()}`, { signal });
+            setReports(res.data.content || []);
+            setTotalPages(res.data.totalPages || 0);
+            setTotalElements(res.data.totalElements || 0);
         } catch (err) {
+            if (axios.isCancel(err)) return;
             console.error(err);
             toast('Failed to load reports', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiPage, pageSize, activeTab]);
+
+    useEffect(() => { fetchReports(); }, [fetchReports]);
 
     const tabs = [
         { key: 'ALL', label: 'All' },
@@ -90,7 +90,7 @@ export default function AdminReportManagementPage() {
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
-                            onClick={() => { setActiveTab(tab.key); setPage(0); }}
+                            onClick={() => { setActiveTab(tab.key); resetPage(); }}
                             style={{
                                 padding: '10px 24px', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
                                 border: 'none', background: 'none',
@@ -143,19 +143,14 @@ export default function AdminReportManagementPage() {
                             </tbody>
                         </table>
 
-                        {totalPages > 1 && (
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
-                                <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
-                                    ← Previous
-                                </button>
-                                <span style={{ padding: '6px 12px', fontSize: '14px', color: 'var(--text-muted)' }}>
-                                    Page {page + 1} of {totalPages}
-                                </span>
-                                <button className="btn btn--secondary btn--sm" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
-                                    Next →
-                                </button>
-                            </div>
-                        )}
+                        <PaginationControls
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            pageSize={pageSize}
+                            totalItems={totalElements}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={setPageSize}
+                        />
                     </>
                 ) : (
                     <div className="empty-state">
