@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isEnglishTextOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useToast } from '../../components/ui/Toast';
 import { SkeletonProfile } from '../../components/ui/LoadingSkeleton';
@@ -166,7 +167,7 @@ export default function ProfilePage({ user, setUser }) {
                     <div className="form-group">
                         <label className="form-label">Full Name</label>
                         <input className="form-input" value={editData.fullName}
-                            onChange={e => setEditData({ ...editData, fullName: e.target.value })}
+                            onChange={e => { if (isEnglishTextOnly(e.target.value)) setEditData({ ...editData, fullName: e.target.value }); }}
                             placeholder="Enter your full name" />
                     </div>
 

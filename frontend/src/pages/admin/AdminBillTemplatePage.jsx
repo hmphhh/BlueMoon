@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isDigitsOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useToast } from '../../components/ui/Toast';
 
@@ -215,7 +216,7 @@ export default function AdminBillTemplatePage() {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Default Amount (VND)</label>
-                                <input className="form-input" type="number" value={form.defaultAmount} onChange={e => setForm(p => ({ ...p, defaultAmount: e.target.value }))} placeholder="500000" />
+                                <input className="form-input" type="text" inputMode="numeric" value={form.defaultAmount} onChange={e => { if (isDigitsOnly(e.target.value)) setForm(p => ({ ...p, defaultAmount: e.target.value })); }} placeholder="500000" />
                             </div>
                         </div>
                         <div className="modal-footer">

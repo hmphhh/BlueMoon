@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isDigitsOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
@@ -251,7 +252,7 @@ function BillTemplatesSection({ templates, fetchTemplates, toast }) {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Default Amount (VND)</label>
-                                <input className="form-input" type="number" value={form.defaultAmount} onChange={e => setForm(p => ({ ...p, defaultAmount: e.target.value }))} placeholder="500000" />
+                                <input className="form-input" type="text" inputMode="numeric" value={form.defaultAmount} onChange={e => { if (isDigitsOnly(e.target.value)) setForm(p => ({ ...p, defaultAmount: e.target.value })); }} placeholder="500000" />
                             </div>
                         </div>
                         <div className="modal-footer">
@@ -589,7 +590,7 @@ function BillsSection({ bills, templates, apartments, fetchBills, toast }) {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Amount (VND)</label>
-                                <input className="form-input" type="number" value={createForm.amount} onChange={e => setCreateForm(p => ({ ...p, amount: e.target.value }))} placeholder="500000" />
+                                <input className="form-input" type="text" inputMode="numeric" value={createForm.amount} onChange={e => { if (isDigitsOnly(e.target.value)) setCreateForm(p => ({ ...p, amount: e.target.value })); }} placeholder="500000" />
                             </div>
                             <div className="form-group">
                                 <label className="form-label">Due Date</label>

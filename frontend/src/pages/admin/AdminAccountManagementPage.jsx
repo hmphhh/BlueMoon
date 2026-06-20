@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isDigitsOnly, isEnglishTextOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
@@ -354,18 +355,18 @@ export default function AdminAccountManagementPage() {
 
                             <div className="form-group">
                                 <label className="form-label">Phone Number</label>
-                                <input className="form-input" placeholder="e.g. 0912345678"
+                                <input className="form-input" type="text" inputMode="numeric" placeholder="e.g. 0912345678"
                                     value={formData.phone}
-                                    onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                    onChange={e => { if (isDigitsOnly(e.target.value)) setFormData(prev => ({ ...prev, phone: e.target.value })); }}
                                 />
                                 <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Used as the login account</small>
                             </div>
 
                             <div className="form-group">
                                 <label className="form-label">ID Number (CCCD)</label>
-                                <input className="form-input" placeholder="e.g. 001204012345"
+                                <input className="form-input" type="text" inputMode="numeric" placeholder="e.g. 001204012345"
                                     value={formData.idNumber}
-                                    onChange={e => setFormData(prev => ({ ...prev, idNumber: e.target.value }))}
+                                    onChange={e => { if (isDigitsOnly(e.target.value)) setFormData(prev => ({ ...prev, idNumber: e.target.value })); }}
                                 />
                                 <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>Used as the default login password</small>
                             </div>
@@ -374,7 +375,7 @@ export default function AdminAccountManagementPage() {
                                 <label className="form-label">Full Name</label>
                                 <input className="form-input" placeholder="Full Name"
                                     value={formData.fullName}
-                                    onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                                    onChange={e => { if (isEnglishTextOnly(e.target.value)) setFormData(prev => ({ ...prev, fullName: e.target.value })); }}
                                 />
                             </div>
 

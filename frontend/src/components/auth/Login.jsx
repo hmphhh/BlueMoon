@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isDigitsOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../ui/ThemeToggle';
@@ -64,9 +65,11 @@ export default function Login({ setUser }) {
                 <form onSubmit={handleLogin}>
                     <input
                         className="form-input"
+                        type="text"
+                        inputMode="numeric"
                         placeholder="Username"
                         value={username}
-                        onChange={e => setUsername(e.target.value)}
+                        onChange={e => { if (isDigitsOnly(e.target.value)) setUsername(e.target.value); }}
                         required
                         autoComplete="username"
                     />

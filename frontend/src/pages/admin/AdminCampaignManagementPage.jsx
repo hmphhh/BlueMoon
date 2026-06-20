@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isDigitsOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
@@ -327,12 +328,12 @@ export default function AdminCampaignManagementPage() {
                             {(form.contributionType === 'MANDATORY' || editingId) && (
                                 <div className="form-group">
                                     <label className="form-label">Required Amount per Apartment (VND)</label>
-                                    <input className="form-input" type="number" value={form.requiredAmount} onChange={e => setForm(p => ({ ...p, requiredAmount: e.target.value }))} placeholder="500000" />
+                                    <input className="form-input" type="text" inputMode="numeric" value={form.requiredAmount} onChange={e => { if (isDigitsOnly(e.target.value)) setForm(p => ({ ...p, requiredAmount: e.target.value })); }} placeholder="500000" />
                                 </div>
                             )}
                             <div className="form-group">
                                 <label className="form-label">Target Amount (VND) — Optional</label>
-                                <input className="form-input" type="number" value={form.targetAmount} onChange={e => setForm(p => ({ ...p, targetAmount: e.target.value }))} placeholder="50000000" />
+                                <input className="form-input" type="text" inputMode="numeric" value={form.targetAmount} onChange={e => { if (isDigitsOnly(e.target.value)) setForm(p => ({ ...p, targetAmount: e.target.value })); }} placeholder="50000000" />
                             </div>
                         </div>
                         <div className="modal-footer">

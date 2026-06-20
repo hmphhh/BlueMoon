@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isEnglishTextOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
@@ -205,7 +206,7 @@ export default function AdminAccountDetailPage() {
                     <label className="form-label">Full Name</label>
                     {editing ? (
                         <input className="form-input" value={editForm.fullName}
-                            onChange={e => setEditForm({ ...editForm, fullName: e.target.value })} />
+                            onChange={e => { if (isEnglishTextOnly(e.target.value)) setEditForm({ ...editForm, fullName: e.target.value }); }} />
                     ) : (
                         <input className="form-input form-input--readonly" value={accountData.fullName || '—'} readOnly disabled />
                     )}

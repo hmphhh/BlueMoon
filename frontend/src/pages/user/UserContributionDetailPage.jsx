@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isDigitsOnly } from '../../utils/inputFormatters';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
@@ -206,11 +207,11 @@ export default function UserContributionDetailPage() {
                                 <label className="form-label">Amount to Contribute (VND)</label>
                                 <input
                                     className="form-input"
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={payAmount}
-                                    onChange={e => setPayAmount(e.target.value)}
+                                    onChange={e => { if (isDigitsOnly(e.target.value)) setPayAmount(e.target.value); }}
                                     placeholder="Enter amount"
-                                    min="1"
                                 />
                             </div>
                             {detail.requiredAmount && (
