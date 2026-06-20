@@ -32,6 +32,7 @@ export default function UserPage({ user }) {
 
     return (
         <>
+            <div className="dashboard-page-bg" />
             {/* Welcome hero */}
             <div className="welcome-hero">
                 <div className="welcome-hero__icon">
