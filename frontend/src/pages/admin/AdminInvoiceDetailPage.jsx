@@ -36,7 +36,6 @@ export default function AdminInvoiceDetailPage() {
 
     const [invoice, setInvoice] = useState(null);
     const [payments, setPayments] = useState([]);
-    const [allBills, setAllBills] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -45,14 +44,12 @@ export default function AdminInvoiceDetailPage() {
 
     const fetchData = async () => {
         try {
-            const [invRes, payRes, billsRes] = await Promise.all([
+            const [invRes, payRes] = await Promise.all([
                 axios.get(`${API_BASE}/api/invoices/${invoiceId}`),
                 axios.get(`${API_BASE}/api/invoices/${invoiceId}/payments`),
-                axios.get(`${API_BASE}/api/bills`),
             ]);
             setInvoice(invRes.data);
             setPayments(payRes.data || []);
-            setAllBills(billsRes.data || []);
         } catch (err) {
             console.error(err);
             toast('Failed to load invoice details', 'error');
@@ -137,9 +134,16 @@ export default function AdminInvoiceDetailPage() {
 
                 <div className="form-grid">
                     <div className="form-group">
+                        <label className="form-label">Type</label>
+                        <input className="form-input form-input--readonly" value={invoice.invoiceType === 'CONTRIBUTION' ? 'Contribution' : 'Bill Payment'} readOnly disabled />
+                    </div>
+                    <div className="form-group">
                         <label className="form-label">Total Amount</label>
                         <input className="form-input form-input--readonly" value={formatCurrency(invoice.totalAmount)} readOnly disabled />
                     </div>
+                </div>
+
+                <div className="form-grid">
                     <div className="form-group">
                         <label className="form-label">Created By</label>
                         <input className="form-input form-input--readonly" value={invoice.createdBy?.fullName || '—'} readOnly disabled />
@@ -176,30 +180,46 @@ export default function AdminInvoiceDetailPage() {
                     </div>
                 </div>
 
-                {/* Bills */}
-                {invoice.billIds && invoice.billIds.length > 0 && (
+                {/* Bills (for BILL invoices) */}
+                {invoice.billTitles && invoice.billTitles.length > 0 && (
                     <>
                         <div className="section-title" style={{ marginTop: '28px' }}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                             </svg>
-                            Bills Included ({invoice.billIds.length})
+                            Bills Included ({invoice.billTitles.length})
                         </div>
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            {invoice.billIds.map(billId => {
-                                const globalIndex = allBills.findIndex(b => b.id === billId);
-                                const displayLabel = globalIndex !== -1 ? `Bill #${globalIndex + 1}` : `Bill (unknown)`;
-                                return (
-                                    <span
-                                        key={billId}
-                                        className="badge badge--info"
-                                        style={{ fontSize: '13px', padding: '4px 12px', cursor: 'pointer' }}
-                                        onClick={() => navigate(`/admin-bill/${billId}`)}
-                                    >
-                                        {displayLabel} →
-                                    </span>
-                                );
-                            })}
+                            {invoice.billIds.map((billId, index) => (
+                                <span
+                                    key={billId}
+                                    className="badge badge--info"
+                                    style={{ fontSize: '13px', padding: '4px 12px', cursor: 'pointer' }}
+                                    onClick={() => navigate(`/admin-bill/${billId}`)}
+                                >
+                                    {invoice.billTitles[index] || `Bill #${billId}`} →
+                                </span>
+                            ))}
+                        </div>
+                    </>
+                )}
+
+                {/* Campaign (for CONTRIBUTION invoices) */}
+                {invoice.invoiceType === 'CONTRIBUTION' && invoice.campaignTitle && (
+                    <>
+                        <div className="section-title" style={{ marginTop: '28px' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Campaign
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            <span
+                                className="badge badge--info"
+                                style={{ fontSize: '13px', padding: '4px 12px' }}
+                            >
+                                {invoice.campaignTitle}
+                            </span>
                         </div>
                     </>
                 )}
