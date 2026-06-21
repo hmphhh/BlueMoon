@@ -28,6 +28,7 @@ import com.bluemoon.backend.enums.communication.NotificationPriority;
 import com.bluemoon.backend.enums.communication.NotificationReferenceType;
 import com.bluemoon.backend.enums.communication.NotificationType;
 import com.bluemoon.backend.enums.auth.UserRole;
+import com.bluemoon.backend.exceptions.DuplicateResourceException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.contribution.ApartmentContributionRepository;
@@ -67,6 +68,11 @@ public class ContributionCampaignService {
      */
     @Transactional
     public CampaignSummaryResponse createCampaign(CreateCampaignRequest request, Long userId) {
+        if (campaignRepository.existsByTitle(request.getTitle())) {
+            throw new DuplicateResourceException(
+                    "A contribution campaign with title '" + request.getTitle() + "' already exists.");
+        }
+
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
@@ -124,6 +130,11 @@ public class ContributionCampaignService {
         if (campaign.getStatus() != ContributionCampaignStatus.DRAFT) {
             throw new InvalidOperationException(
                     "Only DRAFT campaigns can be updated. Current status: " + campaign.getStatus());
+        }
+
+        if (campaignRepository.existsByTitleAndIdNot(request.getTitle(), id)) {
+            throw new DuplicateResourceException(
+                    "A contribution campaign with title '" + request.getTitle() + "' already exists.");
         }
 
         validateCampaignData(campaign.getContributionType(), request.getStartDate(),
