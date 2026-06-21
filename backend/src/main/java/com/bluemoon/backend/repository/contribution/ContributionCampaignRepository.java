@@ -41,4 +41,8 @@ public interface ContributionCampaignRepository extends JpaRepository<Contributi
         WHERE c.id = :id
     """)
     Optional<ContributionCampaignEntity> findByIdWithCreatedBy(@Param("id") Long id);
+
+    boolean existsByTitle(String title);
+
+    boolean existsByTitleAndIdNot(String title, Long id);
 }
