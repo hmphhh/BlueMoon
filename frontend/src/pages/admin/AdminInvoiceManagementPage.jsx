@@ -26,6 +26,7 @@ export default function AdminInvoiceManagementPage() {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
+    const [typeFilter, setTypeFilter] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
@@ -115,16 +116,33 @@ export default function AdminInvoiceManagementPage() {
                             <option value="EXPIRED">Expired</option>
                             <option value="CANCELLED">Cancelled</option>
                         </select>
+                        <select
+                            className="form-input"
+                            style={{ width: '160px' }}
+                            value={typeFilter}
+                            onChange={e => setTypeFilter(e.target.value)}
+                        >
+                            <option value="">All Types</option>
+                            <option value="BILL">Bill</option>
+                            <option value="CONTRIBUTION">Contribution</option>
+                        </select>
                     </div>
                 </div>
 
                 {/* Table */}
-                {invoices.length > 0 ? (
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Invoice Code</th>
+                {(() => {
+                    const filteredInvoices = invoices.filter(inv => {
+                        if (typeFilter && inv.invoiceType !== typeFilter) return false;
+                        return true;
+                    });
+                    
+                    return filteredInvoices.length > 0 ? (
+                        <div style={{ overflowX: 'auto' }}>
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice Code</th>
+                                    <th>Type</th>
                                     <th>Created By</th>
                                     <th>Amount</th>
                                     <th>Status</th>
@@ -133,9 +151,14 @@ export default function AdminInvoiceManagementPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoices.map(inv => (
+                                {filteredInvoices.map(inv => (
                                     <tr key={inv.id}>
                                         <td><strong>{inv.invoiceCode}</strong></td>
+                                        <td>
+                                            <span className={`badge ${inv.invoiceType === 'CONTRIBUTION' ? 'badge--info' : 'badge--secondary'}`} style={{ fontSize: '11px' }}>
+                                                {inv.invoiceType === 'CONTRIBUTION' ? 'Contribution' : 'Bill'}
+                                            </span>
+                                        </td>
                                         <td>{inv.createdBy?.fullName || '—'}</td>
                                         <td>{formatCurrency(inv.totalAmount)}</td>
                                         <td>
@@ -159,7 +182,8 @@ export default function AdminInvoiceManagementPage() {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                         <p>No invoices found</p>
                     </div>
-                )}
+                );
+                })()}
             </div>
         </>
     );
