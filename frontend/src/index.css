@@ -10,15 +10,17 @@
 :root {
   --font: 'Inter', system-ui, -apple-system, sans-serif;
   --bg-primary: #0f1117;
-  --bg-secondary: #161822;
-  --bg-card: rgba(255, 255, 255, 0.04);
-  --bg-card-hover: rgba(255, 255, 255, 0.07);
-  --bg-input: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.08);
+  --bg-secondary: rgba(2, 6, 23, 0.40);
+  --bg-card: rgba(2, 6, 23, 0.35);
+  --bg-card-large: rgba(2, 6, 23, 0.40);
+  --bg-card-hover: rgba(2, 6, 23, 0.45);
+  --bg-input: rgba(2, 6, 23, 0.45);
+  --border: rgba(255, 255, 255, 0.10);
   --border-hover: rgba(255, 255, 255, 0.15);
-  --text-primary: #f0f0f3;
-  --text-secondary: #8b8fa3;
-  --text-muted: #5c5f73;
+  --text-heading: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+  --text-muted: #ffffff;
   --accent: #6366f1;
   --accent-hover: #818cf8;
   --accent-glow: rgba(99, 102, 241, 0.25);
@@ -35,24 +37,26 @@
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.10);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.20);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.30);
   --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ===== Light Theme ===== */
 [data-theme="light"] {
-  --bg-primary: #f5f7fb;
-  --bg-secondary: #ffffff;
-  --bg-card: rgba(0, 0, 0, 0.02);
-  --bg-card-hover: rgba(0, 0, 0, 0.05);
-  --bg-input: rgba(0, 0, 0, 0.03);
-  --border: rgba(0, 0, 0, 0.08);
-  --border-hover: rgba(0, 0, 0, 0.15);
-  --text-primary: #1a1d2e;
-  --text-secondary: #5c5f73;
-  --text-muted: #8b8fa3;
+  --bg-primary: #fefce8;
+  --bg-secondary: rgba(255, 251, 235, 0.35);
+  --bg-card: rgba(255, 251, 235, 0.20);
+  --bg-card-large: rgba(255, 251, 235, 0.25);
+  --bg-card-hover: rgba(254, 243, 199, 0.30);
+  --bg-input: rgba(255, 251, 235, 0.40);
+  --border: rgba(253, 230, 138, 0.25);
+  --border-hover: rgba(253, 230, 138, 0.40);
+  --text-heading: #000000;
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --text-muted: #000000;
   --accent: #4f46e5;
   --accent-hover: #6366f1;
   --accent-glow: rgba(79, 70, 229, 0.18);
@@ -63,9 +67,9 @@
   --danger-bg: rgba(220, 38, 38, 0.08);
   --warning: #d97706;
   --warning-bg: rgba(217, 119, 6, 0.08);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 16px 48px rgba(15, 23, 42, 0.15);
 }
 
 /* Light-mode overrides for elements that use hard-coded colors */
@@ -104,13 +108,7 @@
   background-size: 200% 100%;
 }
 
-[data-theme="light"] .login-page::before {
-  background: radial-gradient(circle, rgba(79, 70, 229, 0.12), transparent 70%);
-}
 
-[data-theme="light"] .login-page::after {
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.08), transparent 70%);
-}
 
 [data-theme="light"] .mobile-overlay.visible {
   background: rgba(0, 0, 0, 0.25);
@@ -154,15 +152,16 @@
 /* ===== Abyss (Deep Ocean) Theme ===== */
 [data-theme="abyss"] {
   --bg-primary: #041421;
-  --bg-secondary: #0b213b;
-  --bg-card: rgba(11, 33, 59, 0.7);
-  --bg-card-hover: rgba(0, 180, 216, 0.06);
-  --bg-input: rgba(0, 180, 216, 0.06);
-  --border: #1e3a5f;
-  --border-hover: #2a5280;
-  --text-primary: #e2e8f0;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --bg-secondary: rgba(4, 20, 33, 0.35);
+  --bg-card: rgba(4, 20, 33, 0.30);
+  --bg-card-large: rgba(4, 20, 33, 0.35);
+  --bg-card-hover: rgba(4, 20, 33, 0.40);
+  --bg-input: rgba(4, 20, 33, 0.45);
+  --border: rgba(255, 255, 255, 0.10);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --text-primary: #ffffff;
+  --text-secondary: #ffffff;
+  --text-muted: #ffffff;
   --accent: #06b6d4;
   --accent-hover: #22d3ee;
   --accent-glow: rgba(6, 182, 212, 0.25);
@@ -214,13 +213,7 @@
   -webkit-text-fill-color: transparent;
 }
 
-[data-theme="abyss"] .login-page::before {
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.15), transparent 70%);
-}
 
-[data-theme="abyss"] .login-page::after {
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.1), transparent 70%);
-}
 
 /* Abyss: welcome hero with ocean tint */
 [data-theme="abyss"] .welcome-hero {
@@ -252,14 +245,27 @@
 /* Abyss: select dropdown colors */
 [data-theme="abyss"] select.form-input,
 [data-theme="abyss"] select.form-select {
-  background-color: #0b213b;
-  color: #e2e8f0;
+  background-color: rgba(4, 20, 33, 0.80);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
 [data-theme="abyss"] select.form-input option,
 [data-theme="abyss"] select.form-select option {
-  background-color: #0b213b;
-  color: #e2e8f0;
+  background-color: rgba(4, 20, 33, 0.95);
+  color: #ffffff;
+}
+
+[data-theme="abyss"] select.form-input option:hover,
+[data-theme="abyss"] select.form-select option:hover,
+[data-theme="abyss"] select.form-input option:focus,
+[data-theme="abyss"] select.form-select option:focus {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+[data-theme="abyss"] select.form-input option:checked,
+[data-theme="abyss"] select.form-select option:checked {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Abyss: toast colors */
@@ -406,13 +412,31 @@
 
 body {
   font-family: var(--font);
-  background: var(--bg-primary);
+  background: url('/background.png') center / cover no-repeat fixed;
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: color 0.3s ease;
   color-scheme: dark;
+}
+
+#root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.45);
+  pointer-events: none;
+  z-index: -1;
+}
+
+[data-theme="light"] #root::before {
+  background: rgba(255, 251, 235, 0.35);
+}
+
+[data-theme="abyss"] #root::before {
+  background: rgba(4, 20, 33, 0.45);
 }
 
 [data-theme="light"] body {
@@ -441,6 +465,8 @@ body {
   bottom: 0;
   z-index: 100;
   transition: transform var(--transition), width var(--transition);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .layout__main {
@@ -650,8 +676,8 @@ body {
 
 .page-header__title {
   font-size: 26px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-weight: 800;
+  color: var(--text-heading);
   margin-bottom: 4px;
 }
 
@@ -662,12 +688,14 @@ body {
 
 /* ===== Cards ===== */
 .card {
-  background: var(--bg-card);
+  background: var(--bg-card-large, var(--bg-card));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 24px;
   transition: all var(--transition);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
 }
 
 .card:hover {
@@ -683,7 +711,7 @@ body {
 .card__title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-heading);
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -710,6 +738,9 @@ body {
   border-radius: var(--radius-md);
   padding: 20px;
   transition: all var(--transition);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-card:hover {
@@ -735,11 +766,12 @@ body {
 .stat-card__value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--text-heading);
 }
 
 .stat-card__label {
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   margin-top: 2px;
 }
@@ -851,26 +883,53 @@ body {
    because they don't inherit CSS custom properties in the browser dropdown */
 select.form-input,
 select.form-select {
-  background-color: #1e2030;
-  color: #f0f0f3;
+  background-color: rgba(15, 23, 42, 0.80);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.10);
 }
 
 select.form-input option,
 select.form-select option {
-  background-color: #1e2030;
-  color: #f0f0f3;
+  background-color: rgba(15, 23, 42, 0.95);
+  color: #ffffff;
+}
+
+select.form-input option:hover,
+select.form-select option:hover,
+select.form-input option:focus,
+select.form-select option:focus {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+select.form-input option:checked,
+select.form-select option:checked {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 [data-theme="light"] select.form-input,
 [data-theme="light"] select.form-select {
-  background-color: #ffffff;
-  color: #1a1d2e;
+  background-color: rgba(255, 251, 235, 0.80);
+  color: #000000;
+  border-color: rgba(253, 230, 138, 0.40);
 }
 
 [data-theme="light"] select.form-input option,
 [data-theme="light"] select.form-select option {
-  background-color: #ffffff;
-  color: #1a1d2e;
+  background-color: rgba(255, 251, 235, 0.95);
+  color: #000000;
+}
+
+[data-theme="light"] select.form-input option:hover,
+[data-theme="light"] select.form-select option:hover,
+[data-theme="light"] select.form-input option:focus,
+[data-theme="light"] select.form-select option:focus {
+  background-color: rgba(254, 243, 199, 0.70);
+}
+
+[data-theme="light"] select.form-input option:checked,
+[data-theme="light"] select.form-select option:checked {
+  background-color: rgba(254, 243, 199, 0.80);
+  color: #000000;
 }
 
 .form-input:focus,
@@ -1101,6 +1160,8 @@ select.form-select option {
   width: 100%;
   animation: scaleIn 0.2s ease;
   box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .modal__title {
@@ -1165,47 +1226,34 @@ select.form-select option {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: var(--bg-primary);
   position: relative;
   overflow: hidden;
 }
 
-.login-page::before {
-  content: '';
-  position: absolute;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, var(--accent-glow), transparent 70%);
-  top: -100px;
-  right: -100px;
-  border-radius: 50%;
-  animation: float 8s ease-in-out infinite;
+/* ===== Dashboard Background ===== */
+.dashboard-page-bg {
+  display: none;
 }
 
 .login-page::after {
-  content: '';
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.12), transparent 70%);
-  bottom: -80px;
-  left: -80px;
-  border-radius: 50%;
-  animation: float 10s ease-in-out infinite reverse;
+  content: none;
 }
+
 
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: var(--bg-card);
+  background: var(--bg-card-large, var(--bg-card));
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: 40px 32px;
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   text-align: center;
   position: relative;
   z-index: 1;
   animation: fadeUp 0.6s ease;
+  box-shadow: var(--shadow-md);
 }
 
 .login-card__logo {
@@ -1295,6 +1343,9 @@ select.form-select option {
   padding: 28px;
   transition: all 0.3s ease;
   cursor: default;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-md);
 }
 
 .feature-card:hover {
@@ -1320,11 +1371,13 @@ select.form-select option {
 .feature-card__title {
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-heading);
   margin-bottom: 6px;
 }
 
 .feature-card__desc {
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   line-height: 1.5;
 }
@@ -1400,14 +1453,16 @@ select.form-select option {
 }
 
 .welcome-hero__text h2 {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-heading);
   margin-bottom: 4px;
 }
 
 .welcome-hero__text p {
   color: var(--text-secondary);
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 16px;
 }
 
 .welcome-hero__icon {
@@ -1580,6 +1635,8 @@ select.form-select option {
   animation: scaleIn 0.3s ease;
   box-shadow: var(--shadow-lg);
   position: relative;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .otp-modal__icon {
@@ -1930,8 +1987,15 @@ select.form-select option {
 }
 
 @keyframes notification-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 @keyframes notif-dropdown-enter {
@@ -1939,6 +2003,7 @@ select.form-select option {
     opacity: 0;
     transform: translateY(-8px) scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1947,7 +2012,7 @@ select.form-select option {
 
 /* Notification dropdown responsive */
 @media (max-width: 480px) {
-  .notification-bell-btn + div > div:last-child {
+  .notification-bell-btn+div>div:last-child {
     width: calc(100vw - 32px) !important;
     right: -60px !important;
   }
