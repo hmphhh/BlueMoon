@@ -174,10 +174,23 @@ export default function AdminPage({ user }) {
     return (
         <>
             <div className="dashboard-page-bg" />
+            {/* Welcome hero */}
+            <div className="welcome-hero">
+                <div className="welcome-hero__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                </div>
+                <div className="welcome-hero__text">
+                    <h2>Welcome, {user?.fullName || user?.username}!</h2>
+                    <p>Admin</p>
+                </div>
+            </div>
+
             {/* Page Header */}
             <div className="page-header">
-                <h1 className="page-header__title">Dashboard</h1>
-                <p className="page-header__subtitle">Welcome back, {user.fullName}</p>
+                <h1 className="page-header__title">Dashboard Overview</h1>
+                <p className="page-header__subtitle">System metrics and recent activity</p>
             </div>
 
             {/* ══════════ Stat Cards ══════════ */}

@@ -181,7 +181,7 @@ export default function NotificationBell({ user }) {
                     right: '0',
                     width: '380px',
                     maxHeight: '480px',
-                    background: 'var(--bg-secondary)',
+                    background: 'var(--bg-primary)',
                     border: '1px solid var(--border)',
                     borderRadius: '14px',
                     boxShadow: 'var(--shadow-lg)',

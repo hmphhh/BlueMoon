@@ -1453,7 +1453,7 @@ select.form-select option:checked {
 }
 
 .welcome-hero__text h2 {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 800;
   color: var(--text-heading);
   margin-bottom: 4px;
@@ -1462,7 +1462,7 @@ select.form-select option:checked {
 .welcome-hero__text p {
   color: var(--text-secondary);
   font-weight: 500;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .welcome-hero__icon {
