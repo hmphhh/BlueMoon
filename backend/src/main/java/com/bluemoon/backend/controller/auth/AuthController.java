@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bluemoon.backend.dtos.request.auth.ForgotPasswordRequest;
+import com.bluemoon.backend.dtos.request.auth.GoogleLoginRequest;
 import com.bluemoon.backend.dtos.request.auth.LoginRequest;
 
 import com.bluemoon.backend.dtos.request.auth.ResetPasswordRequest;
@@ -31,6 +32,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request.getUsername(), request.getPassword());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Sign in with a Google ID token.
+     * The account must already exist locally and have verified = true.
+     * Endpoint: POST /api/auth/google-login
+     */
+    @PostMapping("/google-login")
+    public ResponseEntity<LoginResponse> googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        LoginResponse response = authService.loginWithGoogle(request.getIdToken());
         return ResponseEntity.ok(response);
     }
 
