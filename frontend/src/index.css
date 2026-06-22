@@ -1328,6 +1328,38 @@ select.form-select option:checked {
   z-index: 10;
 }
 
+/* ===== Login: Divider & Google Button ===== */
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-divider__text {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+/* Wrapper to center the Google Identity Services button */
+.login-google-btn {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
 /* ===== Feature Cards (Resident) ===== */
 .features-grid {
   display: grid;
