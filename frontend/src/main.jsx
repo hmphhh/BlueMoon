@@ -21,9 +21,10 @@ axios.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      // Don't redirect if we're already on the login page or if it's a login request
-      const isLoginRequest = error.config?.url?.includes('/api/auth/login');
-      if (!isLoginRequest) {
+      // Auth endpoints (/api/auth/*) intentionally return 401 for bad credentials.
+      // Never redirect from these — let the caller handle the error and display it.
+      const isAuthRequest = error.config?.url?.includes('/api/auth/');
+      if (!isAuthRequest) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/';
