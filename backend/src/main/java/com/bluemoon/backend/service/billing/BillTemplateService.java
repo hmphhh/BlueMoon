@@ -10,6 +10,7 @@ import com.bluemoon.backend.dtos.request.billing.BillTemplateRequest;
 import com.bluemoon.backend.dtos.response.billing.BillTemplateResponse;
 import com.bluemoon.backend.dtos.response.billing.BillTemplateSummaryResponse;
 import com.bluemoon.backend.entity.billing.BillTemplateEntity;
+import com.bluemoon.backend.exceptions.DuplicateResourceException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.billing.BillTemplateRepository;
 
@@ -50,6 +51,11 @@ public class BillTemplateService {
      */
     @Transactional
     public BillTemplateResponse createTemplate(BillTemplateRequest request) {
+        if (billTemplateRepository.existsByName(request.getName())) {
+            throw new DuplicateResourceException(
+                    "A bill template with name '" + request.getName() + "' already exists.");
+        }
+
         BillTemplateEntity template = new BillTemplateEntity();
         template.setName(request.getName());
         template.setDescription(request.getDescription());
@@ -68,6 +74,10 @@ public class BillTemplateService {
                 .orElseThrow(() -> new ResourceNotFoundException("Bill template not found with id: " + id));
 
         if (request.getName() != null) {
+            if (billTemplateRepository.existsByNameAndIdNot(request.getName(), id)) {
+                throw new DuplicateResourceException(
+                        "A bill template with name '" + request.getName() + "' already exists.");
+            }
             template.setName(request.getName());
         }
         if (request.getDescription() != null) {

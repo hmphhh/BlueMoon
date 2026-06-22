@@ -66,4 +66,8 @@ public interface BillRepository extends JpaRepository<BillEntity, Long> {
           AND b.dueDate < CURRENT_DATE
     """)
     List<BillEntity> findOverdueBills();
+
+    boolean existsByTitle(String title);
+
+    boolean existsByTitleAndIdNot(String title, Long id);
 }

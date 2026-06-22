@@ -5,8 +5,10 @@ import com.bluemoon.backend.service.communication.NotificationService;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,7 @@ import com.bluemoon.backend.entity.billing.BillTemplateEntity;
 import com.bluemoon.backend.entity.billing.InvoiceEntity;
 import com.bluemoon.backend.entity.auth.UserEntity;
 import com.bluemoon.backend.enums.billing.BillStatus;
+import com.bluemoon.backend.exceptions.DuplicateResourceException;
 import com.bluemoon.backend.exceptions.InvalidOperationException;
 import com.bluemoon.backend.exceptions.ResourceNotFoundException;
 import com.bluemoon.backend.repository.apartment.ApartmentRepository;
@@ -191,6 +194,11 @@ public class BillService {
      */
     @Transactional
     public BillSummaryResponse createBill(CreateBillRequest request) {
+        if (billRepository.existsByTitle(request.getTitle())) {
+            throw new DuplicateResourceException(
+                    "A bill with title '" + request.getTitle() + "' already exists.");
+        }
+
         ApartmentEntity apartment = apartmentRepository.findById(request.getApartmentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + request.getApartmentId()));
 
@@ -218,13 +226,22 @@ public class BillService {
         BillTemplateEntity template = billTemplateService.getTemplateEntityById(request.getTemplateId());
 
         List<BillEntity> bills = new ArrayList<>();
+        Set<String> generatedTitles = new HashSet<>();
         for (Long apartmentId : request.getApartmentIds()) {
             ApartmentEntity apartment = apartmentRepository.findById(apartmentId)
                     .orElseThrow(() -> new ResourceNotFoundException("Apartment not found with id: " + apartmentId));
 
+            String month = String.format("%02d/%d", request.getDueDate().getMonthValue(),
+                    request.getDueDate().getYear());
+            String title = template.getName() + " - " + apartment.getApartmentNumber() + " - " + month;
+            if (!generatedTitles.add(title) || billRepository.existsByTitle(title)) {
+                throw new DuplicateResourceException(
+                        "A bill with title '" + title + "' already exists.");
+            }
+
             BillEntity bill = new BillEntity();
             bill.setApartment(apartment);
-            bill.setTitle(template.getName());
+            bill.setTitle(title);
             bill.setDescription(template.getDescription());
             bill.setAmount(template.getDefaultAmount());
             bill.setDueDate(request.getDueDate());
@@ -258,6 +275,10 @@ public class BillService {
         boolean dueDateChanged = false;
 
         if (request.getTitle() != null) {
+            if (billRepository.existsByTitleAndIdNot(request.getTitle(), billId)) {
+                throw new DuplicateResourceException(
+                        "A bill with title '" + request.getTitle() + "' already exists.");
+            }
             bill.setTitle(request.getTitle());
         }
         if (request.getDescription() != null) {

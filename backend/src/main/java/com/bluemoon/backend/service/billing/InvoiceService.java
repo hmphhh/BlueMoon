@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -261,11 +263,7 @@ public class InvoiceService {
         InvoiceEntity invoice = invoiceRepository.findById(invoiceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + invoiceId));
 
-        List<Long> billIds = snapshotRepository.findByInvoiceId(invoiceId).stream()
-                .map(InvoiceBillSnapshotEntity::getBillId)
-                .toList();
-
-        return toInvoiceDetailsResponse(invoice, billIds);
+        return toInvoiceDetailsResponse(invoice);
     }
 
     /**
@@ -555,6 +553,7 @@ public class InvoiceService {
                 invoice.getId(),
                 invoice.getInvoiceCode(),
                 invoice.getReferenceCode(),
+                invoice.getInvoiceType(),
                 invoice.getStatus(),
                 invoice.getTotalAmount(),
                 toUserSummary(invoice.getCreatedBy()),
@@ -568,21 +567,30 @@ public class InvoiceService {
 
     private InvoiceSummaryResponse toInvoiceSummaryResponse(InvoiceEntity invoice, boolean includeCreatedBy) {
         UserSummaryResponse createdBy = includeCreatedBy ? toUserSummary(invoice.getCreatedBy()) : null;
+        InvoiceSourceMetadata source = getInvoiceSourceMetadata(invoice);
         return new InvoiceSummaryResponse(
                 invoice.getId(),
                 invoice.getInvoiceCode(),
+                invoice.getInvoiceType(),
                 invoice.getStatus(),
                 invoice.getTotalAmount(),
                 createdBy,
-                invoice.getCreatedAt()
+                invoice.getCreatedAt(),
+                source.billIds(),
+                source.billTitles(),
+                source.apartmentContributionId(),
+                source.campaignId(),
+                source.campaignTitle()
         );
     }
 
-    private InvoiceDetailsResponse toInvoiceDetailsResponse(InvoiceEntity invoice, List<Long> billIds) {
+    private InvoiceDetailsResponse toInvoiceDetailsResponse(InvoiceEntity invoice) {
+        InvoiceSourceMetadata source = getInvoiceSourceMetadata(invoice);
         return new InvoiceDetailsResponse(
                 invoice.getId(),
                 invoice.getInvoiceCode(),
                 invoice.getReferenceCode(),
+                invoice.getInvoiceType(),
                 invoice.getStatus(),
                 invoice.getTotalAmount(),
                 toUserSummary(invoice.getCreatedBy()),
@@ -591,7 +599,47 @@ public class InvoiceService {
                 invoice.getExpiresAt(),
                 invoice.getPaidAt(),
                 invoice.getCancelledAt(),
-                billIds
+                source.billIds(),
+                source.billTitles(),
+                source.apartmentContributionId(),
+                source.campaignId(),
+                source.campaignTitle()
         );
+    }
+
+    private InvoiceSourceMetadata getInvoiceSourceMetadata(InvoiceEntity invoice) {
+        if (invoice.getInvoiceType() == InvoiceType.BILL) {
+            List<Long> billIds = snapshotRepository.findByInvoiceId(invoice.getId()).stream()
+                    .map(InvoiceBillSnapshotEntity::getBillId)
+                    .toList();
+            Map<Long, String> titleById = billRepository.findAllById(billIds).stream()
+                    .collect(Collectors.toMap(BillEntity::getId, BillEntity::getTitle));
+            List<String> billTitles = billIds.stream()
+                    .map(titleById::get)
+                    .toList();
+            return new InvoiceSourceMetadata(billIds, billTitles, null, null, null);
+        }
+
+        ApartmentContributionEntity contribution = invoice.getApartmentContribution();
+        if (contribution == null) {
+            return new InvoiceSourceMetadata(null, null, null, null, null);
+        }
+
+        ContributionCampaignEntity campaign = contribution.getCampaign();
+        return new InvoiceSourceMetadata(
+                null,
+                null,
+                contribution.getId(),
+                campaign != null ? campaign.getId() : null,
+                campaign != null ? campaign.getTitle() : null
+        );
+    }
+
+    private record InvoiceSourceMetadata(
+            List<Long> billIds,
+            List<String> billTitles,
+            Long apartmentContributionId,
+            Long campaignId,
+            String campaignTitle) {
     }
 }

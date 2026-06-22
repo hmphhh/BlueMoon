@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.bluemoon.backend.enums.billing.InvoiceStatus;
+import com.bluemoon.backend.enums.billing.InvoiceType;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class InvoiceResponse {
     private Long id;
     private String invoiceCode;
     private String referenceCode;
+    private InvoiceType invoiceType;
     private InvoiceStatus status;
     private BigDecimal totalAmount;
     private UserSummaryResponse createdBy;

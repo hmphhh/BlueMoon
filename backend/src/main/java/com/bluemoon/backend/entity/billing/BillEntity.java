@@ -43,7 +43,7 @@ public class BillEntity {
     @EqualsAndHashCode.Exclude
     private ApartmentEntity apartment;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String title;
 
     private String description;
