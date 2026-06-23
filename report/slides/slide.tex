@@ -1,0 +1,816 @@
+\documentclass[t,aspectratio=169,10pt]{beamer}
+
+\newcommand{\slideContentLeftMargin}{0.55cm}
+\newcommand{\slideContentRightMargin}{0.85cm}
+\newcommand{\hustHeaderHeight}{1.12cm}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T5]{fontenc}
+\else
+  \usepackage{fontspec}
+\fi
+\usepackage[vietnamese]{babel}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,calc,shapes.geometric}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{ragged2e}
+\usepackage[blue,169]{beamerthemeHUST}
+
+\ifPDFTeX\else
+  \setsansfont{Arial}
+  \setmainfont{Times New Roman}
+\fi
+
+\hidePageNumber
+\useStyleFull
+\useThickBar
+
+\renewcommand{\hustTitleAlign}{\alignLeft}
+\renewcommand{\hustSubtitleAlign}{\alignLeft}
+\renewcommand{\hustAuthorAlign}{\alignLeft}
+\renewcommand{\hustInstAlign}{\alignLeft}
+\renewcommand{\titlePageTitleX}{-0.5cm}
+\renewcommand{\titlePageTitleY}{-0.5cm}
+
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamerfont{normal text}{size=\small}
+\setbeamertemplate{itemize item}{\textcolor{hustprimary}{\small$\blacktriangleright$}}
+\setbeamertemplate{itemize subitem}{\textcolor{hustprimary}{\scriptsize$\bullet$}}
+\setbeamertemplate{enumerate item}{\textcolor{hustprimary}{\bfseries\insertenumlabel.}}
+
+\definecolor{diagramBlue}{HTML}{005A8C}
+\definecolor{diagramLightBlue}{HTML}{E7F2F8}
+\definecolor{diagramGreen}{HTML}{16855B}
+\definecolor{diagramLightGreen}{HTML}{E8F6EF}
+\definecolor{diagramRed}{HTML}{BC2B3A}
+\definecolor{diagramLightRed}{HTML}{FBE8EA}
+\definecolor{diagramGold}{HTML}{A56A00}
+\definecolor{diagramLightGold}{HTML}{FFF3D8}
+\definecolor{diagramGray}{HTML}{4B5563}
+\definecolor{diagramLightGray}{HTML}{F3F4F6}
+\definecolor{ink}{HTML}{1F2937}
+
+\tikzset{
+  flowbox/.style={draw=diagramBlue!70, fill=diagramLightBlue, rounded corners=2pt, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=4pt},
+  greenbox/.style={draw=diagramGreen!70, fill=diagramLightGreen, rounded corners=2pt, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=4pt},
+  goldbox/.style={draw=diagramGold!70, fill=diagramLightGold, rounded corners=2pt, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=4pt},
+  redbox/.style={draw=diagramRed!70, fill=diagramLightRed, rounded corners=2pt, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=4pt},
+  graybox/.style={draw=diagramGray!45, fill=diagramLightGray, rounded corners=2pt, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=4pt},
+  arrow/.style={-{Latex[length=2mm]}, thick, draw=diagramBlue},
+  weakarrow/.style={-{Latex[length=1.8mm]}, draw=diagramGray!70}
+}
+
+\newcommand{\keyword}[1]{\textcolor{hustprimary}{\textbf{#1}}}
+\newcommand{\tech}[1]{\textcolor{diagramBlue}{\texttt{\footnotesize #1}}}
+\newcommand{\tinycaption}[1]{{\scriptsize\color{black!62}#1}}
+\newcommand{\rolepill}[2]{%
+  \tikz[baseline=(x.base)]\node[
+    rounded corners=2pt,
+    fill=#1!12,
+    draw=#1!55,
+    inner xsep=5pt,
+    inner ysep=3pt
+  ] (x) {\scriptsize\textcolor{ink}{#2}};%
+}
+\newcommand{\infobox}[2]{%
+  \begin{tikzpicture}
+    \node[
+      draw=#1!60,
+      rounded corners=2pt,
+      fill=#1!10,
+      text width=0.92\linewidth,
+      inner sep=6pt,
+      align=left
+    ] {\small #2};
+  \end{tikzpicture}
+}
+\newcommand{\screenshotbox}[2]{%
+  \begin{tikzpicture}
+    \node[
+      draw=diagramBlue!55,
+      rounded corners=2pt,
+      fill=diagramLightBlue!55,
+      text width=0.90\linewidth,
+      minimum height=1.85cm,
+      inner sep=6pt,
+      align=center
+    ] {\textbf{\texttt{#1}}\\[4pt]\tinycaption{#2}};
+  \end{tikzpicture}
+}
+
+\title{BlueMoon}
+\subtitle{Bài tập lớn: Hệ thống quản lý chung cư}
+\author[Nhóm 9]{%
+\texorpdfstring{%
+Nguyễn Hoàng Gia (202400040)\\
+Phạm Thị Bích Phương (202400069)\\
+Nguyễn Tuấn Long (202416269)\\
+Bùi Tiến Dũng (202416167)\\
+Chu Văn Linh (202400056)
+}{Nhóm 9}}
+\institute{Nhóm 9}
+\date{Hà Nội, 2026}
+
+\AtBeginSection{\hustsectionpage{\insertsection}}
+
+\begin{document}
+
+\hustintropage{}
+\husttitlepage
+
+{
+\setbeamertemplate{background}{
+\includegraphics[width=\paperwidth,height=\paperheight]{images/hust-blue-169-content-full.png}
+\drawHustPageNum
+}
+\begin{frame}[plain]{Nội dung trình bày}
+\vspace{20pt}
+\tableofcontents
+\end{frame}
+}
+
+\resetPageCount
+\showPageNumber
+\useStyleFull
+\useThickBar
+\setbeamertemplate{itemize item}{\(\bullet\)}
+\setbeamertemplate{itemize subitem}{\(\circ\)}
+
+\begin{frame}{Nhóm thực hiện}
+\begin{columns}[T,onlytextwidth]
+\column{0.52\textwidth}
+\begin{tabularx}{\linewidth}{>{\bfseries}X l}
+\toprule
+Thành viên & MSSV\\
+\midrule
+Nguyễn Hoàng Gia & 202400040\\
+Phạm Thị Bích Phương & 202400069\\
+Nguyễn Tuấn Long & 202416269\\
+Bùi Tiến Dũng & 202416167\\
+Chu Văn Linh & 202400056\\
+\bottomrule
+\end{tabularx}
+\column{0.42\textwidth}
+\infobox{diagramBlue}{\textbf{Nhóm 9} phát triển BlueMoon theo hướng ứng dụng web quản lý chung cư, gồm frontend React, backend Spring Boot và cơ sở dữ liệu PostgreSQL.}
+
+\vspace{0.25cm}
+\rolepill{diagramBlue}{React/Vite}
+\rolepill{diagramGreen}{Spring Boot}\\[5pt]
+\rolepill{diagramGold}{PostgreSQL}
+\end{columns}
+\end{frame}
+
+\section{Đề tài và phạm vi}
+
+\begin{frame}{Đề tài BlueMoon}
+\begin{columns}[T,onlytextwidth]
+\column{0.52\textwidth}
+\begin{itemize}
+  \item BlueMoon là hệ thống hỗ trợ ban quản lý chung cư theo dõi cư dân, căn hộ, khoản thu, hóa đơn, thanh toán, phản ánh và thông báo.
+  \item Dữ liệu nghiệp vụ được tập trung để giảm thao tác thủ công và hạn chế sai sót khi đối soát.
+  \item Hệ thống tách rõ vai trò quản trị và cư dân, mỗi nhóm có dashboard và quyền truy cập riêng.
+\end{itemize}
+\column{0.43\textwidth}
+\begin{tikzpicture}[node distance=0.22cm]
+\node[flowbox, text width=3.9cm] (a) {Quản lý cư dân\\và căn hộ};
+\node[greenbox, text width=3.9cm, below=of a] (b) {Theo dõi công nợ\\hóa đơn};
+\node[goldbox, text width=3.9cm, below=of b] (c) {Invoice QR\\và thanh toán};
+\node[redbox, text width=3.9cm, below=of c] (d) {Phản ánh\\và thông báo};
+\draw[arrow] (a) -- (b);
+\draw[arrow] (b) -- (c);
+\draw[arrow] (c) -- (d);
+\end{tikzpicture}
+\end{columns}
+\vspace{0.18cm}
+\infobox{diagramBlue}{Mục tiêu của bài tập lớn là xây dựng một hệ thống đủ luồng nghiệp vụ, có phân quyền, có xử lý thanh toán và có giao diện dùng được cho hai vai trò chính.}
+\end{frame}
+
+\begin{frame}{Đối tượng sử dụng}
+\begin{columns}[T,onlytextwidth]
+\column{0.31\textwidth}
+\textbf{\textcolor{hustprimary}{Khách}}
+\begin{itemize}
+  \item Đăng nhập nội bộ
+  \item Google OAuth
+  \item Quên mật khẩu qua OTP email
+\end{itemize}
+\column{0.31\textwidth}
+\textbf{\textcolor{hustprimary}{Cư dân}}
+\begin{itemize}
+  \item Xem căn hộ và thành viên
+  \item Theo dõi hóa đơn, invoice
+  \item Gửi phản ánh và đọc thông báo
+\end{itemize}
+\column{0.31\textwidth}
+\textbf{\textcolor{hustprimary}{Admin}}
+\begin{itemize}
+  \item Quản lý tài khoản, căn hộ
+  \item Sinh bill, tạo campaign
+  \item Duyệt phản ánh, theo dõi payment
+\end{itemize}
+\end{columns}
+\vspace{0.24cm}
+\centering
+\rolepill{diagramBlue}{ROLE\_USER}
+\quad
+\rolepill{diagramGreen}{ROLE\_ADMIN}
+\quad
+\rolepill{diagramGold}{ProtectedRoute}
+\end{frame}
+
+\begin{frame}{Phạm vi chức năng}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{itemize}
+  \item \keyword{Xác thực}: JWT, Google OAuth, OTP email, đổi mật khẩu.
+  \item \keyword{Hồ sơ}: thông tin cá nhân, xác minh email, đổi mật khẩu.
+  \item \keyword{Căn hộ}: danh sách căn hộ, thành viên, trạng thái căn hộ.
+  \item \keyword{Hóa đơn}: mẫu khoản thu, tạo bill lẻ, sinh bill hàng loạt.
+\end{itemize}
+\column{0.49\textwidth}
+\begin{itemize}
+  \item \keyword{Invoice}: QR cho bill và khoản đóng góp, hủy và hết hạn invoice.
+  \item \keyword{Thanh toán}: SePay webhook, thanh toán thủ công, lịch sử payment.
+  \item \keyword{Tương tác}: phản ánh, duyệt phản ánh, thông báo tự động và thủ công.
+  \item \keyword{Dashboard}: thống kê nhanh cho Admin và trang tổng quan cho cư dân.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Cấu trúc repository}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\begin{tabularx}{\linewidth}{>{\bfseries}l X}
+\toprule
+Phần & Nội dung chính\\
+\midrule
+\texttt{backend} & Spring Boot, 154 file Java, chia theo controller, service, repository, entity, DTO, enum, security, config\\
+\texttt{frontend} & React/Vite, 48 file JSX, gồm pages, components, context, utils, assets\\
+\texttt{report} & Báo cáo LaTeX/PDF và slide Beamer\\
+\bottomrule
+\end{tabularx}
+\column{0.47\textwidth}
+\begin{tikzpicture}[node distance=0.18cm]
+\node[flowbox, text width=4.15cm] (a) {\textbf{Frontend}\\\texttt{src/pages}, \texttt{components}, \texttt{context}};
+\node[greenbox, text width=4.15cm, below=of a] (b) {\textbf{Backend}\\13 controller, 16 service, 14 repository, 14 entity};
+\node[goldbox, text width=4.15cm, below=of b] (c) {\textbf{Report}\\đặc tả, use case, kiến trúc, dữ liệu, kiểm thử};
+\draw[arrow] (a) -- (b);
+\draw[arrow] (b) -- (c);
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\section{Thiết kế hệ thống}
+
+\begin{frame}{Công nghệ sử dụng}
+\begin{columns}[T,onlytextwidth]
+\column{0.33\textwidth}
+\textbf{\textcolor{hustprimary}{Frontend}}
+\begin{itemize}
+  \item React 19
+  \item Vite 8
+  \item React Router 7
+  \item Axios
+\end{itemize}
+\column{0.33\textwidth}
+\textbf{\textcolor{hustprimary}{Backend}}
+\begin{itemize}
+  \item Spring Boot 3.5
+  \item Java 25
+  \item Spring Security
+  \item JPA/Hibernate
+\end{itemize}
+\column{0.30\textwidth}
+\textbf{\textcolor{hustprimary}{Tích hợp}}
+\begin{itemize}
+  \item PostgreSQL
+  \item JWT/JJWT
+  \item Gmail SMTP
+  \item Google OAuth
+  \item SePay QR/Webhook
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Kiến trúc tổng thể}
+\centering
+\resizebox{0.98\textwidth}{!}{%
+\begin{tikzpicture}[node distance=0.58cm and 0.72cm]
+\node[flowbox, text width=2.35cm] (fe) {React + Vite\\Router + Axios};
+\node[flowbox, text width=2.35cm, right=of fe] (api) {Spring Boot API\\JWT Security};
+\node[greenbox, text width=2.45cm, right=of api] (svc) {Service Layer\\Business Rules};
+\node[goldbox, text width=2.25cm, right=of svc] (repo) {Repository\\JPA};
+\node[graybox, cylinder, shape border rotate=90, aspect=0.25, text width=1.95cm, right=of repo] (db) {PostgreSQL};
+\node[graybox, text width=2.0cm, below=0.78cm of api] (google) {Google OAuth};
+\node[graybox, text width=2.0cm, below=0.78cm of svc] (mail) {Gmail SMTP};
+\node[graybox, text width=2.0cm, below=0.78cm of repo] (sepay) {SePay};
+\draw[arrow] (fe) -- node[above,font=\scriptsize]{REST API} (api);
+\draw[arrow] (api) -- (svc);
+\draw[arrow] (svc) -- (repo);
+\draw[arrow] (repo) -- (db);
+\draw[weakarrow] (api) -- (google);
+\draw[weakarrow] (svc) -- (mail);
+\draw[weakarrow] (svc) -- (sepay);
+\draw[weakarrow] (sepay.south) -- ++(0,-0.42) -| node[below,font=\scriptsize,pos=0.25]{webhook} (api.south);
+\end{tikzpicture}}
+\vspace{0.15cm}
+
+\tinycaption{Frontend chỉ giữ trạng thái giao diện; backend chịu trách nhiệm phân quyền, transaction, kiểm tra trạng thái và cập nhật dữ liệu.}
+\end{frame}
+
+\begin{frame}{Phân lớp backend}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\begin{tikzpicture}[node distance=0.18cm]
+\node[flowbox, text width=4.35cm] (c) {Controller\\13 lớp nhận request};
+\node[greenbox, text width=4.35cm, below=of c] (s) {Service\\16 lớp xử lý nghiệp vụ};
+\node[goldbox, text width=4.35cm, below=of s] (r) {Repository\\14 interface truy vấn};
+\node[graybox, text width=4.35cm, below=of r] (e) {Entity + Enum\\14 entity, 20 enum};
+\draw[arrow] (c) -- (s);
+\draw[arrow] (s) -- (r);
+\draw[arrow] (r) -- (e);
+\end{tikzpicture}
+\column{0.47\textwidth}
+\begin{itemize}
+  \item Controller dùng DTO để giảm lộ entity trực tiếp ra API.
+  \item Service dùng \tech{@Transactional} cho các luồng cập nhật nhiều bảng.
+  \item Security lọc JWT, gắn user vào context và kiểm soát role.
+  \item Exception handler chuẩn hóa lỗi trả về frontend.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Bề mặt API chính}
+\scriptsize
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{tabularx}{\linewidth}{>{\ttfamily\scriptsize}l X}
+\toprule
+Endpoint & Vai trò\\
+\midrule
+/api/auth & login, Google, OTP\\
+/api/users & tài khoản, hồ sơ\\
+/api/apartments & căn hộ, thành viên\\
+/api/bills & tạo, sinh, hủy bill\\
+/api/invoices & tạo, xem, hủy invoice\\
+\bottomrule
+\end{tabularx}
+\column{0.46\textwidth}
+\begin{tabularx}{\linewidth}{>{\ttfamily\scriptsize}l X}
+\toprule
+Endpoint & Vai trò\\
+\midrule
+/api/payment-webhooks & webhook SePay\\
+/api/payments & lịch sử payment\\
+/api/contribution-campaigns & campaign đóng góp\\
+/api/reports & phản ánh, review\\
+/api/notifications & đọc/xóa thông báo\\
+\bottomrule
+\end{tabularx}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Điều hướng frontend theo vai trò}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\begin{itemize}
+  \item \tech{ProtectedRoute} kiểm tra token và role trước khi render trang.
+  \item Admin có nhóm route \tech{/admin-*}, \tech{/accounts}, \tech{/apartments}.
+  \item Cư dân có nhóm route \tech{/resident-home}, \tech{/my-*}, \tech{/reports}.
+  \item Route chung gồm \tech{/profile} và các luồng xác thực.
+\end{itemize}
+\column{0.47\textwidth}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.18cm]
+\node[flowbox, text width=4.2cm] (a) {Login / JWT};
+\node[greenbox, text width=2.0cm, below left=0.45cm and 0.12cm of a] (b) {Admin};
+\node[goldbox, text width=2.0cm, below right=0.45cm and 0.12cm of a] (c) {Cư dân};
+\node[graybox, text width=2.0cm, below=0.32cm of b] (d) {Quản trị};
+\node[graybox, text width=2.0cm, below=0.32cm of c] (e) {Tự phục vụ};
+\draw[arrow] (a) -- (b);
+\draw[arrow] (a) -- (c);
+\draw[arrow] (b) -- (d);
+\draw[arrow] (c) -- (e);
+\end{tikzpicture}}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Thiết kế giao diện}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{itemize}
+  \item \keyword{DashboardLayout}: khung trang chung, sidebar, vùng nội dung.
+  \item \keyword{Sidebar}: menu riêng cho Admin và Cư dân.
+  \item \keyword{ThemeContext}: lưu theme \tech{light}, \tech{dark}, \tech{abyss}.
+  \item \keyword{Axios interceptor}: tự gắn Bearer token và xử lý hết phiên.
+\end{itemize}
+\column{0.47\textwidth}
+\begin{itemize}
+  \item \keyword{Toast}: phản hồi nhanh khi tạo/sửa/xóa.
+  \item \keyword{Modal}: xác nhận thao tác quan trọng.
+  \item \keyword{LoadingSkeleton}: trạng thái chờ dữ liệu.
+  \item \keyword{NotificationBell}: đếm thông báo chưa đọc theo thời gian sử dụng.
+\end{itemize}
+\end{columns}
+\vspace{0.18cm}
+\centering
+\rolepill{diagramBlue}{dashboard}
+\rolepill{diagramGreen}{sidebar}
+\rolepill{diagramGold}{theme toggle}
+\rolepill{diagramRed}{toast/modal}
+\end{frame}
+
+\begin{frame}{Thiết kế dữ liệu vật lý}
+\footnotesize
+\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
+\toprule
+Nhóm bảng & Bảng & Ý nghĩa\\
+\midrule
+Tài khoản & users, otp\_verification\_tokens, password\_reset\_tokens & Người dùng, xác minh email, đặt lại mật khẩu\\
+Căn hộ & apartments & Thông tin căn hộ, diện tích, trạng thái, liên kết cư dân\\
+Công nợ & bill\_templates, bills & Mẫu khoản thu, hóa đơn phát sinh theo căn hộ\\
+Invoice & invoices, invoice\_bill\_snapshots, payments & QR, khóa bill, snapshot, kết quả thanh toán\\
+Đóng góp & contribution\_campaigns, apartment\_contributions & Chiến dịch và nghĩa vụ đóng góp theo căn hộ\\
+Tương tác & reports, notifications, notification\_templates & Phản ánh, thông báo hệ thống và mẫu thông báo\\
+\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{Ràng buộc trạng thái dữ liệu}
+\begin{columns}[T,onlytextwidth]
+\column{0.31\textwidth}
+\textbf{\textcolor{hustprimary}{Bill}}
+\begin{itemize}
+  \item \tech{UNPAID}
+  \item \tech{OVERDUE}
+  \item \tech{PAID}
+  \item \tech{CANCELLED}
+\end{itemize}
+\column{0.31\textwidth}
+\textbf{\textcolor{hustprimary}{Invoice}}
+\begin{itemize}
+  \item \tech{PENDING}
+  \item \tech{PAID}
+  \item \tech{EXPIRED}
+  \item \tech{CANCELLED}
+\end{itemize}
+\column{0.31\textwidth}
+\textbf{\textcolor{hustprimary}{Payment}}
+\begin{itemize}
+  \item \tech{SUCCESS}
+  \item \tech{FAILED}
+  \item lưu transaction ID
+  \item lưu lý do thất bại
+\end{itemize}
+\end{columns}
+\vspace{0.24cm}
+\infobox{diagramBlue}{Các enum giúp backend kiểm soát luồng chuyển trạng thái rõ ràng, đặc biệt với invoice QR và webhook thanh toán.}
+\end{frame}
+
+\section{Luồng nghiệp vụ chính}
+
+\begin{frame}{Luồng xác thực}
+\begin{columns}[T,onlytextwidth]
+\column{0.50\textwidth}
+\begin{enumerate}
+  \item Người dùng đăng nhập bằng email/mật khẩu hoặc Google OAuth.
+  \item Backend trả JWT nếu thông tin hợp lệ.
+  \item Frontend lưu token và thêm header \tech{Authorization}.
+  \item Khi token lỗi, interceptor xóa phiên và đưa về màn hình đăng nhập.
+\end{enumerate}
+\column{0.45\textwidth}
+\begin{tikzpicture}[node distance=0.2cm]
+\node[flowbox, text width=3.95cm] (a) {Login form / Google};
+\node[greenbox, text width=3.95cm, below=of a] (b) {AuthController};
+\node[goldbox, text width=3.95cm, below=of b] (c) {JWT token};
+\node[graybox, text width=3.95cm, below=of c] (d) {Axios interceptor};
+\draw[arrow] (a) -- (b);
+\draw[arrow] (b) -- (c);
+\draw[arrow] (c) -- (d);
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Quản lý tài khoản và căn hộ}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\begin{itemize}
+  \item Admin tạo, cập nhật, xóa hoặc đặt lại mật khẩu tài khoản.
+  \item Căn hộ lưu thông tin cơ bản và liên kết các cư dân thuộc căn hộ.
+  \item Cư dân có trang ``my apartment'' để xem thông tin căn hộ và thành viên.
+\end{itemize}
+\column{0.47\textwidth}
+\begin{tikzpicture}[node distance=0.18cm]
+\node[flowbox, text width=4.2cm] (u) {users};
+\node[greenbox, text width=4.2cm, below=of u] (a) {apartments};
+\node[goldbox, text width=4.2cm, below=of a] (b) {bills / reports / notifications};
+\draw[arrow] (u) -- node[right,font=\scriptsize]{thuộc căn hộ} (a);
+\draw[arrow] (a) -- (b);
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Sinh hóa đơn và công nợ}
+\begin{columns}[T,onlytextwidth]
+\column{0.52\textwidth}
+\begin{enumerate}
+  \item Admin cấu hình \tech{bill\_templates}: loại phí, mô tả, số tiền, chu kỳ.
+  \item Admin tạo bill lẻ hoặc sinh bill hàng loạt theo danh sách căn hộ.
+  \item Cư dân xem các bill của căn hộ mình và trạng thái hiện tại.
+  \item Job định kỳ có thể chuyển bill quá hạn sang \tech{OVERDUE}.
+\end{enumerate}
+\column{0.43\textwidth}
+\begin{tikzpicture}[node distance=0.2cm]
+\node[flowbox, text width=4.0cm] (t) {Bill Template};
+\node[greenbox, text width=4.0cm, below=of t] (b) {Bills theo căn hộ};
+\node[goldbox, text width=4.0cm, below=of b] (r) {Resident Bills Page};
+\node[redbox, text width=4.0cm, below=of r] (o) {UNPAID / OVERDUE};
+\draw[arrow] (t) -- (b);
+\draw[arrow] (b) -- (r);
+\draw[arrow] (r) -- (o);
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Invoice QR cho hóa đơn}
+\begin{columns}[T,onlytextwidth]
+\column{0.52\textwidth}
+\begin{enumerate}
+  \item Cư dân chọn một hoặc nhiều bill cùng căn hộ.
+  \item Backend kiểm tra bill còn \tech{UNPAID}/\tech{OVERDUE} và chưa bị khóa bởi invoice khác.
+  \item Hệ thống sinh \tech{INVyyyyMMddNNN}, mã tham chiếu \tech{PAY...}, QR URL.
+  \item Bill được khóa bằng \tech{invoice\_id}; snapshot giữ dữ liệu tại thời điểm tạo invoice.
+\end{enumerate}
+\column{0.43\textwidth}
+\begin{tikzpicture}[node distance=0.2cm]
+\node[flowbox, text width=4.0cm] (a) {Chọn bill};
+\node[greenbox, text width=4.0cm, below=of a] (b) {Validate + tính tổng};
+\node[goldbox, text width=4.0cm, below=of b] (c) {Sinh invoice + QR};
+\node[redbox, text width=4.0cm, below=of c] (d) {Lock bill + snapshot};
+\draw[arrow] (a) -- (b);
+\draw[arrow] (b) -- (c);
+\draw[arrow] (c) -- (d);
+\end{tikzpicture}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Webhook SePay}
+\begin{columns}[T,onlytextwidth]
+\column{0.50\textwidth}
+\begin{itemize}
+  \item Chỉ xử lý giao dịch vào: \tech{transferType = in}.
+  \item Chống trùng webhook bằng \tech{transactionId}.
+  \item Tách mã từ nội dung chuyển khoản: \tech{PAY... INV...}.
+  \item Kiểm tra invoice tồn tại, đúng mã, đúng trạng thái, đúng số tiền.
+\end{itemize}
+\column{0.45\textwidth}
+\begin{tabularx}{\linewidth}{>{\bfseries}l X}
+\toprule
+Kết quả & Xử lý\\
+\midrule
+SUCCESS & Tạo payment, đánh dấu invoice/bill đã thanh toán, gửi thông báo\\
+FAILED & Lưu lý do: sai mã, sai tiền, hết hạn, đã thanh toán\\
+Ignored & Bỏ qua giao dịch không liên quan hoặc chiều tiền không phù hợp\\
+\bottomrule
+\end{tabularx}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Thanh toán thủ công và hết hạn invoice}
+\begin{columns}[T,onlytextwidth]
+\column{0.47\textwidth}
+\textbf{\textcolor{hustprimary}{Thanh toán thủ công}}
+\begin{itemize}
+  \item Admin có thể ghi nhận payment khi đối soát ngoài hệ thống.
+  \item Luồng vẫn đi qua service để cập nhật invoice, bill và thông báo.
+  \item Payment lưu phương thức, số tiền, người ghi nhận và thời điểm.
+\end{itemize}
+\column{0.48\textwidth}
+\textbf{\textcolor{hustprimary}{Hết hạn invoice}}
+\begin{itemize}
+  \item Job chạy định kỳ để phát hiện invoice \tech{PENDING} quá hạn.
+  \item Invoice chuyển sang \tech{EXPIRED}.
+  \item Bill bị khóa được giải phóng để cư dân tạo invoice mới.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Chiến dịch đóng góp}
+\begin{columns}[T,onlytextwidth]
+\column{0.52\textwidth}
+\begin{itemize}
+  \item Admin tạo campaign với tên, mô tả, thời gian, mục tiêu và mức đóng góp.
+  \item Khi launch, hệ thống tạo nghĩa vụ đóng góp cho từng căn hộ phù hợp.
+  \item Cư dân tạo invoice đóng góp tương tự invoice hóa đơn.
+  \item Khi thanh toán thành công, số tiền đóng góp của căn hộ được cập nhật.
+\end{itemize}
+\column{0.43\textwidth}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.18cm]
+\node[flowbox, text width=4.0cm] (draft) {DRAFT};
+\node[greenbox, text width=4.0cm, below=of draft] (active) {ACTIVE};
+\node[goldbox, text width=4.0cm, below left=0.28cm and 0.1cm of active] (complete) {COMPLETED};
+\node[redbox, text width=4.0cm, below right=0.28cm and 0.1cm of active] (cancel) {CANCELLED};
+\draw[arrow] (draft) -- (active);
+\draw[arrow] (active) -- (complete);
+\draw[arrow] (active) -- (cancel);
+\end{tikzpicture}}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Phản ánh cư dân}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Cư dân tạo phản ánh theo căn hộ của mình.
+  \item Admin xem danh sách, mở chi tiết và phản hồi trạng thái xử lý.
+  \item Phản ánh đã review không bị review lại để tránh ghi đè kết quả.
+\end{itemize}
+\column{0.46\textwidth}
+\resizebox{0.92\linewidth}{!}{%
+\begin{tikzpicture}[node distance=0.18cm]
+\node[flowbox, text width=4.0cm] (new) {Resident report};
+\node[greenbox, text width=4.0cm, below=of new] (adm) {Admin review};
+\node[goldbox, text width=4.0cm, below left=0.28cm and 0.05cm of adm] (ok) {Accepted};
+\node[redbox, text width=4.0cm, below right=0.28cm and 0.05cm of adm] (no) {Rejected};
+\draw[arrow] (new) -- (adm);
+\draw[arrow] (adm) -- (ok);
+\draw[arrow] (adm) -- (no);
+\end{tikzpicture}}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Thông báo trong hệ thống}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\textbf{\textcolor{hustprimary}{Tự động}}
+\begin{itemize}
+  \item Tạo bill mới
+  \item Invoice được thanh toán
+  \item Campaign được phát động
+  \item Phản ánh có kết quả xử lý
+\end{itemize}
+\column{0.47\textwidth}
+\textbf{\textcolor{hustprimary}{Tương tác người dùng}}
+\begin{itemize}
+  \item Notification bell hiển thị số chưa đọc.
+  \item Trang thông báo hỗ trợ đọc từng thông báo, đọc tất cả, xóa.
+  \item Admin có thể gửi thông báo từ template.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\section{Giao diện, kiểm thử và đánh giá}
+
+\begin{frame}{Màn hình demo cần chụp}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\screenshotbox{slide-login.png}{Đăng nhập, OTP hoặc Google OAuth}
+
+\vspace{0.22cm}
+\screenshotbox{slide-admin-dashboard.png}{Dashboard admin và lối tắt quản trị}
+\column{0.48\textwidth}
+\screenshotbox{slide-resident-bills.png}{Cư dân xem hóa đơn, chọn bill cần thanh toán}
+
+\vspace{0.22cm}
+\screenshotbox{slide-invoice-qr.png}{Chi tiết invoice với QR và trạng thái thanh toán}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Ảnh giao diện bổ sung}
+\begin{columns}[T,onlytextwidth]
+\column{0.48\textwidth}
+\screenshotbox{slide-admin-reports.png}{Admin xem và duyệt phản ánh cư dân}
+
+\vspace{0.22cm}
+\screenshotbox{slide-campaigns.png}{Quản lý chiến dịch đóng góp}
+\column{0.48\textwidth}
+\screenshotbox{slide-notifications.png}{Notification bell và trang thông báo}
+
+\vspace{0.22cm}
+\screenshotbox{slide-theme.png}{Giao diện với light/dark/abyss theme}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Demo sản phẩm}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{enumerate}
+  \item Đăng nhập tài khoản admin.
+  \item Tạo hoặc chọn căn hộ, tài khoản cư dân.
+  \item Tạo bill từ mẫu khoản thu.
+  \item Đăng nhập cư dân và mở danh sách hóa đơn.
+\end{enumerate}
+\column{0.49\textwidth}
+\begin{enumerate}
+  \setcounter{enumi}{4}
+  \item Cư dân tạo invoice QR.
+  \item Mô phỏng webhook hoặc ghi nhận thanh toán.
+  \item Kiểm tra trạng thái invoice, bill và notification.
+  \item Gửi phản ánh và admin xử lý.
+\end{enumerate}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Kiểm thử trọng tâm}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Đăng nhập đúng/sai, Google OAuth, quên mật khẩu OTP.
+  \item Phân quyền route Admin/User và các endpoint nhạy cảm.
+  \item CRUD tài khoản, căn hộ, bill template, bill.
+  \item Cư dân chỉ thấy dữ liệu thuộc căn hộ của mình.
+\end{itemize}
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Tạo invoice từ nhiều bill hợp lệ.
+  \item Webhook đúng tiền, sai tiền, sai mã, trùng transaction.
+  \item Invoice hết hạn giải phóng bill và gửi notification.
+  \item Campaign, contribution invoice, report review, notification.
+\end{itemize}
+\end{columns}
+\vspace{0.16cm}
+\infobox{diagramGreen}{Các ca kiểm thử ưu tiên những luồng có tiền, trạng thái và phân quyền vì đây là phần dễ gây lỗi nghiệp vụ nhất.}
+\end{frame}
+
+\begin{frame}{Điểm mạnh kỹ thuật}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Tách frontend/backend rõ, dễ phát triển song song.
+  \item Service layer gom logic nghiệp vụ và transaction.
+  \item Bill được khóa khi tạo invoice để hạn chế thanh toán trùng.
+  \item Snapshot bill hỗ trợ truy vết sau khi dữ liệu gốc thay đổi.
+\end{itemize}
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Webhook có idempotency bằng transaction ID.
+  \item Payment thất bại vẫn được lưu với lý do cụ thể.
+  \item Notification cập nhật người dùng khi trạng thái quan trọng thay đổi.
+  \item Frontend có theme, toast, modal, skeleton để trải nghiệm mượt hơn.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Hạn chế hiện tại}
+\begin{columns}[T,onlytextwidth]
+\column{0.32\textwidth}
+\textbf{\textcolor{hustprimary}{Sản phẩm}}
+\begin{itemize}
+  \item Chưa có mobile app riêng.
+  \item Một số thống kê còn ở mức tổng quan.
+\end{itemize}
+\column{0.32\textwidth}
+\textbf{\textcolor{hustprimary}{Vận hành}}
+\begin{itemize}
+  \item Chưa có audit log đầy đủ.
+  \item Cần backup và monitoring khi triển khai thật.
+\end{itemize}
+\column{0.32\textwidth}
+\textbf{\textcolor{hustprimary}{Thanh toán}}
+\begin{itemize}
+  \item Webhook production cần xác thực mạnh hơn.
+  \item Cần bổ sung đối soát báo cáo theo kỳ.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Hướng phát triển}
+\begin{columns}[T,onlytextwidth]
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Dashboard tài chính: doanh thu, công nợ, tỷ lệ thanh toán.
+  \item Audit log cho thay đổi tài khoản, bill, invoice, payment.
+  \item PWA hoặc mobile app cho cư dân.
+\end{itemize}
+\column{0.49\textwidth}
+\begin{itemize}
+  \item Hardening triển khai: HTTPS, backup, rate limiting.
+  \item Xác thực webhook bằng chữ ký/HMAC.
+  \item Xuất báo cáo PDF/Excel theo tháng, quý, năm.
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Kết luận}
+\begin{itemize}
+  \item BlueMoon bao phủ các nghiệp vụ chính của quản lý chung cư: cư dân, căn hộ, hóa đơn, thanh toán, đóng góp, phản ánh và thông báo.
+  \item Luồng invoice QR và webhook SePay là điểm nhấn vì tự động hóa phần đối soát thanh toán.
+  \item Kiến trúc React/Vite + Spring Boot + PostgreSQL đủ rõ để mở rộng thêm báo cáo, audit log, mobile/PWA và triển khai production.
+\end{itemize}
+\vspace{0.25cm}
+\centering
+\rolepill{diagramBlue}{Bài tập lớn BlueMoon}
+\quad
+\rolepill{diagramGreen}{Nhóm 9}
+\quad
+\rolepill{diagramGold}{Sẵn sàng demo}
+\end{frame}
+
+\hustthankyou
+
+\end{document}
