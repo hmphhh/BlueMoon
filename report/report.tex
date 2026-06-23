@@ -1,0 +1,1143 @@
+\documentclass[12pt,a4paper]{report}
+
+% =========================
+% Preamble
+% =========================
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T5]{fontenc}
+  \usepackage[vietnamese]{babel}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+  \usepackage[vietnamese]{babel}
+  \IfFontExistsTF{Times New Roman}{\setmainfont{Times New Roman}}{\setmainfont{Liberation Serif}}
+  \IfFontExistsTF{Arial}{\setsansfont{Arial}}{\setsansfont{Liberation Sans}}
+  \IfFontExistsTF{Consolas}{\setmonofont{Consolas}}{\setmonofont{Liberation Mono}}
+\fi
+\usepackage{geometry}
+\geometry{left=3cm,right=2.2cm,top=2.5cm,bottom=2.5cm}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,shapes.geometric,shapes.multipart,calc}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!60!black,urlcolor=blue!60!black,citecolor=blue!60!black}
+\urlstyle{same}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.65\baselineskip}
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.25}
+\setlist[itemize]{topsep=2pt,itemsep=2pt}
+\setlist[enumerate]{topsep=2pt,itemsep=2pt}
+\emergencystretch=3em
+\hfuzz=120pt
+\sloppy
+
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{210,210,210}
+\definecolor{prismblue}{RGB}{42,91,155}
+\definecolor{prismgreen}{RGB}{50,130,90}
+\definecolor{prismorange}{RGB}{200,120,30}
+
+\lstdefinestyle{prismcode}{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue!60!black}\bfseries,
+  commentstyle=\color{green!40!black},
+  stringstyle=\color{orange!70!black},
+  breaklines=true,
+  columns=fullflexible,
+  showstringspaces=false,
+  tabsize=2
+}
+\lstset{style=prismcode}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\newcommand{\projectname}{BlueMoon}
+\newcommand{\topic}{Hệ thống quản lý chung cư BlueMoon}
+\newcommand{\placeholderimage}[2]{%
+\begin{figure}[htbp]
+  \centering
+  \IfFileExists{#1}{\includegraphics[width=0.88\textwidth]{#1}}{%
+  \begin{tikzpicture}
+    \draw[rounded corners=6pt,thick,fill=gray!8] (0,0) rectangle (13,7);
+    \draw[fill=prismblue!15,draw=prismblue] (0.4,6.2) rectangle (12.6,6.7);
+    \draw[fill=white,draw=gray!50] (0.7,0.6) rectangle (12.3,5.9);
+    \node[align=center,text width=11cm] at (6.5,3.5) {\Large Khung chèn ảnh giao diện\\[4pt]{\small\ttfamily #1}\\[4pt]\normalsize Chụp màn hình và đặt ảnh đúng tên file này.};
+  \end{tikzpicture}}
+  \caption{#2}
+\end{figure}}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+{\Large ĐẠI HỌC BÁCH KHOA HÀ NỘI\\[4pt] TRƯỜNG CÔNG NGHỆ THÔNG TIN VÀ TRUYỀN THÔNG}\par
+\vspace{2.5cm}
+{\Huge\bfseries BÁO CÁO BÀI TẬP LỚN\\[8pt] NHẬP MÔN CÔNG NGHỆ PHẦN MỀM}\par
+\vspace{1.2cm}
+{\LARGE\bfseries Đề tài: \topic\par}
+\vspace{2cm}
+\begin{tabular}{lll}
+Giảng viên hướng dẫn: & TS. Nguyễn Quốc Tuấn &  \\
+Nhóm thực hiện: & Nhóm 9 & \\
+Thành viên: & Nguyễn Hoàng Gia & 202400040 \\
+& Phạm Thị Bích Phương & 202400069 \\
+& Nguyễn Tuấn Long & 202416269 \\
+& Bùi Tiến Dũng & 202416167 \\
+& Chu Văn Linh & 202400056 \\
+Lớp học phần: & IT3180 & \\
+\end{tabular}
+\vfill
+{\large Hà Nội, \today}
+\end{titlepage}
+
+\tableofcontents
+\listoftables
+\listoffigures
+\clearpage
+
+\chapter*{Lời nói đầu}
+\addcontentsline{toc}{chapter}{Lời nói đầu}
+Báo cáo này trình bày quá trình khảo sát, phân tích yêu cầu, đặc tả use case, thiết kế kiến trúc, thiết kế cơ sở dữ liệu, giao diện, kiểm thử và định hướng phát triển cho đề tài \textbf{\topic}. Hệ thống được thiết kế theo mô hình web full-stack, gồm frontend React/Vite, backend Spring Boot, cơ sở dữ liệu PostgreSQL, xác thực JWT/Google OAuth, gửi email OTP, tích hợp thanh toán qua SePay và cơ chế thông báo cho cư dân/quản trị viên.
+
+Mục tiêu của báo cáo không chỉ là mô tả sản phẩm cuối cùng mà còn thể hiện tư duy kỹ nghệ phần mềm: xác định bài toán nghiệp vụ, phân rã tác nhân, mô hình hóa luồng xử lý, thiết kế dữ liệu có tính toàn vẹn, xây dựng kịch bản kiểm thử và chuẩn bị tài liệu đủ rõ để nhóm có thể tiếp tục triển khai, nghiệm thu và bảo trì. Các ảnh giao diện trong báo cáo được để sẵn bằng macro placeholder; sau khi chạy ứng dụng \projectname{}, chỉ cần chụp màn hình và đặt đúng tên file tương ứng.
+
+\chapter{Tổng quan dự án}
+
+\section{Lý do chọn đề tài}
+Chung cư là một mô hình vận hành có nhiều nghiệp vụ lặp lại nhưng dễ phát sinh sai sót nếu quản lý thủ công: cập nhật danh sách căn hộ và cư dân, thu phí dịch vụ, ghi nhận hóa đơn, theo dõi thanh toán, tiếp nhận phản ánh, gửi thông báo khẩn, tổ chức các khoản đóng góp chung và minh bạch lịch sử giao dịch. Trong thực tế, nhiều ban quản lý vẫn kết hợp bảng tính, tin nhắn Zalo, chuyển khoản ngân hàng và giấy tờ rời rạc. Cách làm này tạo ra nhiều điểm nghẽn: dữ liệu phân tán, khó tra cứu lịch sử, chậm xác nhận thanh toán, cư dân không biết hóa đơn nào còn nợ, quản trị viên khó tổng hợp tình trạng từng căn hộ.
+
+Đề tài \projectname{} được lựa chọn vì có tính thực tiễn cao và phạm vi đủ rộng để minh họa nhiều nội dung quan trọng của công nghệ phần mềm. Hệ thống hướng tới hai nhóm người dùng chính: \textbf{quản trị viên} đại diện ban quản lý và \textbf{cư dân} đại diện người dùng cuối trong chung cư. Quản trị viên có thể quản lý căn hộ, tài khoản, hóa đơn, mẫu khoản thu, chiến dịch đóng góp, thanh toán, thông báo và phản ánh. Cư dân có thể xem thông tin căn hộ, xem thành viên cùng căn hộ, theo dõi hóa đơn, tạo invoice thanh toán qua QR, gửi phản ánh, xem thông báo và tham gia các khoản đóng góp.
+
+\section{Mục tiêu dự án}
+\begin{itemize}
+  \item Xây dựng ứng dụng web quản lý chung cư có giao diện rõ ràng, phân tách trang dành cho cư dân và trang quản trị.
+  \item Cung cấp backend REST API bằng Spring Boot, có phân lớp controller, service, repository, DTO, entity và exception handler.
+  \item Thiết kế dữ liệu quan hệ cho các nghiệp vụ: tài khoản/cư dân, căn hộ, hóa đơn, invoice, payment, khoản đóng góp, phản ánh và thông báo.
+  \item Áp dụng JWT, phân quyền theo vai trò \texttt{ADMIN}/\texttt{USER}, kiểm tra quyền sở hữu dữ liệu tại service/controller.
+  \item Hỗ trợ xác thực truyền thống bằng số điện thoại/mật khẩu, Google OAuth và luồng quên mật khẩu bằng OTP email.
+  \item Tích hợp thanh toán bằng QR và webhook SePay, đảm bảo invoice được khóa, hết hạn, hủy hoặc đánh dấu đã thanh toán đúng quy tắc nghiệp vụ.
+  \item Cung cấp cơ chế notification tự động để cư dân/quản trị viên nhận biết sự kiện quan trọng như tạo hóa đơn, thanh toán thành công, phản ánh mới, duyệt phản ánh và phát động chiến dịch đóng góp.
+\end{itemize}
+
+\section{Đối tượng nghiên cứu và phạm vi}
+Đối tượng nghiên cứu là quy trình xây dựng một hệ thống web hỗ trợ vận hành chung cư. Phạm vi phiên bản hiện tại tập trung vào các nghiệp vụ chính của hệ thống:
+\begin{itemize}
+  \item Quản lý tài khoản, hồ sơ cư dân, liên kết cư dân với căn hộ.
+  \item Quản lý danh sách căn hộ, trạng thái căn hộ, thông tin thành viên và tổng quan công nợ.
+  \item Tạo hóa đơn thủ công hoặc sinh hóa đơn hàng loạt từ mẫu khoản thu.
+  \item Cư dân tạo invoice cho các hóa đơn chưa thanh toán hoặc khoản đóng góp; hệ thống sinh mã QR, mã tham chiếu và hạn thanh toán.
+  \item Webhook SePay nhận giao dịch chuyển khoản, kiểm tra nội dung chuyển khoản, số tiền, trạng thái invoice và ghi nhận payment.
+  \item Tạo, phát động, hoàn tất hoặc hủy chiến dịch đóng góp bắt buộc/tự nguyện.
+  \item Cư dân gửi phản ánh; quản trị viên duyệt, chấp nhận hoặc từ chối phản ánh.
+  \item Quản lý thông báo tự động/thủ công, template thông báo, trạng thái đã đọc và xóa mềm.
+\end{itemize}
+
+Các chức năng ngoài phạm vi hiện tại gồm: ứng dụng mobile native, phân quyền nhiều cấp ngoài \texttt{ADMIN}/\texttt{USER}, chữ ký số, hợp đồng thuê/mua căn hộ, đặt lịch tiện ích chung, chat thời gian thực và dashboard phân tích nâng cao.
+
+\section{Phân tích hiện trạng và giải pháp tương tự}
+\begin{longtable}{L{3.1cm} L{4.0cm} L{4.0cm} L{3.4cm}}
+\caption{So sánh các cách quản lý chung cư}\label{tab:market}\\
+\toprule
+Giải pháp & Ưu điểm & Nhược điểm & Bài học áp dụng cho \projectname \\
+\midrule
+\endfirsthead
+\toprule
+Giải pháp & Ưu điểm & Nhược điểm & Bài học áp dụng cho \projectname \\
+\midrule
+\endhead
+Bảng tính Excel/Google Sheets & Dễ bắt đầu, chi phí thấp, phù hợp khi quy mô nhỏ. & Khó phân quyền chi tiết, dễ nhập sai, khó đối soát thanh toán và không thân thiện với cư dân. & Cần bảng dữ liệu dễ lọc/tìm kiếm nhưng phải có ràng buộc và luồng nghiệp vụ rõ ràng. \\
+Nhóm chat Zalo/Facebook & Gửi thông báo nhanh, cư dân quen sử dụng. & Thông tin trôi, khó phân loại hóa đơn/phản ánh, không có lịch sử nghiệp vụ chuẩn. & Cần notification có danh mục, trạng thái đọc và liên kết tới đối tượng liên quan. \\
+Chuyển khoản ngân hàng thủ công & Linh hoạt, không phụ thuộc phần mềm lớn. & Ban quản lý phải đối soát thủ công, dễ nhầm nội dung chuyển khoản. & Cần mã tham chiếu invoice và webhook để tự động ghi nhận payment. \\
+Phần mềm quản lý tòa nhà thương mại & Nhiều tính năng, hỗ trợ vận hành chuyên nghiệp. & Chi phí cao, khó tùy biến theo bài tập nhóm, phụ thuộc nhà cung cấp. & Phiên bản học tập nên tập trung vào nghiệp vụ lõi và kiến trúc dễ mở rộng. \\
+\projectname & Tích hợp căn hộ, hóa đơn, invoice QR, webhook, đóng góp, phản ánh và thông báo trong một hệ thống. & Phiên bản hiện tại chưa có mobile app, audit log đầy đủ và báo cáo tài chính nâng cao. & Phát triển theo hướng tinh gọn, minh bạch dữ liệu và ưu tiên luồng thanh toán. \\
+\bottomrule
+\end{longtable}
+
+\section{Phương pháp luận phát triển: Agile/Scrum}
+Dự án phù hợp với Agile/Scrum vì nghiệp vụ chung cư có thể thay đổi theo phản hồi của người dùng: cách sinh hóa đơn, cách đặt nội dung chuyển khoản, loại phản ánh, mẫu thông báo hoặc quy định đóng góp. Nhóm có thể chia backlog thành các epic: xác thực, căn hộ/cư dân, hóa đơn, invoice/thanh toán, phản ánh, thông báo, đóng góp và dashboard. Mỗi sprint tạo ra một phần có thể chạy được: ban đầu thiết lập React/Vite và Spring Boot/PostgreSQL, sau đó triển khai đăng nhập, quản lý căn hộ, hóa đơn, thanh toán, rồi mở rộng sang phản ánh và notification.
+
+Definition of Done cho một chức năng gồm: API có DTO hợp lệ, validation rõ ràng, phân quyền đúng, transaction bảo vệ dữ liệu, frontend có trạng thái loading/error, thông báo thao tác thành công/thất bại và có kịch bản kiểm thử tương ứng. Với các luồng có tiền như invoice/payment, Definition of Done cần thêm idempotency webhook, kiểm tra số tiền chính xác, trạng thái invoice hợp lệ và không cho thanh toán một hóa đơn bằng nhiều invoice đang mở.
+
+\chapter{Đặc tả yêu cầu phần mềm}
+
+\section{Tổng quan SRS}
+\projectname{} là hệ thống client--server. Frontend React/Vite chịu trách nhiệm hiển thị giao diện, điều hướng role-based và gọi API qua HTTP/JSON. Backend Spring Boot cung cấp REST API, xử lý xác thực, phân quyền, nghiệp vụ và ánh xạ dữ liệu bằng JPA/Hibernate. PostgreSQL lưu dữ liệu chính. Gmail SMTP phục vụ OTP email. Google OAuth hỗ trợ đăng nhập bằng tài khoản Google đã được liên kết và xác minh. SePay cung cấp QR thanh toán và webhook giao dịch.
+
+\section{Danh sách tác nhân}
+\begin{table}[H]
+\centering
+\caption{Danh sách tác nhân của hệ thống}
+\begin{tabularx}{\textwidth}{L{3cm} Y Y}
+\toprule
+Tác nhân & Mô tả & Quyền lợi chính \\
+\midrule
+Khách chưa đăng nhập & Người truy cập màn hình đăng nhập hoặc quên mật khẩu. & Đăng nhập bằng tài khoản nội bộ, Google OAuth, yêu cầu OTP quên mật khẩu. \\
+Cư dân & Người dùng vai trò \texttt{USER}, có thể được gắn với một căn hộ. & Xem căn hộ, xem hóa đơn, tạo invoice, thanh toán QR, gửi phản ánh, xem thông báo, đóng góp. \\
+Quản trị viên & Người dùng vai trò \texttt{ADMIN}, đại diện ban quản lý. & Quản lý tài khoản, căn hộ, hóa đơn, invoice, payment, campaign, report, notification. \\
+Nhà cung cấp thanh toán SePay & Dịch vụ ngân hàng/thanh toán gửi webhook giao dịch. & Xác nhận giao dịch chuyển khoản dựa trên mã tham chiếu invoice. \\
+Google OAuth & Nhà cung cấp danh tính bên ngoài. & Xác minh ID token và email người dùng. \\
+Gmail SMTP & Dịch vụ gửi email. & Gửi OTP xác minh email hoặc quên mật khẩu. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Yêu cầu chức năng theo phân hệ}
+\begin{longtable}{L{1.4cm} L{3cm} L{9cm}}
+\caption{Danh sách yêu cầu chức năng}\label{tab:functional}\\
+\toprule
+Mã & Phân hệ & Mô tả yêu cầu \\
+\midrule
+\endfirsthead
+\toprule
+Mã & Phân hệ & Mô tả yêu cầu \\
+\midrule
+\endhead
+FR-01 & Xác thực & Hệ thống cho phép đăng nhập bằng username/số điện thoại và mật khẩu, trả JWT kèm thông tin vai trò. \\
+FR-02 & Google OAuth & Người dùng có thể đăng nhập bằng Google ID token nếu email đã tồn tại và tài khoản nội bộ đã được xác minh. \\
+FR-03 & Quên mật khẩu & Người dùng yêu cầu OTP qua email, xác minh OTP, nhận reset token và đặt mật khẩu mới. \\
+FR-04 & Hồ sơ cá nhân & Người dùng xem/cập nhật email, họ tên, số điện thoại, ngày sinh, giới tính và đổi mật khẩu. \\
+FR-05 & Quản lý tài khoản & Admin xem danh sách tài khoản, tạo tài khoản, cập nhật thông tin, reset mật khẩu, xóa tài khoản và gán căn hộ. \\
+FR-06 & Quản lý căn hộ & Admin tạo, cập nhật, xóa căn hộ; xem tầng, diện tích, loại căn hộ, trạng thái và số cư dân. \\
+FR-07 & Thành viên căn hộ & Admin và cư dân xem danh sách thành viên trong căn hộ; hệ thống tự cập nhật trạng thái căn hộ theo số cư dân còn hoạt động. \\
+FR-08 & Mẫu khoản thu & Admin tạo mẫu hóa đơn với tên, mô tả và số tiền mặc định để dùng cho sinh hóa đơn hàng loạt. \\
+FR-09 & Hóa đơn & Admin tạo hóa đơn lẻ hoặc sinh hóa đơn cho nhiều căn hộ từ template, cập nhật thông tin khi còn \texttt{UNPAID}/\texttt{OVERDUE}. \\
+FR-10 & Công nợ cư dân & Cư dân xem hóa đơn của căn hộ mình, lọc theo trạng thái và không thấy hóa đơn đã hủy. \\
+FR-11 & Invoice hóa đơn & Cư dân chọn một hoặc nhiều hóa đơn cùng căn hộ để tạo invoice, hệ thống tính tổng, sinh invoice code, reference code, QR URL và khóa bill bằng \texttt{invoice\_id}. \\
+FR-12 & Invoice đóng góp & Cư dân tạo invoice cho một khoản đóng góp của căn hộ nếu campaign đang \texttt{ACTIVE}, còn trong thời hạn và chưa có invoice \texttt{PENDING}. \\
+FR-13 & Thanh toán tự động & Webhook SePay xử lý giao dịch vào, trích xuất \texttt{PAY... INV...}, đối chiếu invoice, số tiền, trạng thái và ghi nhận payment. \\
+FR-14 & Thanh toán thủ công & Admin có thể đánh dấu một nhóm bill là đã thanh toán, hệ thống tạo invoice/payment thủ công và cập nhật trạng thái bill. \\
+FR-15 & Hết hạn/hủy invoice & Invoice quá hạn được job định kỳ chuyển sang \texttt{EXPIRED}; người tạo có thể hủy invoice \texttt{PENDING}; bill được giải phóng nếu invoice không còn hiệu lực. \\
+FR-16 & Chiến dịch đóng góp & Admin tạo campaign dạng bắt buộc/tự nguyện, phát động, hoàn tất hoặc hủy; khi phát động sinh bản ghi contribution cho từng căn hộ. \\
+FR-17 & Phản ánh cư dân & Cư dân tạo, sửa, xóa phản ánh khi còn \texttt{PENDING}; admin xem danh sách, lọc và duyệt \texttt{APPROVED}/\texttt{REJECTED}. \\
+FR-18 & Thông báo & Hệ thống tạo thông báo tự động cho bill, payment, report, campaign; admin tạo template và gửi thông báo thủ công. \\
+FR-19 & Notification bell & Frontend hiển thị số thông báo chưa đọc, danh sách dropdown, đánh dấu đã đọc và điều hướng tới trang chi tiết. \\
+FR-20 & Dashboard admin & Admin xem lối tắt tới các phân hệ quan trọng: căn hộ, hóa đơn, thanh toán, phản ánh, thông báo và campaign. \\
+FR-21 & Dashboard cư dân & Cư dân xem tổng quan căn hộ, hóa đơn, invoice, phản ánh và đóng góp của mình. \\
+FR-22 & Giao diện & Hệ thống hỗ trợ layout dashboard, sidebar, dark/light theme, toast, modal và skeleton loading. \\
+\bottomrule
+\end{longtable}
+
+\section{Danh sách Use Case}
+\begin{longtable}{L{1.6cm} L{4.1cm} L{3cm} L{5.3cm}}
+\caption{Danh sách Use Case tổng quát}\label{tab:usecases}\\
+\toprule
+Mã UC & Tên Use Case & Actor chính & Mô tả ngắn \\
+\midrule
+\endfirsthead
+\toprule
+Mã UC & Tên Use Case & Actor chính & Mô tả ngắn \\
+\midrule
+\endhead
+UC-01 & Đăng nhập hệ thống & Khách & Xác thực bằng tài khoản nội bộ hoặc Google OAuth. \\
+UC-02 & Khôi phục mật khẩu & Khách & Nhận OTP qua email, xác minh OTP và đặt mật khẩu mới. \\
+UC-03 & Cập nhật hồ sơ & Cư dân/Admin & Thay đổi thông tin cá nhân và mật khẩu. \\
+UC-04 & Quản lý tài khoản & Admin & Tạo, sửa, xóa, reset mật khẩu, gán vai trò và căn hộ. \\
+UC-05 & Quản lý căn hộ & Admin & Tạo/sửa/xóa căn hộ, xem chi tiết và danh sách thành viên. \\
+UC-06 & Xem căn hộ của tôi & Cư dân & Xem thông tin căn hộ và thành viên cùng căn hộ. \\
+UC-07 & Quản lý mẫu khoản thu & Admin & Tạo/sửa/xóa bill template. \\
+UC-08 & Tạo và sinh hóa đơn & Admin & Tạo bill lẻ hoặc sinh hàng loạt cho nhiều căn hộ. \\
+UC-09 & Xem hóa đơn & Cư dân/Admin & Cư dân xem bill căn hộ; admin xem toàn bộ bill. \\
+UC-10 & Tạo invoice thanh toán & Cư dân & Chọn bill/contribution và nhận QR thanh toán. \\
+UC-11 & Xử lý webhook thanh toán & SePay & Gửi giao dịch vào, hệ thống ghi payment và cập nhật invoice/bill. \\
+UC-12 & Quản lý chiến dịch đóng góp & Admin & Tạo, phát động, hoàn tất hoặc hủy campaign. \\
+UC-13 & Đóng góp theo campaign & Cư dân & Xem khoản đóng góp của căn hộ, tạo invoice và thanh toán. \\
+UC-14 & Gửi phản ánh & Cư dân & Tạo/sửa/xóa phản ánh chờ xử lý. \\
+UC-15 & Duyệt phản ánh & Admin & Xem danh sách phản ánh và phản hồi kết quả duyệt. \\
+UC-16 & Quản lý thông báo & Admin & Tạo template, gửi thông báo thủ công, xóa mềm thông báo. \\
+UC-17 & Xem thông báo & Cư dân/Admin & Xem, lọc, đánh dấu đã đọc và xóa thông báo. \\
+UC-18 & Theo dõi thanh toán & Admin & Xem danh sách invoice/payment và chi tiết từng giao dịch. \\
+\bottomrule
+\end{longtable}
+
+\section{Yêu cầu phi chức năng}
+\subsection{Hiệu năng}
+Các màn hình danh sách như tài khoản, căn hộ, phản ánh và thông báo cần hỗ trợ lọc, tìm kiếm hoặc phân trang để tránh tải quá nhiều dữ liệu. Backend sử dụng repository query/projection cho các tổng hợp như số cư dân từng căn hộ và công nợ từng căn hộ nhằm giảm nguy cơ N+1 query. Các thao tác tài chính cần chạy trong transaction để giữ nhất quán giữa invoice, bill snapshot, payment và trạng thái bill.
+
+\subsection{Bảo mật}
+Backend sử dụng Spring Security, JWT stateless session, BCrypt cho mật khẩu và phân quyền theo \texttt{ROLE\_ADMIN}/\texttt{ROLE\_USER}. Các endpoint nhạy cảm yêu cầu token hợp lệ; nhiều API kiểm tra thêm quyền sở hữu dữ liệu, ví dụ cư dân chỉ xem invoice do mình tạo hoặc bill thuộc căn hộ mình. Webhook thanh toán không dùng JWT mà dùng API key qua header để phù hợp tích hợp bên ngoài. Google OAuth phải xác minh ID token và email đã verified. Luồng quên mật khẩu dùng OTP và reset token có thời hạn.
+
+\subsection{Độ tin cậy và toàn vẹn dữ liệu}
+Các thao tác tạo invoice phải khóa hóa đơn bằng \texttt{invoice\_id} để tránh một bill được thanh toán song song trong nhiều invoice. Khi invoice hủy/hết hạn, bill được giải phóng nếu vẫn khóa bởi invoice đó. Khi thanh toán thành công, invoice chuyển \texttt{PAID}; nếu invoice dạng bill, các bill snapshot được đánh dấu \texttt{PAID}; nếu invoice dạng contribution, hệ thống tính lại số tiền đã đóng của căn hộ bằng tổng payment thành công. Webhook phải idempotent bằng \texttt{transactionId}.
+
+\subsection{Khả dụng và trải nghiệm người dùng}
+Frontend cần có điều hướng rõ ràng theo vai trò. Người dùng \texttt{ADMIN} được chuyển tới \texttt{/admin-panel}; người dùng \texttt{USER} được chuyển tới \texttt{/resident-home}. Các trang chính dùng layout dashboard, sidebar, toast, modal, skeleton loading và bảng dữ liệu. Lỗi nghiệp vụ cần hiển thị dễ hiểu: hóa đơn đã bị khóa bởi invoice khác, invoice đã hết hạn, số tiền chuyển khoản không khớp, tài khoản chưa gắn căn hộ hoặc phản ánh đã được duyệt nên không thể sửa.
+
+\subsection{Môi trường triển khai}
+Backend dùng Spring Boot 3.5, Java 25, JPA/Hibernate, PostgreSQL, Spring Mail, Spring Security, JJWT, MapStruct, Lombok, Google API Client và dotenv. Frontend dùng React 19, React Router 7, Axios và Vite. Cấu hình quan trọng được đưa vào biến môi trường: database, mail, JWT secret, thời hạn JWT, thông tin SePay và Google client ID.
+
+\chapter{Kịch bản Use Case chi tiết}
+
+\section{UC-01: Đăng nhập hệ thống}
+\begin{longtable}{L{4cm} L{10.5cm}}
+\caption{Đặc tả Use Case UC-01 -- Đăng nhập hệ thống}\label{tab:uc-login}\\
+\toprule
+Thuộc tính & Nội dung \\
+\midrule
+\endfirsthead
+\toprule Thuộc tính & Nội dung \\\midrule
+\endhead
+Mục tiêu & Người dùng đăng nhập thành công và được chuyển tới dashboard đúng vai trò. \\
+Actor chính & Khách chưa đăng nhập. \\
+Tiền điều kiện & Tài khoản đã tồn tại trong bảng \texttt{users}; mật khẩu đúng hoặc Google email đã xác minh và khớp tài khoản nội bộ. \\
+Hậu điều kiện & Frontend lưu JWT và thông tin user trong \texttt{localStorage}; route được bảo vệ theo vai trò. \\
+Luồng chính & \begin{enumerate}
+\item Người dùng mở trang \texttt{/login}.
+\item Nhập username/số điện thoại và mật khẩu, hoặc chọn Google Sign-In.
+\item Frontend gửi \texttt{POST /api/auth/login} hoặc \texttt{POST /api/auth/google-login}.
+\item Backend xác thực mật khẩu bằng BCrypt hoặc xác minh Google ID token.
+\item Backend sinh JWT chứa username và role.
+\item Frontend lưu token, lưu user và điều hướng admin tới \texttt{/admin-panel}, cư dân tới \texttt{/resident-home}.
+\end{enumerate} \\
+Luồng ngoại lệ E1 & Sai username/mật khẩu: backend trả lỗi xác thực, frontend hiển thị thông báo thất bại. \\
+Luồng ngoại lệ E2 & Google token hết hạn/không hợp lệ hoặc email chưa verified: backend từ chối đăng nhập. \\
+Luồng ngoại lệ E3 & Vai trò không khớp route: \texttt{ProtectedRoute} chuyển người dùng về trang đăng nhập. \\
+Quy tắc nghiệp vụ & Token được gửi qua header \texttt{Authorization: Bearer <token>}; backend hoạt động stateless, không lưu session phía server. \\
+\bottomrule
+\end{longtable}
+
+\section{UC-05: Quản lý căn hộ và cư dân}
+\begin{longtable}{L{4cm} L{10.5cm}}
+\caption{Đặc tả Use Case UC-05 -- Quản lý căn hộ và cư dân}\label{tab:uc-apartment}\\
+\toprule
+Thuộc tính & Nội dung \\
+\midrule
+\endfirsthead
+\toprule Thuộc tính & Nội dung \\\midrule
+\endhead
+Mục tiêu & Admin quản lý danh sách căn hộ, trạng thái cư trú và người dùng thuộc từng căn hộ. \\
+Actor chính & Quản trị viên. \\
+Tiền điều kiện & Admin đã đăng nhập; dữ liệu căn hộ hoặc user cần thao tác tồn tại nếu là cập nhật/xóa. \\
+Hậu điều kiện & Thông tin căn hộ/user được lưu; trạng thái căn hộ phản ánh số cư dân còn hoạt động. \\
+Luồng chính & \begin{enumerate}
+\item Admin mở trang \texttt{/apartments}.
+\item Frontend gọi \texttt{GET /api/apartments} để lấy danh sách kèm số cư dân và công nợ.
+\item Admin tạo hoặc cập nhật căn hộ với số căn, tầng, diện tích và loại căn hộ.
+\item Admin mở chi tiết \texttt{/apartment/:apartmentId} hoặc danh sách thành viên \texttt{/apartment/:apartmentId/members}.
+\item Admin tạo/cập nhật tài khoản cư dân, gán \texttt{apartmentId}, trạng thái và quan hệ với chủ hộ.
+\item Backend lưu thay đổi và tự cập nhật trạng thái căn hộ nếu cần.
+\end{enumerate} \\
+Luồng ngoại lệ E1 & Số căn hộ đã tồn tại: backend trả lỗi trùng dữ liệu. \\
+Luồng ngoại lệ E2 & Xóa căn hộ còn cư dân: backend từ chối để bảo vệ toàn vẹn dữ liệu. \\
+Luồng ngoại lệ E3 & Cư dân không thuộc căn hộ: cư dân không thể truy cập thông tin căn hộ khác. \\
+Quy tắc nghiệp vụ & Căn hộ có trạng thái \texttt{VACANT} khi không có cư dân \texttt{ACTIVE}; có trạng thái \texttt{OCCUPIED} khi có ít nhất một cư dân hoạt động. \\
+\bottomrule
+\end{longtable}
+
+\section{UC-08/10/11: Tạo hóa đơn, invoice và xử lý thanh toán}
+\begin{longtable}{L{4cm} L{10.5cm}}
+\caption{Đặc tả Use Case thanh toán hóa đơn}\label{tab:uc-payment}\\
+\toprule
+Thuộc tính & Nội dung \\
+\midrule
+\endfirsthead
+\toprule Thuộc tính & Nội dung \\\midrule
+\endhead
+Mục tiêu & Admin tạo hóa đơn; cư dân tạo invoice QR; webhook thanh toán tự động cập nhật trạng thái. \\
+Actor chính & Admin, cư dân, SePay. \\
+Tiền điều kiện & Cư dân đã được gắn căn hộ; bill ở trạng thái \texttt{UNPAID} hoặc \texttt{OVERDUE}; bill chưa bị khóa bởi invoice khác. \\
+Hậu điều kiện & Giao dịch hợp lệ tạo bản ghi \texttt{payments}; invoice chuyển \texttt{PAID}; bill chuyển \texttt{PAID}; thông báo được gửi. \\
+Luồng chính & \begin{enumerate}
+\item Admin tạo bill lẻ hoặc sinh hàng loạt từ \texttt{bill\_templates}.
+\item Hệ thống gửi thông báo \texttt{BILL\_CREATED} cho cư dân của căn hộ.
+\item Cư dân mở \texttt{/my-bills}, chọn một hoặc nhiều bill cùng căn hộ và gửi \texttt{POST /api/invoices/bill}.
+\item Backend validate bill, tính tổng tiền, sinh \texttt{invoiceCode}, \texttt{referenceCode}, \texttt{qrCodeUrl}, lưu invoice và snapshot bill.
+\item Cư dân quét QR/chuyển khoản với nội dung chứa \texttt{PAY... INV...}.
+\item SePay gọi \texttt{POST /api/payment-webhooks}.
+\item Backend kiểm tra API key, transaction id, nội dung chuyển khoản, trạng thái invoice và số tiền.
+\item Nếu hợp lệ, backend tạo payment \texttt{SUCCESS}, gọi \texttt{markAsPaid}, cập nhật invoice/bill và gửi thông báo.
+\end{enumerate} \\
+Luồng ngoại lệ E1 & Bill không cùng căn hộ hoặc đã thanh toán: không tạo invoice. \\
+Luồng ngoại lệ E2 & Invoice hết hạn/hủy/đã trả: payment ghi \texttt{FAILED} với reason tương ứng. \\
+Luồng ngoại lệ E3 & Số tiền chuyển khoản thấp/cao hơn invoice: payment ghi \texttt{FAILED}. \\
+Luồng ngoại lệ E4 & Webhook trùng transaction id: hệ thống trả bản ghi cũ, tránh xử lý hai lần. \\
+Quy tắc nghiệp vụ & Nội dung chuyển khoản cần khớp biểu thức \texttt{PAY[A-Z0-9]+ INV[0-9]+}; invoice \texttt{PENDING} quá hạn được job định kỳ chuyển \texttt{EXPIRED} và giải phóng bill. \\
+\bottomrule
+\end{longtable}
+
+\section{UC-12/13: Quản lý và tham gia đóng góp}
+\begin{longtable}{L{4cm} L{10.5cm}}
+\caption{Đặc tả Use Case đóng góp chung cư}\label{tab:uc-contribution}\\
+\toprule
+Thuộc tính & Nội dung \\
+\midrule
+\endfirsthead
+\toprule Thuộc tính & Nội dung \\\midrule
+\endhead
+Mục tiêu & Tổ chức khoản đóng góp bắt buộc/tự nguyện và ghi nhận số tiền từng căn hộ đã đóng. \\
+Actor chính & Admin, cư dân. \\
+Tiền điều kiện & Campaign ở \texttt{DRAFT} khi tạo/sửa; chỉ campaign \texttt{ACTIVE} trong thời hạn mới nhận đóng góp. \\
+Hậu điều kiện & Khi phát động campaign, mỗi căn hộ có một bản ghi \texttt{apartment\_contributions}; payment thành công cập nhật số tiền đã đóng. \\
+Luồng chính & \begin{enumerate}
+\item Admin tạo campaign với tiêu đề, mô tả, loại \texttt{MANDATORY}/\texttt{VOLUNTARY}, ngày bắt đầu/kết thúc và số tiền mục tiêu/bắt buộc.
+\item Admin phát động campaign; backend tạo contribution cho toàn bộ căn hộ và gửi thông báo \texttt{CAMPAIGN\_LAUNCHED}.
+\item Cư dân mở \texttt{/my-contributions}, chọn khoản đóng góp và tạo invoice contribution.
+\item Cư dân thanh toán QR; webhook xử lý như invoice thường.
+\item Payment thành công khiến hệ thống tính lại \texttt{collectedAmount} và trạng thái contribution.
+\end{enumerate} \\
+Luồng ngoại lệ E1 & Campaign bắt buộc thiếu \texttt{requiredAmount}: backend từ chối tạo/sửa. \\
+Luồng ngoại lệ E2 & Campaign tự nguyện lại có \texttt{requiredAmount}: backend từ chối. \\
+Luồng ngoại lệ E3 & Cư dân tạo invoice cho căn hộ khác: backend từ chối theo ownership. \\
+Quy tắc nghiệp vụ & Campaign chỉ được cập nhật khi còn \texttt{DRAFT}; khi \texttt{COMPLETED}, hệ thống không nhận invoice đóng góp mới nhưng payment của invoice đang pending vẫn theo hạn riêng của invoice. \\
+\bottomrule
+\end{longtable}
+
+\section{UC-14/15/17: Phản ánh và thông báo}
+\begin{longtable}{L{4cm} L{10.5cm}}
+\caption{Đặc tả Use Case phản ánh và thông báo}\label{tab:uc-report-notification}\\
+\toprule
+Thuộc tính & Nội dung \\
+\midrule
+\endfirsthead
+\toprule Thuộc tính & Nội dung \\\midrule
+\endhead
+Mục tiêu & Cư dân gửi phản ánh; admin xử lý; hệ thống thông báo kết quả. \\
+Actor chính & Cư dân, admin. \\
+Tiền điều kiện & Cư dân/admin đã đăng nhập; phản ánh tồn tại nếu xem/sửa/duyệt. \\
+Hậu điều kiện & Phản ánh chuyển trạng thái phù hợp; người liên quan nhận notification. \\
+Luồng chính & \begin{enumerate}
+\item Cư dân mở \texttt{/reports}, tạo phản ánh gồm tiêu đề và nội dung.
+\item Backend lưu report \texttt{PENDING}, gửi notification cho admin.
+\item Admin mở \texttt{/admin-reports}, lọc/xem chi tiết phản ánh.
+\item Admin duyệt bằng \texttt{PATCH /api/reports/\{id\}/review} với trạng thái \texttt{APPROVED} hoặc \texttt{REJECTED}.
+\item Backend lưu \texttt{reviewedBy}, \texttt{reviewedAt}, \texttt{reviewNote} và gửi notification cho cư dân.
+\end{enumerate} \\
+Luồng ngoại lệ E1 & Cư dân sửa/xóa phản ánh đã duyệt: backend từ chối. \\
+Luồng ngoại lệ E2 & Cư dân xem phản ánh của người khác: backend từ chối hoặc trả không tìm thấy. \\
+Luồng ngoại lệ E3 & Admin duyệt lại phản ánh không còn \texttt{PENDING}: backend từ chối. \\
+Quy tắc nghiệp vụ & Notification hỗ trợ trạng thái đọc/xóa mềm riêng cho user và admin, có \texttt{referenceType}/\texttt{referenceId} để điều hướng tới đối tượng liên quan. \\
+\bottomrule
+\end{longtable}
+
+\chapter{Thiết kế kiến trúc và hệ thống}
+
+\section{Kiến trúc tổng thể}
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=1.25cm and 1.7cm,
+    box/.style={draw,rounded corners,align=center,minimum width=3.15cm,minimum height=1.05cm,fill=blue!6},
+    svc/.style={draw,rounded corners,align=center,minimum width=3.15cm,minimum height=1.05cm,fill=orange!10},
+    ext/.style={draw,rounded corners,align=center,minimum width=3.0cm,minimum height=0.9cm,fill=purple!6},
+    db/.style={draw,cylinder,shape border rotate=90,aspect=0.25,align=center,minimum width=2.8cm,minimum height=1.25cm,fill=green!8},
+    rel/.style={-{Latex},thick},
+    lbl/.style={font=\scriptsize,fill=white,inner sep=1pt}
+]
+\node[box] (browser) {Trình duyệt\\React + Vite};
+\node[box, right=of browser] (api) {Backend API\\Spring Boot\\JWT Security};
+\node[svc, right=of api] (service) {Service Layer\\Business Rules};
+\node[db, right=of service] (db) {PostgreSQL};
+
+\node[ext, below=1.35cm of api] (oauth) {Google OAuth\\đăng nhập};
+\node[ext, below=1.35cm of service] (mail) {Gmail SMTP\\OTP Email};
+\node[ext, below=1.35cm of db] (sepay) {SePay\\QR + Webhook};
+
+\draw[rel] (browser) -- node[lbl,above]{REST/JSON} (api);
+\draw[rel] (api) -- node[lbl,above]{service call} (service);
+\draw[rel] (service) -- node[lbl,above]{JPA/SQL} (db);
+\draw[rel] (api) -- (oauth);
+\draw[rel] (service) -- (mail);
+\draw[rel] (service) -- (sepay);
+\coordinate (apiHook) at ([xshift=0.35cm,yshift=-0.15cm]api.south east);
+\draw[rel] (sepay.south) -- ++(0,-0.65) -| node[lbl,pos=0.25,below]{webhook} (apiHook) -- (api.south east);
+\end{tikzpicture}}
+\caption{Kiến trúc tổng thể của hệ thống \projectname}
+\end{figure}
+
+Backend được tổ chức theo các package chính: \texttt{controller} nhận request; \texttt{service} chứa nghiệp vụ; \texttt{repository} truy vấn dữ liệu; \texttt{entity} ánh xạ bảng; \texttt{dtos} mô tả request/response; \texttt{enums} chuẩn hóa trạng thái; \texttt{security} xử lý JWT; \texttt{config} cấu hình bảo mật, SePay, Google và exception. Frontend được tổ chức theo \texttt{components}, \texttt{pages}, \texttt{context}, \texttt{utils} và layout dashboard. File \texttt{App.jsx} định nghĩa các route bảo vệ theo vai trò, ví dụ \texttt{/admin-panel}, \texttt{/resident-home}, \texttt{/apartments}, \texttt{/my-bills}, \texttt{/admin-invoices}, \texttt{/my-contributions}.
+
+
+\section{Sơ đồ Use Case tổng thể}
+\begin{figure}[H]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[
+    actor/.style={draw,ellipse,fill=orange!10,minimum width=1.9cm,minimum height=0.58cm,align=center,font=\scriptsize,inner sep=1pt},
+    uc/.style={draw,ellipse,fill=blue!6,minimum width=2.95cm,minimum height=0.58cm,align=center,font=\scriptsize,inner sep=1pt},
+    group/.style={draw,rounded corners,fill=gray!5,minimum width=3.35cm,minimum height=5.85cm},
+    rel/.style={thin},
+    extrel/.style={thin,dashed},
+    every node/.style={font=\scriptsize}
+]
+% Khung hệ thống được đặt cố định để các phần tử không chạm mép/tràn ra ngoài.
+\draw[thick,rounded corners] (-1.9,-3.75) rectangle (10.2,3.75);
+\node[font=\large] at (4.15,3.42) {Hệ thống BlueMoon};
+
+\node[group] (guestGroup) at (0,-0.15) {};
+\node[group] (residentGroup) at (4.15,-0.15) {};
+\node[group] (adminGroup) at (8.3,-0.15) {};
+
+\node[actor] (guest) at (0,2.9) {Khách};
+\node[actor] (resident) at (4.15,2.9) {Cư dân};
+\node[actor] (admin) at (8.3,2.9) {Admin};
+
+\node[uc] (login) at (0,1.75) {Đăng nhập/OTP};
+
+\node[uc] (profile) at (4.15,1.85) {Cập nhật hồ sơ};
+\node[uc] (viewapt) at (4.15,1.00) {Xem căn hộ};
+\node[uc] (invoice) at (4.15,0.15) {Tạo invoice QR};
+\node[uc] (campaign) at (4.15,-0.70) {Đóng góp};
+\node[uc] (report) at (4.15,-1.55) {Gửi phản ánh};
+\node[uc] (notif1) at (4.15,-2.40) {Xem thông báo};
+
+\node[uc] (account) at (8.3,1.85) {Quản lý tài khoản};
+\node[uc] (apt) at (8.3,1.00) {Quản lý căn hộ};
+\node[uc] (bill) at (8.3,0.15) {Quản lý hóa đơn};
+\node[uc] (payment) at (8.3,-0.70) {Xử lý thanh toán};
+\node[uc] (campaignAdmin) at (8.3,-1.55) {Quản lý chiến dịch};
+\node[uc] (reportAdmin) at (8.3,-2.40) {Duyệt phản ánh};
+
+\node[actor] (google) at (0,-3.25) {Google/Gmail};
+\node[actor] (sepay) at (8.3,-3.25) {SePay};
+
+\draw[rel] (guest.south) -- (login.north);
+\draw[rel] (resident.south) -- (profile.north);
+\draw[rel] (admin.south) -- (account.north);
+\draw[extrel] (google.north) -- (login.south);
+\draw[extrel] (sepay.north) -- (payment.south);
+\end{tikzpicture}}
+\caption{Sơ đồ Use Case tổng thể}
+\end{figure}
+
+\section{Sơ đồ lớp mức phân tích}
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  class/.style={draw,rectangle split,rectangle split parts=3,minimum width=3.05cm,align=left,fill=gray!5},
+  rel/.style={-{Latex},thin},
+  lbl/.style={font=\scriptsize,fill=white,inner sep=1pt},
+  every node/.style={font=\scriptsize}
+]
+\node[class] (user) at (0,2.2) {\textbf{UserEntity}\nodepart{second}id\\username\\email\\role\\apartmentId\nodepart{third}+login()\\+updateProfile()};
+\node[class] (apt) at (3.8,2.2) {\textbf{ApartmentEntity}\nodepart{second}id\\apartmentNumber\\floor\\area\\status\nodepart{third}+updateStatus()};
+\node[class] (bill) at (7.6,2.2) {\textbf{BillEntity}\nodepart{second}id\\title\\amount\\dueDate\\status\nodepart{third}+markPaid()\\+cancel()};
+\node[class] (invoice) at (11.4,2.2) {\textbf{InvoiceEntity}\nodepart{second}id\\invoiceCode\\referenceCode\\status\nodepart{third}+expire()\\+markPaid()};
+\node[class] (payment) at (15.2,2.2) {\textbf{PaymentEntity}\nodepart{second}id\\transactionId\\amount\\status\nodepart{third}+validateWebhook()};
+
+\node[class] (report) at (0,-1.9) {\textbf{ReportEntity}\nodepart{second}id\\title\\content\\status\nodepart{third}+review()};
+\node[class] (notif) at (3.8,-1.9) {\textbf{NotificationEntity}\nodepart{second}id\\title\\type\\referenceId\nodepart{third}+markRead()\\+softDelete()};
+\node[class] (campaign) at (7.6,-1.9) {\textbf{ContributionCampaign}\nodepart{second}id\\title\\targetAmount\\status\nodepart{third}+launch()\\+complete()};
+\node[class] (contrib) at (11.4,-1.9) {\textbf{ApartmentContribution}\nodepart{second}id\\requiredAmount\\collectedAmount\\status\nodepart{third}+recalculate()};
+
+\draw[rel] (user) -- (apt);
+\draw[rel] (apt) -- (bill);
+\draw[rel] (bill) -- (invoice);
+\draw[rel] (invoice) -- (payment);
+\draw[rel] (user.south) -- (report.north);
+\draw[rel] (user.south east) -- (notif.north west);
+\draw[rel] (campaign) -- (contrib);
+\end{tikzpicture}}
+\caption{Sơ đồ lớp phân tích rút gọn}
+\end{figure}
+
+\section{Sơ đồ tuần tự: Cư dân thanh toán hóa đơn}
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  lifeline/.style={draw,minimum width=2.15cm,minimum height=0.72cm,fill=blue!6,align=center},
+  msg/.style={-{Latex},thin},
+  mlabel/.style={font=\scriptsize,fill=white,inner sep=1pt,align=center,text width=3.1cm},
+  every node/.style={font=\scriptsize}
+]
+\node[lifeline] (user) at (0,0) {Cư dân};
+\node[lifeline] (fe) at (3.0,0) {React UI};
+\node[lifeline] (ctrl) at (6.2,0) {Invoice\\Controller};
+\node[lifeline] (svc) at (9.7,0) {Invoice/Payment\\Service};
+\node[lifeline] (db) at (13.0,0) {PostgreSQL};
+\node[lifeline] (bank) at (16.0,0) {SePay};
+\foreach \x in {0,3.0,6.2,9.7,13.0,16.0}{\draw[dashed,gray!70] (\x,-0.45) -- (\x,-8.8);}
+\draw[msg] (0,-1.0) -- node[mlabel,above]{Chọn bill} (3.0,-1.0);
+\draw[msg] (3.0,-1.7) -- node[mlabel,above]{POST\\\texttt{/api/invoices/bill}} (6.2,-1.7);
+\draw[msg] (6.2,-2.4) -- node[mlabel,above]{createInvoice()} (9.7,-2.4);
+\draw[msg] (9.7,-3.1) -- node[mlabel,above]{validate bill\\save invoice} (13.0,-3.1);
+\draw[msg] (9.7,-3.8) -- node[mlabel,above]{generate\\QR URL} (16.0,-3.8);
+\draw[msg] (13.0,-4.5) -- node[mlabel,above]{invoice\\snapshots} (9.7,-4.5);
+\draw[msg] (9.7,-5.2) -- node[mlabel,above]{InvoiceResponse} (6.2,-5.2);
+\draw[msg] (6.2,-5.9) -- node[mlabel,above]{QR + reference} (3.0,-5.9);
+\draw[msg] (0,-6.6) -- node[mlabel,above,text width=3.4cm]{Quét QR\\chuyển khoản} (16.0,-6.6);
+\draw[msg] (16.0,-7.3) -- node[mlabel,above]{POST webhook} (6.2,-7.3);
+\draw[msg] (6.2,-8.0) -- node[mlabel,above]{processPayment()} (9.7,-8.0);
+\draw[msg] (9.7,-8.7) -- node[mlabel,above,text width=3.2cm]{payment success\\invoice/bills PAID} (13.0,-8.7);
+\end{tikzpicture}}
+\caption{Sơ đồ tuần tự rút gọn cho luồng thanh toán hóa đơn}
+\end{figure}
+
+\chapter{Thiết kế cơ sở dữ liệu chi tiết}
+
+\section{Mô tả ERD}
+Cơ sở dữ liệu \projectname{} xoay quanh hai thực thể nền tảng: \texttt{users} và \texttt{apartments}. Bảng \texttt{users} vừa lưu thông tin tài khoản vừa lưu thông tin cư dân cho vai trò \texttt{USER}, liên kết nhiều-một tới \texttt{apartments}. Mỗi căn hộ có nhiều \texttt{bills}; bill có thể được khóa vào một invoice bằng trường \texttt{invoice\_id}. Invoice lưu mã thanh toán, mã tham chiếu, tổng tiền, QR URL, trạng thái và người tạo. Bảng \texttt{invoice\_bill\_snapshots} lưu lịch sử bill thuộc invoice tại thời điểm tạo, giúp truy vết ngay cả khi bill thay đổi về sau. Payment liên kết invoice và lưu kết quả webhook/thanh toán thủ công.
+
+Phân hệ đóng góp gồm \texttt{contribution\_campaigns} và \texttt{apartment\_contributions}. Khi campaign được phát động, hệ thống tạo một bản ghi contribution cho mỗi căn hộ. Phân hệ giao tiếp gồm \texttt{reports}, \texttt{notifications} và \texttt{notification\_templates}. Ngoài ra còn có \texttt{otp\_verification\_tokens} và \texttt{password\_reset\_tokens} phục vụ xác minh email và khôi phục mật khẩu.
+
+\section{Sơ đồ ERD rút gọn}
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  entity/.style={draw,rounded corners,fill=green!7,minimum width=2.75cm,minimum height=0.75cm,align=center},
+  rel/.style={-{Latex},thin},
+  weak/.style={-{Latex},thin,dashed},
+  every node/.style={font=\scriptsize}
+]
+\node[entity] (tokens) at (0,3.2) {OTP/reset tokens};
+\node[entity] (templates) at (6.6,3.2) {bill\_templates};
+
+\node[entity] (users) at (0,1.7) {users};
+\node[entity] (apartments) at (3.3,1.7) {apartments};
+\node[entity] (bills) at (6.6,1.7) {bills};
+\node[entity] (invoices) at (9.9,1.7) {invoices};
+\node[entity] (payments) at (13.2,1.7) {payments};
+
+\node[entity] (reports) at (0,0.1) {reports};
+\node[entity] (notifications) at (0,-1.5) {notifications};
+\node[entity] (ntpl) at (3.3,-1.5) {notification\_templates};
+\node[entity] (campaigns) at (3.3,0.1) {contribution\_campaigns};
+\node[entity] (apc) at (6.6,0.1) {apartment\_contributions};
+\node[entity] (snapshots) at (9.9,0.1) {invoice\_bill\_snapshots};
+
+\draw[rel] (tokens) -- (users);
+\draw[rel] (users) -- (apartments);
+\draw[rel] (apartments) -- (bills);
+\draw[rel] (bills) -- (invoices);
+\draw[rel] (invoices) -- (payments);
+\draw[rel] (templates) -- (bills);
+\draw[rel] (users) -- (reports);
+\draw[rel] (reports) -- (notifications);
+\draw[rel] (ntpl) -- (notifications);
+\draw[rel] (campaigns) -- (apc);
+\draw[rel] (apartments) -- (apc);
+\draw[rel] (invoices) -- (snapshots);
+\draw[rel] (bills) -- (snapshots);
+\draw[weak] (invoices) -- (apc);
+\end{tikzpicture}}
+\caption{ERD rút gọn của cơ sở dữ liệu}
+\end{figure}
+
+\section{Thiết kế bảng dữ liệu vật lý}
+Phần này mô tả từng bảng vật lý theo mô hình dữ liệu triển khai của hệ thống. Tên bảng được quy ước theo lớp thực thể; tên cột theo quy ước đặt tên vật lý của Spring/Hibernate, tức các thuộc tính camelCase như \texttt{createdAt}, \texttt{invoiceCode} được ánh xạ thành \texttt{created\_at}, \texttt{invoice\_code} nếu không cấu hình khác.
+
+\begingroup\scriptsize
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng users}\label{tab:db-users}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh tài khoản/người dùng. \\
+\texttt{username} & VARCHAR(50) & UQ & NOT NULL, UNIQUE & Tên đăng nhập, trong dự án thường dùng số điện thoại. \\
+\texttt{password} & VARCHAR(255) & & NOT NULL & Mật khẩu đã mã hóa bằng BCrypt. \\
+\texttt{email} & VARCHAR(255) & UQ & UNIQUE, NULLABLE & Email dùng cho OTP, Google OAuth và khôi phục mật khẩu. \\
+\texttt{role} & VARCHAR(20) & & NOT NULL & Vai trò người dùng: \texttt{ADMIN} hoặc \texttt{USER}. \\
+\texttt{verified} & BOOLEAN & & NOT NULL, DEFAULT false & Trạng thái xác minh tài khoản/email. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo tài khoản. \\
+\texttt{full\_name} & VARCHAR(255) & & NULLABLE & Họ tên cư dân hoặc admin. \\
+\texttt{phone} & VARCHAR(20) & & NULLABLE & Số điện thoại liên hệ. \\
+\texttt{date\_of\_birth} & DATE & & NULLABLE & Ngày sinh cư dân. \\
+\texttt{gender} & VARCHAR(20) & & NULLABLE & Giới tính: \texttt{MALE}, \texttt{FEMALE}, \texttt{OTHER}. \\
+\texttt{id\_number} & VARCHAR(50) & UQ & UNIQUE, NULLABLE & Số định danh cá nhân/căn cước. \\
+\texttt{relationship} & VARCHAR(50) & & NULLABLE & Quan hệ với căn hộ: chủ hộ, vợ/chồng, con, người thân... \\
+\texttt{status} & VARCHAR(20) & & NULLABLE & Trạng thái cư trú: active, tạm vắng, đã chuyển đi. \\
+\texttt{apartment\_id} & BIGINT & FK & REFERENCES \texttt{apartments(id)} & Căn hộ mà cư dân được gắn vào. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng apartments}\label{tab:db-apartments}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh căn hộ. \\
+\texttt{apartment\_number} & VARCHAR(10) & UQ & NOT NULL, UNIQUE & Số căn hộ, ví dụ \texttt{101}, \texttt{402}. \\
+\texttt{floor} & INTEGER & & NOT NULL & Tầng của căn hộ. \\
+\texttt{area} & DOUBLE & & NOT NULL & Diện tích căn hộ. \\
+\texttt{status} & VARCHAR(20) & & NOT NULL & Trạng thái \texttt{VACANT} hoặc \texttt{OCCUPIED}. \\
+\texttt{type} & VARCHAR(20) & & NOT NULL & Loại căn hộ: studio, một phòng ngủ, penthouse... \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng bill\_templates}\label{tab:db-bill-templates}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh mẫu khoản thu. \\
+\texttt{name} & VARCHAR(255) & UQ & NOT NULL, UNIQUE & Tên mẫu, ví dụ phí dịch vụ, phí gửi xe. \\
+\texttt{description} & VARCHAR(255) & & NULLABLE & Mô tả chi tiết mẫu khoản thu. \\
+\texttt{default\_amount} & NUMERIC & & NOT NULL & Số tiền mặc định khi sinh bill. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo mẫu khoản thu. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng bills}\label{tab:db-bills}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh hóa đơn. \\
+\texttt{apartment\_id} & BIGINT & FK & NOT NULL, REFERENCES \texttt{apartments(id)} & Căn hộ phải thanh toán hóa đơn. \\
+\texttt{title} & VARCHAR(255) & UQ & NOT NULL, UNIQUE & Tiêu đề hóa đơn. \\
+\texttt{description} & VARCHAR(255) & & NULLABLE & Mô tả khoản thu. \\
+\texttt{amount} & NUMERIC & & NOT NULL & Số tiền cần thanh toán. \\
+\texttt{due\_date} & DATE & & NULLABLE & Hạn thanh toán. \\
+\texttt{status} & VARCHAR(20) & & NOT NULL, DEFAULT \texttt{UNPAID} & Trạng thái hóa đơn: unpaid, overdue, paid, cancelled. \\
+\texttt{paid\_at} & TIMESTAMP & & NULLABLE & Thời điểm hóa đơn được ghi nhận thanh toán. \\
+\texttt{note} & VARCHAR(255) & & NULLABLE & Ghi chú nghiệp vụ của admin. \\
+\texttt{invoice\_id} & BIGINT & & NULLABLE & ID invoice đang khóa hóa đơn; null nghĩa là bill còn có thể tạo invoice mới. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo hóa đơn. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng invoices}\label{tab:db-invoices}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh invoice. \\
+\texttt{invoice\_type} & VARCHAR(20) & & NOT NULL, DEFAULT \texttt{BILL} & Loại invoice: thanh toán bill hoặc đóng góp. \\
+\texttt{invoice\_code} & VARCHAR(50) & UQ & NOT NULL, UNIQUE & Mã invoice dạng \texttt{INVyyyyMMddNNN}. \\
+\texttt{reference\_code} & VARCHAR(100) & UQ & NOT NULL, UNIQUE & Mã tham chiếu thanh toán dạng \texttt{PAY...}. \\
+\texttt{created\_by} & BIGINT & FK & NOT NULL, REFERENCES \texttt{users(id)} & Người tạo invoice. \\
+\texttt{apartment\_contribution\_id} & BIGINT & FK & NULLABLE, REFERENCES \texttt{apartment\_}\newline\texttt{contributions(id)} & Khoản đóng góp liên quan nếu invoice thuộc phân hệ contribution. \\
+\texttt{total\_amount} & NUMERIC(12,2) & & NOT NULL & Tổng tiền phải thanh toán. \\
+\texttt{status} & VARCHAR(20) & & NOT NULL & Trạng thái invoice: pending, paid, expired, cancelled. \\
+\texttt{qr\_code\_url} & VARCHAR(1000) & & NOT NULL & URL QR thanh toán tạo từ thông tin SePay. \\
+\texttt{expires\_at} & TIMESTAMP & & NOT NULL & Thời điểm invoice hết hạn. \\
+\texttt{paid\_at} & TIMESTAMP & & NULLABLE & Thời điểm invoice được thanh toán thành công. \\
+\texttt{cancelled\_at} & TIMESTAMP & & NULLABLE & Thời điểm invoice bị người tạo hủy. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo invoice. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng invoice\_bill\_snapshots}\label{tab:db-invoice-bill-snapshots}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh snapshot. \\
+\texttt{invoice\_id} & BIGINT & & NOT NULL & ID invoice tại thời điểm tạo snapshot. \\
+\texttt{bill\_id} & BIGINT & & NOT NULL & ID bill được đưa vào invoice. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng payments}\label{tab:db-payments}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh payment. \\
+\texttt{invoice\_id} & BIGINT & FK & NULLABLE, REFERENCES \texttt{invoices(id)} & Invoice liên quan; có thể null nếu webhook không tìm thấy invoice. \\
+\texttt{transaction\_id} & BIGINT & UQ & UNIQUE, NULLABLE & ID giao dịch từ SePay; dùng chống xử lý webhook trùng. \\
+\texttt{transaction\_code} & VARCHAR(100) & UQ & NOT NULL, UNIQUE & Mã giao dịch nội bộ, ví dụ \texttt{AUTO-...} hoặc \texttt{MANUAL-...}. \\
+\texttt{bank\_reference\_code} & VARCHAR(100) & & NULLABLE & Mã tham chiếu phía ngân hàng/SePay. \\
+\texttt{amount} & NUMERIC(12,2) & & NOT NULL & Số tiền giao dịch. \\
+\texttt{status} & VARCHAR(20) & & NOT NULL & Kết quả \texttt{SUCCESS} hoặc \texttt{FAILED}. \\
+\texttt{method} & VARCHAR(20) & & NULLABLE & Phương thức \texttt{AUTOMATIC} hoặc \texttt{MANUAL}. \\
+\texttt{failure\_reason} & VARCHAR(50) & & NULLABLE & Lý do thất bại khi webhook không hợp lệ. \\
+\texttt{transaction\_time} & TIMESTAMP & & NOT NULL & Thời điểm giao dịch theo webhook hoặc thao tác admin. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm lưu payment vào hệ thống. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng contribution\_campaigns}\label{tab:db-contribution-campaigns}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh chiến dịch đóng góp. \\
+\texttt{title} & VARCHAR(255) & UQ & NOT NULL, UNIQUE & Tên chiến dịch. \\
+\texttt{description} & VARCHAR(1000) & & NULLABLE & Mô tả mục đích đóng góp. \\
+\texttt{contribution\_type} & VARCHAR(20) & & NOT NULL & Loại đóng góp: \texttt{MANDATORY} hoặc \texttt{VOLUNTARY}. \\
+\texttt{start\_date} & DATE & & NOT NULL & Ngày bắt đầu nhận đóng góp. \\
+\texttt{end\_date} & DATE & & NOT NULL & Ngày kết thúc chiến dịch. \\
+\texttt{target\_amount} & NUMERIC(12,2) & & NULLABLE & Mục tiêu tổng số tiền cần vận động. \\
+\texttt{required\_amount} & NUMERIC(12,2) & & NULLABLE & Số tiền bắt buộc mỗi căn hộ cần đóng nếu campaign bắt buộc. \\
+\texttt{status} & VARCHAR(20) & & NOT NULL, DEFAULT \texttt{DRAFT} & Trạng thái campaign. \\
+\texttt{created\_by} & BIGINT & FK & NOT NULL, REFERENCES \texttt{users(id)} & Admin tạo campaign. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo campaign. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng apartment\_contributions}\label{tab:db-apartment-contributions}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh khoản đóng góp theo căn hộ. \\
+\texttt{campaign\_id} & BIGINT & FK & NOT NULL, REFERENCES \texttt{contribution\_}\newline\texttt{campaigns(id)} & Campaign liên quan. \\
+\texttt{apartment\_id} & BIGINT & FK & NOT NULL, REFERENCES \texttt{apartments(id)} & Căn hộ tham gia campaign. \\
+\texttt{collected\_amount} & NUMERIC(12,2) & & NOT NULL, DEFAULT 0 & Số tiền căn hộ đã đóng, được tính lại từ payment thành công. \\
+\texttt{status} & VARCHAR(20) & & NOT NULL, DEFAULT \texttt{NOT\_STARTED} & Trạng thái đóng góp của căn hộ. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo bản ghi contribution. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng reports}\label{tab:db-reports}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh phản ánh. \\
+\texttt{title} & VARCHAR(255) & & NULLABLE & Tiêu đề phản ánh. \\
+\texttt{content} & TEXT & & NULLABLE & Nội dung phản ánh của cư dân. \\
+\texttt{status} & VARCHAR(20) & & DEFAULT \texttt{PENDING} & Trạng thái xử lý phản ánh. \\
+\texttt{review\_note} & VARCHAR(255) & & NULLABLE & Ghi chú duyệt từ admin. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm cư dân tạo phản ánh. \\
+\texttt{reviewed\_at} & TIMESTAMP & & NULLABLE & Thời điểm admin duyệt phản ánh. \\
+\texttt{created\_by} & BIGINT & FK & NOT NULL, REFERENCES \texttt{users(id)} & Cư dân tạo phản ánh. \\
+\texttt{reviewed\_by} & BIGINT & FK & NULLABLE, REFERENCES \texttt{users(id)} & Admin xử lý phản ánh. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng notifications}\label{tab:db-notifications}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh thông báo. \\
+\texttt{user\_id} & BIGINT & FK & NOT NULL, REFERENCES \texttt{users(id)} & Người nhận thông báo. \\
+\texttt{title} & VARCHAR(255) & & NOT NULL & Tiêu đề thông báo. \\
+\texttt{message} & TEXT & & NOT NULL & Nội dung thông báo. \\
+\texttt{type} & VARCHAR(255) & & NOT NULL & Loại thông báo: bill, payment, report, campaign... \\
+\texttt{is\_read} & BOOLEAN & & NOT NULL, DEFAULT false & Trạng thái đã đọc. \\
+\texttt{read\_at} & TIMESTAMP & & NULLABLE & Thời điểm người dùng đọc thông báo. \\
+\texttt{is\_deleted\_by\_user} & BOOLEAN & & NOT NULL, DEFAULT false & Cờ xóa mềm phía người dùng. \\
+\texttt{user\_deleted\_at} & TIMESTAMP & & NULLABLE & Thời điểm người dùng xóa mềm. \\
+\texttt{is\_deleted\_by\_admin} & BOOLEAN & & NOT NULL, DEFAULT false & Cờ xóa mềm phía admin. \\
+\texttt{admin\_deleted\_at} & TIMESTAMP & & NULLABLE & Thời điểm admin xóa mềm. \\
+\texttt{reference\_type} & VARCHAR(255) & & NOT NULL & Loại đối tượng liên quan: bill, invoice, payment, report, campaign... \\
+\texttt{reference\_id} & BIGINT & & NULLABLE & ID đối tượng liên quan để frontend điều hướng. \\
+\texttt{priority} & VARCHAR(255) & & NOT NULL & Mức ưu tiên: low, normal, high. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo thông báo. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng notification\_templates}\label{tab:db-notification-templates}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh template thông báo. \\
+\texttt{title} & VARCHAR(255) & & NOT NULL & Tiêu đề mẫu thông báo. \\
+\texttt{message} & TEXT & & NOT NULL & Nội dung mẫu thông báo. \\
+\texttt{created\_at} & TIMESTAMP & & NOT NULL, auto generated & Thời điểm tạo template. \\
+\texttt{updated\_at} & TIMESTAMP & & NOT NULL, auto updated & Thời điểm cập nhật template gần nhất. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng otp\_verification\_tokens}\label{tab:db-otp-tokens}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh OTP token. \\
+\texttt{otp} & VARCHAR(255) & & NOT NULL & Mã OTP 6 chữ số. \\
+\texttt{expiry\_date} & TIMESTAMP & & NOT NULL & Thời điểm OTP hết hạn. \\
+\texttt{user\_id} & BIGINT & FK & NOT NULL, REFERENCES \texttt{users(id)} ON DELETE CASCADE & Người dùng sở hữu OTP. \\
+\texttt{token\_type} & VARCHAR(255) & & NOT NULL & Loại OTP: xác minh email hoặc quên mật khẩu. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{4.2cm} L{2.15cm} L{0.75cm} L{3.05cm} L{4.0cm}}
+\caption{Bảng password\_reset\_tokens}\label{tab:db-reset-tokens}\\
+\toprule
+Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\
+\midrule
+\endfirsthead
+\toprule Trường & Kiểu dữ liệu & Khóa & Ràng buộc & Mô tả \\\midrule
+\endhead
+\texttt{id} & BIGINT & PK & AUTO INCREMENT & Định danh reset token. \\
+\texttt{token} & VARCHAR(36) & UQ & NOT NULL, UNIQUE & UUID dùng để đặt lại mật khẩu. \\
+\texttt{expiry\_date} & TIMESTAMP & & NOT NULL & Thời điểm token hết hạn. \\
+\texttt{user\_id} & BIGINT & FK & NOT NULL, REFERENCES \texttt{users(id)} ON DELETE CASCADE & Người dùng sở hữu token. \\
+\bottomrule
+\end{longtable}
+
+\endgroup
+
+\section{Ràng buộc trạng thái chính}
+\begin{table}[H]
+\centering
+\caption{Các enum trạng thái quan trọng}
+\small
+\begin{tabularx}{\textwidth}{L{4.9cm} Y}
+\toprule
+Enum & Giá trị và ý nghĩa \\
+\midrule
+\texttt{BillStatus} & \textbf{Giá trị:} \texttt{UNPAID, OVERDUE, PAID, CANCELLED}. \newline \textbf{Ý nghĩa:} Vòng đời hóa đơn căn hộ. \\
+\texttt{InvoiceStatus} & \textbf{Giá trị:} \texttt{PENDING, PAID, EXPIRED, CANCELLED}. \newline \textbf{Ý nghĩa:} Vòng đời invoice QR. \\
+\texttt{PaymentStatus} & \textbf{Giá trị:} \texttt{SUCCESS, FAILED}. \newline \textbf{Ý nghĩa:} Kết quả xử lý payment. \\
+\texttt{PaymentFailureReason} & \textbf{Giá trị:} \texttt{INVOICE\_NOT\_FOUND, INVOICE\_EXPIRED, INVOICE\_CANCELLED, INVOICE\_ALREADY\_PAID, AMOUNT\_TOO\_LOW, AMOUNT\_TOO\_HIGH, INVALID\_REFERENCE, REFERENCE\_MISMATCH}. \newline \textbf{Ý nghĩa:} Nguyên nhân payment thất bại. \\
+\texttt{Contribution}\newline\texttt{CampaignStatus} & \textbf{Giá trị:} \texttt{DRAFT, ACTIVE, COMPLETED, CANCELED}. \newline \textbf{Ý nghĩa:} Vòng đời campaign đóng góp. \\
+\texttt{ReportStatus} & \textbf{Giá trị:} \texttt{PENDING, APPROVED, REJECTED}. \newline \textbf{Ý nghĩa:} Trạng thái phản ánh cư dân. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter{Thiết kế giao diện và showcase sản phẩm}
+
+\section{Nguyên tắc thiết kế giao diện}
+Giao diện \projectname{} ưu tiên thao tác nhanh, dữ liệu dễ quét và phân tách rõ vai trò. Admin thường làm việc với bảng, bộ lọc, modal, form tạo/sửa và trang chi tiết; cư dân cần các trang đơn giản để xem thông tin căn hộ, hóa đơn, invoice, đóng góp, phản ánh và thông báo. Frontend sử dụng \texttt{DashboardLayout}, \texttt{Sidebar}, \texttt{NotificationBell}, \texttt{Toast}, \texttt{Modal}, \texttt{LoadingSkeleton} và \texttt{ThemeToggle} để giữ trải nghiệm nhất quán.
+
+\section{Giao diện đăng nhập}
+\placeholderimage{screenshots/01-login.png}{Giao diện đăng nhập BlueMoon}
+\begin{table}[H]\centering\caption{Thành phần giao diện đăng nhập}\begin{tabularx}{\textwidth}{L{3.5cm} L{4cm} Y}\toprule Thành phần & Loại & Chức năng \\\midrule Logo/brand BlueMoon & Nhận diện & Hiển thị tên hệ thống quản lý chung cư. \\
+Form username/password & Form & Đăng nhập bằng tài khoản nội bộ. \\
+Nút Google Sign-In & Button & Đăng nhập bằng tài khoản Google đã liên kết. \\
+Forgot password & Link/flow & Dẫn tới luồng OTP email và reset password. \\
+Thông báo lỗi & Toast/Alert & Báo lỗi xác thực hoặc tài khoản chưa verified. \\\bottomrule\end{tabularx}\end{table}
+
+\section{Dashboard quản trị}
+\placeholderimage{screenshots/02-admin-dashboard.png}{Dashboard quản trị viên}
+\begin{table}[H]\centering\caption{Thành phần dashboard admin}\begin{tabularx}{\textwidth}{L{3.5cm} L{4cm} Y}\toprule Thành phần & Loại & Chức năng \\\midrule Sidebar & Navigation & Điều hướng tới tài khoản, căn hộ, hóa đơn, invoice, payment, report, notification, campaign. \\
+Quick actions & Button/Card & Mở nhanh các phân hệ admin thường dùng. \\
+Notification bell & Icon dropdown & Hiển thị số thông báo chưa đọc và danh sách gần nhất. \\
+Theme toggle & Toggle & Chuyển giao diện sáng/tối. \\\bottomrule\end{tabularx}\end{table}
+
+\section{Quản lý căn hộ và tài khoản}
+\placeholderimage{screenshots/03-admin-apartments.png}{Trang quản lý căn hộ}
+\placeholderimage{screenshots/04-admin-accounts.png}{Trang quản lý tài khoản/cư dân}
+\begin{table}[H]\centering\caption{Thành phần quản lý căn hộ/tài khoản}\begin{tabularx}{\textwidth}{L{3.5cm} L{4cm} Y}\toprule Thành phần & Loại & Chức năng \\\midrule Bảng căn hộ & Table & Hiển thị số căn, tầng, diện tích, loại, trạng thái, số cư dân và công nợ. \\
+Form căn hộ & Modal/Form & Tạo hoặc cập nhật căn hộ. \\
+Bảng tài khoản & Table & Lọc/tìm cư dân, email, vai trò, trạng thái xác minh và căn hộ liên kết. \\
+Trang chi tiết & Detail page & Xem hồ sơ, reset mật khẩu, liên kết/hủy liên kết căn hộ. \\\bottomrule\end{tabularx}\end{table}
+
+\section{Hóa đơn, invoice và thanh toán}
+\placeholderimage{screenshots/05-admin-bills.png}{Trang admin quản lý hóa đơn}
+\placeholderimage{screenshots/06-resident-bills.png}{Trang cư dân xem hóa đơn}
+\placeholderimage{screenshots/07-invoice-payment-qr.png}{Chi tiết invoice và QR thanh toán}
+\begin{table}[H]\centering\caption{Thành phần giao diện hóa đơn/thanh toán}\begin{tabularx}{\textwidth}{L{3.5cm} L{4cm} Y}\toprule Thành phần & Loại & Chức năng \\\midrule Bill templates & Form/Table & Quản lý mẫu khoản thu định kỳ. \\
+Generate bills & Modal/Form & Sinh bill hàng loạt cho nhiều căn hộ từ template. \\
+Bill list & Table & Lọc bill theo căn hộ, trạng thái và từ khóa. \\
+Create invoice & Button/Action & Cư dân chọn bill để tạo invoice QR. \\
+QR payment panel & Detail panel & Hiển thị mã invoice, mã tham chiếu, tổng tiền, QR URL và hạn thanh toán. \\\bottomrule\end{tabularx}\end{table}
+
+\section{Phản ánh, thông báo và đóng góp}
+\placeholderimage{screenshots/08-user-reports.png}{Trang cư dân gửi phản ánh}
+\placeholderimage{screenshots/09-notifications.png}{Trang thông báo}
+\placeholderimage{screenshots/10-contribution-campaign.png}{Trang chiến dịch đóng góp}
+\begin{table}[H]\centering\caption{Thành phần giao diện phản ánh/thông báo/đóng góp}\begin{tabularx}{\textwidth}{L{3.5cm} L{4cm} Y}\toprule Thành phần & Loại & Chức năng \\\midrule Report form & Form & Cư dân nhập tiêu đề/nội dung phản ánh. \\
+Review report & Detail/Action & Admin duyệt phản ánh và nhập ghi chú xử lý. \\
+Notification filter & Tabs/Select & Lọc thông báo theo nhóm bill, payment, report, campaign, system. \\
+Campaign list & Table/Card & Admin quản lý campaign; cư dân xem khoản đóng góp của căn hộ. \\
+Contribution invoice & Action & Cư dân tạo invoice đóng góp và thanh toán qua QR. \\\bottomrule\end{tabularx}\end{table}
+
+\chapter{Kiểm thử phần mềm}
+
+\section{Kế hoạch kiểm thử}
+Mục tiêu kiểm thử là đảm bảo hệ thống đúng nghiệp vụ, không rò rỉ dữ liệu giữa các vai trò, giữ toàn vẹn dữ liệu tài chính và có trải nghiệm ổn định trên frontend. Chiến lược kiểm thử gồm unit test cho service, integration test cho controller/repository, E2E test cho luồng người dùng chính, security test cho phân quyền và test thủ công giao diện.
+
+\begin{longtable}{L{2.2cm} L{3.2cm} L{4.2cm} L{4.8cm}}
+\caption{Ma trận kiểm thử tổng quát}\label{tab:test-plan}\\
+\toprule
+Mức kiểm thử & Phạm vi & Kỹ thuật & Tiêu chí hoàn thành \\
+\midrule
+\endfirsthead
+\toprule Mức kiểm thử & Phạm vi & Kỹ thuật & Tiêu chí hoàn thành \\\midrule
+\endhead
+Unit & Service, util, mapper & Mock repository, kiểm tra nhánh nghiệp vụ & Hàm xử lý đúng dữ liệu hợp lệ và lỗi. \\
+Integration & Controller, repository, database & Gọi API với dữ liệu test & HTTP status, JSON, transaction và query đúng. \\
+E2E & Luồng admin/cư dân & Trình duyệt mô phỏng & Người dùng hoàn thành nghiệp vụ từ đầu tới cuối. \\
+Security & Endpoint phân quyền & Token thiếu/sai vai trò/sai ownership & Trả 401/403 hoặc 404 hợp lý, không lộ dữ liệu. \\
+Payment & Invoice/webhook & Giao dịch đúng/sai số tiền, trùng transaction & Payment idempotent, trạng thái invoice/bill đúng. \\
+Usability & Dashboard và form & Kiểm tra responsive, loading, error & Không tràn layout, thông báo dễ hiểu. \\
+\bottomrule
+\end{longtable}
+
+\section{Kịch bản kiểm thử chi tiết}
+\begingroup\scriptsize
+\begin{longtable}{L{1.15cm} L{2.2cm} L{2.8cm} L{3.4cm} L{3.4cm} L{1.45cm}}
+\caption{Danh sách Test Case chi tiết}\label{tab:test-cases}\\
+\toprule
+Mã TC & Chức năng & Dữ liệu đầu vào & Các bước thực hiện & Kết quả mong đợi & Kết quả thực tế \\
+\midrule
+\endfirsthead
+\toprule
+Mã TC & Chức năng & Dữ liệu đầu vào & Các bước thực hiện & Kết quả mong đợi & Kết quả thực tế \\
+\midrule
+\endhead
+TC-01 & Đăng nhập nội bộ & Username/mật khẩu đúng & 1) Mở \texttt{/login}. 2) Nhập thông tin. 3) Submit. & Nhận JWT, điều hướng đúng role. & Chưa thực hiện \\
+TC-02 & Sai mật khẩu & Username đúng, mật khẩu sai & Submit form đăng nhập. & Backend trả lỗi, không lưu token. & Chưa thực hiện \\
+TC-03 & Google login & Google ID token hợp lệ & Chọn Google Sign-In. & Email verified và tài khoản nội bộ verified thì đăng nhập thành công. & Chưa thực hiện \\
+TC-04 & Quên mật khẩu & Email tồn tại & Yêu cầu OTP, xác minh OTP, đặt mật khẩu mới. & Reset password thành công, token cũ bị xóa. & Chưa thực hiện \\
+TC-05 & Tạo căn hộ & Số căn mới, tầng, diện tích, type & Admin tạo căn hộ. & Căn hộ được lưu trạng thái \texttt{VACANT}. & Chưa thực hiện \\
+TC-06 & Trùng số căn hộ & Số căn đã tồn tại & Admin tạo/cập nhật căn hộ. & Backend từ chối trùng dữ liệu. & Chưa thực hiện \\
+TC-07 & Xóa căn hộ còn cư dân & apartmentId có user & Admin bấm xóa. & Backend từ chối. & Chưa thực hiện \\
+TC-08 & Tạo tài khoản cư dân & Username, password, email, apartmentId & Admin tạo user. & User role \texttt{USER}, liên kết căn hộ đúng. & Chưa thực hiện \\
+TC-09 & Cư dân xem căn hộ & User có apartment & Mở \texttt{/my-apartment}. & Hiển thị đúng căn hộ của user. & Chưa thực hiện \\
+TC-10 & Cư dân chưa gắn căn hộ & User không có apartment & Mở \texttt{/my-bills}. & Backend/Frontend báo chưa được gắn căn hộ. & Chưa thực hiện \\
+TC-11 & Tạo template bill & Tên, mô tả, số tiền & Admin lưu template. & Template xuất hiện trong danh sách. & Chưa thực hiện \\
+TC-12 & Sinh bill hàng loạt & templateId, apartmentIds, dueDate & Admin generate bills. & Mỗi căn hộ có bill mới, gửi notification. & Chưa thực hiện \\
+TC-13 & Cập nhật bill & Bill \texttt{UNPAID}, amount/dueDate mới & Admin cập nhật. & Bill đổi dữ liệu, cư dân nhận notification thay đổi. & Chưa thực hiện \\
+TC-14 & Cập nhật bill đã paid & Bill \texttt{PAID} & Admin sửa bill. & Backend từ chối. & Chưa thực hiện \\
+TC-15 & Tạo invoice bill & Danh sách bill cùng căn hộ & Cư dân tạo invoice. & Invoice \texttt{PENDING}, bill bị khóa \texttt{invoice\_id}. & Chưa thực hiện \\
+TC-16 & Bill khác căn hộ & Chọn bill từ nhiều căn hộ & Tạo invoice. & Backend từ chối. & Chưa thực hiện \\
+TC-17 & Hủy invoice & Invoice \texttt{PENDING} do user tạo & Cư dân hủy invoice. & Invoice \texttt{CANCELLED}, bill được giải phóng. & Chưa thực hiện \\
+TC-18 & Webhook đúng & Nội dung \texttt{PAY... INV...}, đúng số tiền & Gửi webhook SePay. & Payment \texttt{SUCCESS}, invoice/bill \texttt{PAID}. & Chưa thực hiện \\
+TC-19 & Webhook sai tiền & Amount nhỏ/lớn hơn total & Gửi webhook. & Payment \texttt{FAILED} với reason tương ứng. & Chưa thực hiện \\
+TC-20 & Webhook trùng & Cùng transactionId & Gửi webhook hai lần. & Không tạo payment trùng, trả bản ghi đã có. & Chưa thực hiện \\
+TC-21 & Campaign bắt buộc & requiredAmount hợp lệ & Admin tạo và launch campaign. & Tạo contributions cho toàn bộ căn hộ. & Chưa thực hiện \\
+TC-22 & Campaign tự nguyện sai & Có requiredAmount & Admin tạo campaign. & Backend từ chối. & Chưa thực hiện \\
+TC-23 & Cư dân gửi phản ánh & Title/content hợp lệ & Submit report. & Report \texttt{PENDING}, admin nhận notification. & Chưa thực hiện \\
+TC-24 & Duyệt phản ánh & Report \texttt{PENDING} & Admin approve/reject. & Lưu reviewer/note, cư dân nhận notification. & Chưa thực hiện \\
+TC-25 & Truy cập trái quyền & Token USER gọi API admin & Gửi request tới \texttt{/api/users}. & Backend trả 403, không trả dữ liệu. & Chưa thực hiện \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\chapter{Kết luận và hướng phát triển}
+
+\section{Kết luận}
+Báo cáo đã trình bày toàn diện đề tài \textbf{\topic} theo góc nhìn kỹ nghệ phần mềm. Hệ thống giải quyết các nghiệp vụ quan trọng trong quản lý chung cư: tài khoản/cư dân, căn hộ, hóa đơn, invoice QR, thanh toán tự động qua webhook, khoản đóng góp, phản ánh và thông báo. Kiến trúc React/Vite và Spring Boot giúp tách biệt frontend/backend, thuận lợi cho phát triển song song. Cơ sở dữ liệu quan hệ bám sát nghiệp vụ và có các ràng buộc quan trọng để bảo vệ tính nhất quán, đặc biệt trong luồng invoice/payment.
+
+Điểm mạnh của dự án là phân hệ nghiệp vụ rõ, tích hợp thanh toán có kiểm tra idempotency, hệ thống notification tự động và giao diện dashboard theo vai trò. Các bảng đặc tả yêu cầu, use case, ERD, giao diện và test case trong báo cáo có thể dùng làm tài liệu nghiệm thu và định hướng phát triển tiếp.
+
+\section{Hướng phát triển}
+\begin{itemize}
+  \item Bổ sung audit log cho thao tác tài chính, chỉnh sửa hóa đơn, duyệt phản ánh và gửi thông báo.
+  \item Thêm dashboard phân tích: tổng công nợ, tỷ lệ thanh toán đúng hạn, khoản đóng góp theo campaign và biểu đồ theo tháng.
+  \item Hỗ trợ xuất PDF/Excel cho hóa đơn, invoice, danh sách cư dân và báo cáo thanh toán.
+  \item Tích hợp email/push notification song song với notification trong app.
+  \item Bổ sung đặt lịch tiện ích chung như phòng sinh hoạt, sân thể thao, bãi đỗ xe.
+  \item Mở rộng phân quyền nhiều cấp: super admin, kế toán, kỹ thuật, lễ tân và trưởng ban quản trị.
+  \item Hoàn thiện production hardening: rate limiting, CORS theo môi trường, HTTPS, backup database, webhook HMAC và rotation secret.
+\end{itemize}
+
+\appendix
+\chapter{Phụ lục: Mẫu API và mã giả}
+
+\section{Một số endpoint tiêu biểu}
+\begingroup\scriptsize
+\begin{longtable}{L{1.35cm} L{6.15cm} L{2.1cm} L{4.75cm}}
+\caption{Endpoint API tiêu biểu của BlueMoon}\\
+\toprule
+Method & Endpoint & Quyền & Chức năng \\
+\midrule
+\endfirsthead
+\toprule Method & Endpoint & Quyền & Chức năng \\\midrule
+\endhead
+POST & \texttt{/api/auth/login} & Public & Đăng nhập nội bộ. \\
+POST & \texttt{/api/auth/google-login} & Public & Đăng nhập bằng Google ID token. \\
+GET & \texttt{/api/users/me} & Authenticated & Lấy hồ sơ người dùng hiện tại. \\
+GET & \texttt{/api/apartments/me} & Authenticated & Lấy căn hộ của cư dân hiện tại. \\
+GET & \texttt{/api/apartments} & ADMIN & Danh sách căn hộ. \\
+POST & \texttt{/api/bills/generate} & ADMIN & Sinh hóa đơn hàng loạt từ template. \\
+GET & \texttt{/api/bills/me} & Authenticated & Cư dân xem bill căn hộ mình. \\
+POST & \texttt{/api/invoices/bill} & Authenticated & Tạo invoice cho hóa đơn. \\
+POST & \texttt{/api/invoices/contribution} & Authenticated & Tạo invoice cho khoản đóng góp. \\
+POST & \texttt{/api/payment-webhooks} & API key & Nhận webhook thanh toán SePay. \\
+POST & \texttt{/api/reports} & USER & Cư dân tạo phản ánh. \\
+PATCH & \texttt{/api/reports/\{id\}/review} & ADMIN & Admin duyệt phản ánh. \\
+GET & \texttt{/api/notifications/me} & Authenticated & Lấy thông báo cá nhân. \\
+POST & \texttt{/api/contribution-}\newline\texttt{campaigns/\{id\}/launch} & ADMIN & Phát động chiến dịch đóng góp. \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\section{Mã giả xử lý webhook thanh toán}
+\begin{lstlisting}[language=Java,caption={Mã giả xử lý webhook SePay}]
+processPayment(webhook):
+    if webhook.transferType != "in":
+        return ignored
+
+    if paymentRepository.existsByTransactionId(webhook.id):
+        return existingPayment
+
+    invoiceInfo = parse("PAY... INV...", webhook.content)
+    if invoiceInfo is null:
+        return failedPayment(INVALID_REFERENCE)
+
+    invoice = invoiceRepository.findByReferenceCode(invoiceInfo.referenceCode)
+    if invoice is null:
+        return failedPayment(INVOICE_NOT_FOUND)
+
+    if invoice.invoiceCode != invoiceInfo.invoiceCode:
+        return failedPayment(REFERENCE_MISMATCH)
+
+    if invoice.status != PENDING:
+        return failedPayment(statusToFailureReason(invoice.status))
+
+    if webhook.amount != invoice.totalAmount:
+        return failedPayment(amountToFailureReason(webhook.amount, invoice.totalAmount))
+
+    payment = savePayment(SUCCESS, AUTOMATIC)
+    invoiceService.markAsPaid(invoice.id)
+    notificationService.notifyUserAndAdmins(payment)
+    return payment
+\end{lstlisting}
+
+\section{Danh sách ảnh cần chụp}
+\begin{itemize}
+  \item \texttt{screenshots/01-login.png}: màn hình đăng nhập.
+  \item \texttt{screenshots/02-admin-dashboard.png}: dashboard admin.
+  \item \texttt{screenshots/03-admin-apartments.png}: quản lý căn hộ.
+  \item \texttt{screenshots/04-admin-accounts.png}: quản lý tài khoản/cư dân.
+  \item \texttt{screenshots/05-admin-bills.png}: quản lý hóa đơn admin.
+  \item \texttt{screenshots/06-resident-bills.png}: cư dân xem hóa đơn.
+  \item \texttt{screenshots/07-invoice-payment-qr.png}: chi tiết invoice/QR thanh toán.
+  \item \texttt{screenshots/08-user-reports.png}: cư dân gửi phản ánh.
+  \item \texttt{screenshots/09-notifications.png}: danh sách/thả xuống thông báo.
+  \item \texttt{screenshots/10-contribution-campaign.png}: chiến dịch đóng góp.
+\end{itemize}
+
+\end{document}
