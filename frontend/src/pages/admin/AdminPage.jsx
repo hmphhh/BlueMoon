@@ -182,7 +182,7 @@ export default function AdminPage({ user }) {
                     </svg>
                 </div>
                 <div className="welcome-hero__text">
-                    <h2>Welcome, {user?.fullName || user?.username}!</h2>
+                    <h2>Welcome, {user?.fullName}!</h2>
                     <p>Admin</p>
                 </div>
             </div>

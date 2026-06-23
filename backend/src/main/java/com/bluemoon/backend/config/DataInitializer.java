@@ -53,6 +53,7 @@ public class DataInitializer {
                 admin.setVerified(false);
                 admin.setPhone(adminPhone);
                 admin.setIdNumber(adminIdNumber);
+                admin.setFullName("Nguyen Hoang Gia");
                 userRepository.save(admin);
                 System.out.println("✅ Default admin account created (phone: " + adminPhone + ", password: ID number " + adminIdNumber + ")");
             }
