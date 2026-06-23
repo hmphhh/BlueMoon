@@ -78,16 +78,14 @@
 \useThinBar
 \useStyleFull
 
-
 \providecommand{\titlePageTitleX}{0cm}
 \providecommand{\titlePageTitleY}{0cm}
 
 \newcommand{\alignLeft}{\raggedright}
 \newcommand{\alignCenter}{\centering}
 \newcommand{\alignRight}{\raggedleft}
-\newcommand{\alignJustify}{\justify}
 
-\newcommand{\hustTitleAlign}{\alignJustify}
+\newcommand{\hustTitleAlign}{\alignCenter}
 \newcommand{\hustSubtitleAlign}{\alignCenter}
 \newcommand{\hustAuthorAlign}{\alignCenter}
 \newcommand{\hustInstAlign}{\alignCenter}
@@ -108,16 +106,16 @@
 				]
 				at (current page.center)
 				{
-					{\hustTitleAlign \LARGE \bfseries \color{hustprimary} \MakeUppercase{\inserttitle} \par}
+					{\hustTitleAlign \Huge \bfseries \color{hustprimary} \inserttitle \par}
 					{\hustSubtitleAlign \Large \bfseries \color{black!80} \insertsubtitle \par}
 					\vspace{0.3cm}
 					{\hustAuthorAlign
-						{\color{hustprimary} \large \textbf{Prepared by:}} \\[3pt]
-						{\fontsize{10}{10} \selectfont \color{black} \insertauthor} \par
+						{\color{hustprimary} \large \textbf{Prepared by:}} \\[5pt]
+						{\color{black} \insertauthor} \par
 					}
-                    \vspace{5pt}
 					{\hustInstAlign
-						{\large \color{hustprimary} \textbf{Presented by:} \\[3pt] {\fontsize{10}{10} \selectfont \color{black} \insertinstitute}} \par
+						{\color{hustprimary} \large \textbf{Presented by:}} \\[5pt]
+						{\color{black} \insertinstitute} \par
 						\vspace{0.2cm}
 					}
 				};
@@ -136,24 +134,24 @@
 }
 
 \newcommand{\hustsectionpage}[1]{
-  {
-    \setbeamertemplate{background}{
-      \includegraphics[width=\paperwidth,height=\paperheight]{\hustbg{section}}
-    }
-    % tắt headline/frametitle riêng cho slide này để không bị đẩy xuống
-    \setbeamertemplate{headline}{}
-    \setbeamertemplate{frametitle}{}
-
-    \begin{frame}[plain]
-      \begin{tikzpicture}[remember picture, overlay]
-        \node[anchor=center, align=center, text width=0.9\paperwidth]
-          at (current page.center)
-          {\Huge \textcolor{white}{\textbf{#1}}};
-      \end{tikzpicture}
-    \end{frame}
-  }
+	{
+		\setbeamertemplate{background}{\includegraphics[width=\paperwidth,height=\paperheight]{\hustbg{section}}}
+		\begin{frame}[plain]
+			\begin{tikzpicture}[remember picture, overlay]
+				\node[
+					anchor=center
+				]
+				at (current page.center)
+				{
+					\begin{minipage}{0.82\paperwidth}
+						\centering
+						\Huge \textcolor{white}{\textbf{#1}}
+					\end{minipage}
+				};
+			\end{tikzpicture}
+		\end{frame}
+	}
 }
-
 
 \newcommand{\hustthankyou}{
 	{
@@ -179,7 +177,7 @@
 					\color{hustprimary}
 					\Large \textbf{#1}
 				}
-
+				
 				\vspace{1em}
 				{\color{black}\normalsize #2}
 			\end{columns}
@@ -247,15 +245,14 @@
 \setbeamercolor{toc text}{fg=black}
 \setbeamercolor{toc subtext}{fg=black!70}
 
-% --- TOC: thu hẹp khoảng cách (CHỈ SỬA PHẦN NÀY) ---
 \setbeamertemplate{section in toc}{
 	\leavevmode
-	\leftskip=0.8em
+	\leftskip=1.5em
 	\llap{
 		\usebeamerfont{section in toc}
 		\usebeamercolor[fg]{toc number}
 		\inserttocsectionnumber.
-		\hskip0.1em
+		\hskip0.25em
 	}
 	{
 		\usebeamerfont{section in toc}
@@ -267,13 +264,13 @@
 
 \setbeamertemplate{subsection in toc}{
 	\leavevmode
-	\leftskip=2.0em
+	\leftskip=3.5em
 	\llap{
 		\usebeamerfont{subsection in toc}
 		\usebeamercolor[fg]{toc number}
-        \small
+		\small
 		\inserttocsectionnumber.\inserttocsubsectionnumber
-		\hskip0.15em
+		\hskip0.5em
 	}
 	{
 		\usebeamerfont{subsection in toc}
