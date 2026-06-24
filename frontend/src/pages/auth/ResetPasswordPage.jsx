@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
             return;
         }
 
-        if (!/^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).+$/.test(newPassword)) {
+        if (!/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/.test(newPassword)) {
             setError('Password must contain at least one letter, one number, and one special character');
             return;
         }

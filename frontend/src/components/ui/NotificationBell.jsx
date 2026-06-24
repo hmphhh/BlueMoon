@@ -43,6 +43,7 @@ export default function NotificationBell({ user }) {
     const [recentNotifications, setRecentNotifications] = useState([]);
     const [loadingRecent, setLoadingRecent] = useState(false);
     const dropdownRef = useRef(null);
+    const [tick, setTick] = useState(0);
 
     const isAdmin = user?.role === 'ADMIN';
     const notifPagePath = isAdmin ? '/admin-notifications' : '/my-notifications';
@@ -51,6 +52,7 @@ export default function NotificationBell({ user }) {
     useEffect(() => {
         fetchUnreadCount();
         const interval = setInterval(fetchUnreadCount, 30 * 60 * 1000);
+        const tickTimer = setInterval(() => setTick(t => t + 1), 60000);
 
         // Listen for manual update events
         const handleUpdate = () => fetchUnreadCount();
@@ -58,6 +60,7 @@ export default function NotificationBell({ user }) {
 
         return () => {
             clearInterval(interval);
+            clearInterval(tickTimer);
             window.removeEventListener('notification-update', handleUpdate);
         };
     }, []);

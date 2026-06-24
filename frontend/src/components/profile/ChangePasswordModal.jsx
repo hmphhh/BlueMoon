@@ -24,7 +24,7 @@ export default function ChangePasswordModal({ onSuccess, onCancel, toast }) {
             newErrors.newPassword = 'New password is required';
         } else if (formData.newPassword.length < 8) {
             newErrors.newPassword = 'New password must be at least 8 characters';
-        } else if (!/^(?=.*[a-zA-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).+$/.test(formData.newPassword)) {
+        } else if (!/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d]).+$/.test(formData.newPassword)) {
             newErrors.newPassword = 'Password must contain at least one letter, one number, and one special character';
         }
 

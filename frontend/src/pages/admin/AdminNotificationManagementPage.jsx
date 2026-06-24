@@ -7,8 +7,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080';
 const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-GB', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
+        day: '2-digit', month: '2-digit', year: 'numeric'
     });
 };
 

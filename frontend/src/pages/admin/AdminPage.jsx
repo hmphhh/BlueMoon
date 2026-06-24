@@ -34,9 +34,12 @@ export default function AdminPage({ user }) {
     const [stats, setStats] = useState({ users: 0, apartments: 0, admins: 0, overdueBills: 0, unpaidBills: 0, pendingReports: 0, totalRevenue: 0 });
     const [recentActivities, setRecentActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [tick, setTick] = useState(0);
 
     useEffect(() => {
         fetchStats();
+        const timer = setInterval(() => setTick(t => t + 1), 60000);
+        return () => clearInterval(timer);
     }, []);
 
     const fetchStats = async () => {
